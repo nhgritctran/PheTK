@@ -1,16 +1,6 @@
-# load libraries
-
-# standard libraries
-import os
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from datetime import datetime, date
-from IPython.display import display, HTML
-
-# PheWAS_Pool
-import traceback
 import multiprocessing
+import pandas as pd
+import polars as pl
 import statsmodels.api as sm
 
 
@@ -50,7 +40,7 @@ class PheWAS_Pool:
     def __init__(self,
                  phecode_counts,
                  covariates,
-                 indep_var_of_interest="",
+                 independent_var_of_interest="",
                  phecode_process='all',
                  min_cases=100,
                  genderspec_independent_var_names=["age_at_last_event",
@@ -66,7 +56,7 @@ class PheWAS_Pool:
         print("~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS AOU Object    ~~~~~~~~~~~~~~~~~~~~~~~")
 
         # create instance attributes
-        self.indep_var_of_interest = indep_var_of_interest
+        self.independent_var_of_interest = independent_var_of_interest
         # update 09_5_2019: only process phecodes passed in phecode counts
         if phecode_process == 'all':
             self.phecode_list = phecode_counts["phecode"].unique().tolist()
@@ -80,10 +70,10 @@ class PheWAS_Pool:
         self.demo_patients_phecodes = pd.merge(covariates, phecode_counts, on="person_id")
         self.show_res = show_res
         self.independent_var_names = independent_var_names
-        self.independent_var_names = list(np.append(np.array([self.indep_var_of_interest]),
+        self.independent_var_names = list(np.append(np.array([self.independent_var_of_interest]),
                                                     self.independent_var_names))
         self.genderspec_independent_var_names = genderspec_independent_var_names
-        self.genderspec_independent_var_names = list(np.append(np.array([self.indep_var_of_interest]),
+        self.genderspec_independent_var_names = list(np.append(np.array([self.independent_var_of_interest]),
                                                                self.genderspec_independent_var_names))
         self.remove_dup = list(np.append(np.array(["person_id"]),
                                          self.independent_var_names))
@@ -115,11 +105,8 @@ class PheWAS_Pool:
             try:
                 # First, need to define the exclusions, sufficient to just use the ICD9 one since the
                 # overall phecodes are the same
-                phecode_exclusions = ICD9_exclude[
-                    ICD9_exclude["code"] == phecode
-                    ][
-                    "exclusion_criteria"
-                ].unique().tolist()
+                phecode_exclusions = ICD9_exclude[ICD9_exclude["code"] == phecode]["exclusion_criteria"]\
+                                    .unique().tolist()
 
                 # we need to do sex specific counting here.
                 # First find all people with at least 2 of the phecode
@@ -209,10 +196,10 @@ class PheWAS_Pool:
                     converged = pd.read_html(results_as_html)[0].iloc[5, 1]
                     results_as_html = result.summary().tables[1].as_html()
                     res = pd.read_html(results_as_html, header=0, index_col=0)[0]
-                    p_value = result.pvalues[self.indep_var_of_interest]
-                    beta_ind = result.params[self.indep_var_of_interest]
-                    conf_int_1 = res.loc[self.indep_var_of_interest]['[0.025']
-                    conf_int_2 = res.loc[self.indep_var_of_interest]['0.975]']
+                    p_value = result.pvalues[self.independent_var_of_interest]
+                    beta_ind = result.params[self.independent_var_of_interest]
+                    conf_int_1 = res.loc[self.independent_var_of_interest]['[0.025']
+                    conf_int_2 = res.loc[self.independent_var_of_interest]['0.975]']
 
                     # combining stat outputs and return
                     self.return_dict[phecode] = [phecode, cases.shape[0],
