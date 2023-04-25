@@ -4,229 +4,193 @@ import polars as pl
 import statsmodels.api as sm
 
 
-class PheWAS_Pool:
-    """
-    Class for performing PheWAS
-    ---
-    attributes:
-
-        phecode_counts: Pandas Dataframe of Phecodes
-
-        covariates: Pandas Dataframe of covariates to include in the analysis
-
-        indep_var: String indicating the column in covariates that is the
-                   independent variable of interest
-
-        CDR_version: String indicating CDR version. Removed by HM
-
-        phecode_process: list for phecodes to process
-
-        min_cases: minimum number of cases for an individual phenotype to be analyzed
-
-        cores: if not "", then specify number of cores to use in the analysis
-               default updated by HM to multiprocessing.cpu_count() - 1
-    ---
-    methods:
-        .run() method to run PheWAS analysis
-        .logit_Phecode_results() method to retrieve analysis output
-    ---
-    REQUIRED variables must be loaded prior to running PheWAS:
-        phecode_info
-        phecode_counts
-        ICD9_exclude
-        sex_at_birth_restriction
-    """
+class PheWAS:
 
     def __init__(self,
+                 phecode_df,
                  phecode_counts,
-                 covariates,
-                 independent_var_of_interest="",
-                 phecode_process='all',
-                 min_cases=100,
-                 genderspec_independent_var_names=["age_at_last_event",
-                                                   "ehr_length",
-                                                   "code_cnt"],
-                 independent_var_names=["age_at_last_event",
-                                        "ehr_length",
-                                        "code_cnt",
-                                        "male"],
-                 show_res=False,
-                 cores=multiprocessing.cpu_count() - 1):  # cores default updated by HM
+                 covariate_df,
+                 gender_col=None,
+                 covariate_cols=None,
+                 independent_var_col=None,
+                 phecode_to_process="all",
+                 min_cases=50,
+                 verbose=False):
 
-        print("~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS AOU Object    ~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        # create instance attributes
-        self.independent_var_of_interest = independent_var_of_interest
-        # update 09_5_2019: only process phecodes passed in phecode counts
-        if phecode_process == 'all':
+        # basic attributes
+        self.phecode_df = phecode_df
+        self.phecode_counts = self._to_polars(phecode_counts)
+        self.covariate_df = self._to_polars(covariate_df)
+        self.gender_col = gender_col
+        self.covariate_cols = covariate_cols
+        self.independent_var_col = independent_var_col
+        self.verbose = verbose
+        self.min_cases = min_cases
+        self.cores = multiprocessing.cpu_count() - 1
+
+        # self.phecode_list
+        if phecode_to_process == "all":
             self.phecode_list = phecode_counts["phecode"].unique().tolist()
         else:
-            self.phecode_list = phecode_process
-        #         self.CDR_version = CDR_version
-        self.cores = cores
+            self.phecode_list = phecode_to_process
 
-        print("~~~~~~~~~~~~~~~~~~~    Merging Phecodes and Covariates    ~~~~~~~~~~~~~~~~~~~~")
+        # merge phecode_counts and covariate_df and define column name groups
+        self.merged_df = pl.join(covariate_df, phecode_counts, how="inner", on="person_id")
+        self.covariate_cols = self.independent_var_col + self.covariate_cols + self.gender_col
+        self.gender_specific_covariate_cols = self.independent_var_col + self.covariate_cols
 
-        self.demo_patients_phecodes = pd.merge(covariates, phecode_counts, on="person_id")
-        self.show_res = show_res
-        self.independent_var_names = independent_var_names
-        self.independent_var_names = list(np.append(np.array([self.independent_var_of_interest]),
-                                                    self.independent_var_names))
-        self.genderspec_independent_var_names = genderspec_independent_var_names
-        self.genderspec_independent_var_names = list(np.append(np.array([self.independent_var_of_interest]),
-                                                               self.genderspec_independent_var_names))
-        self.remove_dup = list(np.append(np.array(["person_id"]),
-                                         self.independent_var_names))
-        self.min_cases = min_cases
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Done    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-    def runPheLogit(self, phecodes, min_count=2):
+    @staticmethod
+    def _to_polars(df):
         """
-        PheWAS logistic regression
-        ---
-        input
-            phecodes: unqiue phecode list, partitioned from .run() method
-            min_count: minimum phecode count to define cases, default = 2
-        ---
-        output
-            self.return_dict: key = phecode
-                              value = phecode,cases.shape[0],
-                                      control.shape[0],
-                                      p_value,
-                                      beta_ind,
-                                      conf_int_1,
-                                      conf_int_2,
-                                      converged
+        check and convert pandas dataframe object to polars dataframe, if applicable
+        :param df: dataframe object
+        :return: polars dataframe
         """
-        # diagnostics
-        # min_count:
-        for phecode in phecodes:
-            # init error
-            error = "Other Error"
-            try:
-                # First, need to define the exclusions, sufficient to just use the ICD9 one since the
-                # overall phecodes are the same
-                phecode_exclusions = ICD9_exclude[ICD9_exclude["code"] == phecode]["exclusion_criteria"]\
-                                    .unique().tolist()
+        if isinstance(df, pd.DataFrame):
+            return pl.from_pandas(df)
+        else:
+            pass
 
-                # we need to do sex specific counting here.
-                # First find all people with at least 2 of the phecode
-                cases = self.demo_patients_phecodes[
-                    (self.demo_patients_phecodes["phecode"] == phecode) &
-                    (self.demo_patients_phecodes["count"] >= min_count)]
+    def _sex_restriction(self, phecode):
+        """
+        :param phecode: phecode of interest
+        :return: sex restriction and respective analysis covariates
+        """
 
-                # now determine if there is a sex specific restriction
-                # this is convoluted, but it is written this way to avoid storing
-                # another copy of all the data in memory
-                # HM updated phecode datatype as tring
-                # sex_at_birth_restriction is a global variable
-                male_only = sex_at_birth_restriction[
-                                sex_at_birth_restriction["phecode"] == phecode
-                                ]["male_only"] == True
-                female_only = sex_at_birth_restriction[
-                                  sex_at_birth_restriction["phecode"] == phecode
-                                  ]["female_only"] == True
+        filtered_df = self.phecode_df.filter(pl.col("phecode") == phecode)
+        sex_restriction = filtered_df["sex"].unique().to_list()[0]
 
-                # now, if sex at birth specific, filter all the people to the proper sex
-                # and set the right covariates
-                if len(np.array(male_only)) > 0 and np.array(male_only)[0] == True:
-                    analysis_independent_var_names = self.genderspec_independent_var_names
-                    cases = cases[cases['male'] == 1]  # restrict to males
+        if sex_restriction == "Both":
+            analysis_covariate_cols = self.covariate_cols
+        else:
+            analysis_covariate_cols = self.gender_specific_covariate_cols
 
-                # if female only, then restrict to people who are female == 1
-                elif len(np.array(female_only)) > 0 and np.array(female_only)[0] == True:
-                    analysis_independent_var_names = self.genderspec_independent_var_names
-                    cases = cases[cases['female'] == 1]  # restrict to females
+        return sex_restriction, analysis_covariate_cols
 
-                # otherwise there is no restriction, so we can use sex at birth in the analyses
-                else:
-                    analysis_independent_var_names = self.independent_var_names
+    def _exclude_range(self, phecode):
+        """
+        process text data in exclude_range column; exclusively for phecodeX
+        :param phecode: phecode of interest
+        :return: processed exclude_range, either None or a valid list of phecode(s)
+        """
+        # not all phecode has exclude_range
+        # exclude_range can be single code (e.g., "777"), single range (e.g., "777-780"),
+        # or multiple ranges/codes (e.g., "750-777,586.2")
+        phecodes_without_exclude_range = self.merged_df.filter(
+            pl.col("exclude_range").is_null()["phecode"].unique().to_list()
+        )
+        if phecode in phecodes_without_exclude_range:
+            exclude_range = []
+        else:
+            # get exclude_range value of phecode
+            ex_val = self.merged_df.filter(pl.col("phecode") == phecode)["exclude_range"].unique().to_list()[0]
 
-                # Now cases have been properly modified and so we remove any duplicates and
-                # restrict the analysis to just the regressors
-                cases = cases[self.remove_dup].drop_duplicates()[analysis_independent_var_names]
-
-                # Now test to see if we have enough cases
-                # This is written like this to avoid unnecessary compute for phecodes
-                # for which we don't have enough cases
-                if cases.shape[0] >= self.min_cases:
-                    # if it passes, create set all people that need to be excluded
-                    exclude = self.demo_patients_phecodes[
-                        (self.demo_patients_phecodes["phecode"].isin(
-                            np.append(phecode_exclusions, phecode)))]
-
-                    # if sex specific, restrict analyses to just that sex at birth
-                    if len(np.array(male_only)) > 0 and np.array(male_only)[0] == True:
-                        control = self.demo_patients_phecodes[
-                            (self.demo_patients_phecodes.person_id.isin(exclude.person_id) == False) &
-                            (self.demo_patients_phecodes.male == 1)]  # pick off just the males
-
-                    # if female only, then restrict to people who are female == 1
-                    elif len(np.array(female_only)) > 0 and np.array(female_only)[0] == True:
-                        control = self.demo_patients_phecodes[
-                            (self.demo_patients_phecodes.person_id.isin(exclude.person_id) == False) &
-                            (self.demo_patients_phecodes.female == 1)]  # pick off just the males
-
-                    # otherwise there is no restriction, so we can use sex at birth in the analyses
+            # split multiple codes/ranges
+            comma_split = ex_val.split(",")
+            if len(comma_split) == 1:
+                exclude_range = comma_split
+            else:
+                exclude_range = []
+                for item in comma_split:
+                    # process range in text form
+                    if "-" in item:
+                        first_code = item.split("-")[0]
+                        last_code = item.split("-")[1]
+                        dash_range = [str(i) for i in range(int(first_code), int(last_code))] + [last_code]
+                        exclude_range = exclude_range + dash_range
                     else:
-                        control = self.demo_patients_phecodes[
-                            self.demo_patients_phecodes.person_id.isin(exclude.person_id) == False]
+                        exclude_range = exclude_range + [item]
 
-                    # Now controls have been properly modified and so we remove
-                    # any duplicates and restrict the analysis to just the regressors
-                    control = control[self.remove_dup].drop_duplicates()[analysis_independent_var_names]
+        return exclude_range
 
-                    ###################################################################################
-                    ## Perform Logistic regression
-                    ## Now run through the logit function from stats models
-                    ###################################################################################
-                    y = [1] * cases.shape[0] + [0] * control.shape[0]
-                    regressors = pd.concat([cases, control])
-                    regressors = sm.tools.add_constant(regressors)
-                    logit = sm.Logit(y, regressors, missing='drop')
-                    result = logit.fit(disp=False)
+    def _case_prep(self, phecode):
+        """
+        prepare PheWAS case data
+        :param phecode: phecode of interest
+        :return: polars dataframe of case data
+        """
 
-                    # choose to see results on the fly
-                    if self.show_res == True:
-                        print(result.summary())
-                    else:
-                        pass
+        # case participants with at least 2 of the phecode
+        cases = self.merged_df.filter((pl.col("phecode") == phecode) &
+                                      (pl.col("count") >= 2))
 
-                    # preparing outputs
-                    results_as_html = result.summary().tables[0].as_html()
-                    converged = pd.read_html(results_as_html)[0].iloc[5, 1]
-                    results_as_html = result.summary().tables[1].as_html()
-                    res = pd.read_html(results_as_html, header=0, index_col=0)[0]
-                    p_value = result.pvalues[self.independent_var_of_interest]
-                    beta_ind = result.params[self.independent_var_of_interest]
-                    conf_int_1 = res.loc[self.independent_var_of_interest]['[0.025']
-                    conf_int_2 = res.loc[self.independent_var_of_interest]['0.975]']
+        # select data based on phecode "sex", e.g., male/female only or both
+        sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
+        if sex_restriction == "Male":
+            cases = cases.filter(pl.col("male") == 1)
+        elif sex_restriction == "Female":
+            cases = cases.filter(pl.col("female") == 1)
 
-                    # combining stat outputs and return
-                    self.return_dict[phecode] = [phecode, cases.shape[0],
-                                                 control.shape[0],
-                                                 p_value,
-                                                 beta_ind,
-                                                 conf_int_1,
-                                                 conf_int_2,
-                                                 converged]
+        # drop duplicates and keep analysis covariate cols only
+        duplicate_check_cols = ["person_id"] + analysis_covariate_cols
+        cases = cases.unique(subset=duplicate_check_cols)[analysis_covariate_cols]
 
-                else:
-                    error = "Error in Phecode: " + str(phecode) + \
-                            ": Number of cases less than minimum of " + str(self.min_cases)
+        return cases
 
-                # add dummy 'control' and 'regressors' varibles in case they were not created
-                # to avoid error 'control'/'regressors' referenced before assignment when del is called
-                try:
-                    control
-                except NameError:
-                    control = pd.DataFrame()
-                    regressors = pd.DataFrame()
-                del [control, cases, regressors]
+    def _control_prep(self, phecode):
+        """
+        prepare PheWAS control data
+        :param phecode: phecode of interest
+        :return: polars dataframe of control data
+        """
 
-            except Exception as e:
-                print(error + ": " + str(e))
-                # self.run_outcome_error.append(phecode)
-                # pass
+        # phecode exclusions
+        exclude_range = self._exclude_range(phecode) + [phecode]
+
+        # select control data based on
+        sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
+        base_controls = self.merged_df.filter(~(pl.col("phecode").is_in(exclude_range)))
+        if sex_restriction == "Male":
+            controls = base_controls.filter(pl.col("male") == 1)
+        elif sex_restriction == "Female":
+            controls = base_controls.filter(pl.col("female") == 1)
+        else:
+            controls = base_controls
+
+        # drop duplicates and keep analysis covariate cols only
+        duplicate_check_cols = ["person_id"] + analysis_covariate_cols
+        controls = controls.unique(subset=duplicate_check_cols)[analysis_covariate_cols]
+
+        return controls
+
+    def result_prep(self, result_summary):
+        # preparing outputs
+        results_as_html = result.summary().tables[0].as_html()
+        converged = pl.read_html(results_as_html)[0].iloc[5, 1]
+        results_as_html = result.summary().tables[1].as_html()
+        res = pd.read_html(results_as_html, header=0, index_col=0)[0]
+        p_value = result.pvalues[self.indep_var_of_interest]
+        beta_ind = result.params[self.indep_var_of_interest]
+        conf_int_1 = res.loc[self.indep_var_of_interest]['[0.025']
+        conf_int_2 = res.loc[self.indep_var_of_interest]['0.975]']
+
+    def logistic_regression(self, phecode):
+        sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
+        cases = self._case_prep(phecode)
+
+        # only run regression if number of cases > min_cases
+        if len(cases) >= self.min_cases:
+            controls = self._control_prep(phecode)
+
+            # add case/control values
+            cases = cases.with_columns(pl.Series([1] * len(cases)).alias("case"))
+            controls = controls.with_columns(pl.Series([0] * len(controls)).alias("case"))
+
+            # merge cases & controls
+            regressors = pl.concat(cases, controls)
+
+            # logistic regression
+            regressors = sm.tools.add_constant(regressors[analysis_covariate_cols].to_numpy())
+            logit = sm.Logit(regressors["case"].to_numpy(), regressors, missing='drop')
+            result = logit.fit(disp=False)
+
+            # choose to see results on the fly
+            if self.verbose:
+                print(result.summary())
 
     # now define function for running the phewas
     def run(self):

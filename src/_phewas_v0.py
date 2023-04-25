@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime, date
 from IPython.display import display, HTML
 
-# PheWAS_Pool
+# PheWAS
 import traceback
 import multiprocessing
 import statsmodels.api as sm
