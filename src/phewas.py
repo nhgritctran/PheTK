@@ -16,6 +16,7 @@ class PheWAS:
                  phecode_to_process="all",
                  min_cases=50,
                  min_phecode_count=2,
+                 use_exclusion=True,
                  verbose=False):
 
         print("~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -30,6 +31,7 @@ class PheWAS:
         self.verbose = verbose
         self.min_cases = min_cases
         self.min_phecode_count = min_phecode_count
+        self.use_exclusion = use_exclusion
         self.cores = multiprocessing.cpu_count() - 1
 
         # self.phecode_list
@@ -133,7 +135,7 @@ class PheWAS:
 
         return cases
 
-    def _control_prep(self, phecode, use_exclusion=True):
+    def _control_prep(self, phecode):
         """
         prepare PheWAS control data
         :param phecode: phecode of interest
@@ -141,10 +143,10 @@ class PheWAS:
         """
 
         # phecode exclusions
-        if use_exclusion:
-            exclude_range = self._exclude_range(phecode) + [phecode]
+        if self.use_exclusion:
+            exclude_range = [phecode] + self._exclude_range(phecode)
         else:
-            exclude_range = []
+            exclude_range = [phecode]
 
         # select control data based on
         sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
@@ -162,28 +164,34 @@ class PheWAS:
 
         return controls
 
-    def result_prep(self, result):
+    @staticmethod
+    def _result_prep(result, var_of_interest_index):
         """
         process result from statsmodels
         :param result: logistic regression result
+        :param var_of_interest_index: index of variable of interest
         :return: dataframe with key statistics
         """
-        # preparing outputs
+
         results_as_html = result.summary().tables[0].as_html()
-        converged = pl.read_html(results_as_html)[0].iloc[5, 1]
+        converged = pd.read_html(results_as_html)[0].iloc[5, 1]
         results_as_html = result.summary().tables[1].as_html()
         res = pd.read_html(results_as_html, header=0, index_col=0)[0]
-        p_value = result.pvalues[self.indep_var_of_interest]
-        beta_ind = result.params[self.indep_var_of_interest]
-        conf_int_1 = res.loc[self.indep_var_of_interest]['[0.025']
-        conf_int_2 = res.loc[self.indep_var_of_interest]['0.975]']
 
-    def logistic_regression(self, phecode):
+        p_value = result.pvalues[var_of_interest_index]
+        beta_ind = result.params[var_of_interest_index]
+        conf_int_1 = res.loc[var_of_interest_index]['[0.025']
+        conf_int_2 = res.loc[var_of_interest_index]['0.975]']
+
+        return [p_value, beta_ind, conf_int_1, conf_int_2, converged]
+
+    def _logistic_regression(self, phecode):
         """
         logistic regression of single phecode
         :param phecode: phecode of interest
         :return: logistic regression result object
         """
+
         sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
         cases = self._case_prep(phecode)
 
@@ -197,6 +205,8 @@ class PheWAS:
 
             # merge cases & controls
             regressors = pl.concat(cases, controls)
+            # get index of independent_var_col; +1 to account for constant column added subsequently
+            var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col) + 1
 
             # logistic regression
             regressors = sm.tools.add_constant(regressors[analysis_covariate_cols].to_numpy())
@@ -207,27 +217,20 @@ class PheWAS:
             if self.verbose:
                 print(result.summary())
 
-    # now define function for running the phewas
+            # process result
+            stats = self._result_prep(result=result, var_of_interest_index=var_index)
+            stats = [phecode, len(cases), len(controls)] + stats
+
+            return {phecode: stats}
+
+    # now define function for running PheWAS
     def run(self):
-        """
-        this method utilize multiprocessing tool and call runPheLogit() method.
-        ---
-        input
-            no input needed, but required variables must be preloaded
-            required variables must be loaded prior to running PheWAS:
-                phecode_info
-                ICD9_exclude
-                sex_at_birth_restriction
-        ---
-        output
-            dataframe containing phecode logistic regression results
-        """
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         # we will use multiprocessing tool for this
         manager = multiprocessing.Manager()
-        self.return_dict = manager.dict()
+        return_dict = manager.dict()
 
         # this needs to have a particular list structure for the multiprocessing
         partitions = [
@@ -237,7 +240,7 @@ class PheWAS:
 
         # iterating over the list of indices 'partitions'
         # and subsetting the phenotypes to just the batch in index i of indices
-        map_result = pool.map_async(self.logistic_regression, partitions)
+        map_result = pool.map_async(self._logistic_regression, partitions)
 
         pool.close()
         pool.join()
@@ -245,7 +248,7 @@ class PheWAS:
         print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         # processing output
-        logit_Phecode_results = [self.return_dict[k] for k in self.return_dict.keys()]
+        logit_Phecode_results = [return_dict[k] for k in return_dict.keys()]
         logit_Phecode_results = pd.DataFrame(logit_Phecode_results)
         logit_Phecode_results.columns = ["phecode", "cases",
                                          "control", "p_value",
