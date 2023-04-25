@@ -15,6 +15,7 @@ class PheWAS:
                  independent_var_col=None,
                  phecode_to_process="all",
                  min_cases=50,
+                 min_phecode_count=2,
                  verbose=False):
 
         print("~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -28,6 +29,7 @@ class PheWAS:
         self.independent_var_col = independent_var_col
         self.verbose = verbose
         self.min_cases = min_cases
+        self.min_phecode_count = min_phecode_count
         self.cores = multiprocessing.cpu_count() - 1
 
         # self.phecode_list
@@ -116,7 +118,7 @@ class PheWAS:
 
         # case participants with at least 2 of the phecode
         cases = self.merged_df.filter((pl.col("phecode") == phecode) &
-                                      (pl.col("count") >= 2))
+                                      (pl.col("count") >= self.min_phecode_count))
 
         # select data based on phecode "sex", e.g., male/female only or both
         sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
@@ -131,7 +133,7 @@ class PheWAS:
 
         return cases
 
-    def _control_prep(self, phecode):
+    def _control_prep(self, phecode, use_exclusion=True):
         """
         prepare PheWAS control data
         :param phecode: phecode of interest
@@ -139,7 +141,10 @@ class PheWAS:
         """
 
         # phecode exclusions
-        exclude_range = self._exclude_range(phecode) + [phecode]
+        if use_exclusion:
+            exclude_range = self._exclude_range(phecode) + [phecode]
+        else:
+            exclude_range = []
 
         # select control data based on
         sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
