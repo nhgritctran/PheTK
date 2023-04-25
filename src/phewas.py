@@ -157,7 +157,12 @@ class PheWAS:
 
         return controls
 
-    def result_prep(self, result_summary):
+    def result_prep(self, result):
+        """
+        process result from statsmodels
+        :param result: logistic regression result
+        :return: dataframe with key statistics
+        """
         # preparing outputs
         results_as_html = result.summary().tables[0].as_html()
         converged = pl.read_html(results_as_html)[0].iloc[5, 1]
@@ -169,6 +174,11 @@ class PheWAS:
         conf_int_2 = res.loc[self.indep_var_of_interest]['0.975]']
 
     def logistic_regression(self, phecode):
+        """
+        logistic regression of single phecode
+        :param phecode: phecode of interest
+        :return: logistic regression result object
+        """
         sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
         cases = self._case_prep(phecode)
 
@@ -222,7 +232,7 @@ class PheWAS:
 
         # iterating over the list of indices 'partitions'
         # and subsetting the phenotypes to just the batch in index i of indices
-        map_result = pool.map_async(self.runPheLogit, partitions)
+        map_result = pool.map_async(self.logistic_regression, partitions)
 
         pool.close()
         pool.join()
