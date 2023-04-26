@@ -39,7 +39,7 @@ class PheWAS:
         # merge phecode_counts and covariate_df and define column name groups
         self.merged_df = covariate_df.join(phecode_counts, how="inner", on="person_id")
         self.covariate_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
-        self.gender_specific_covariate_cols = self.independent_var_col + self.covariate_cols
+        self.gender_specific_covariate_cols = [self.independent_var_col] + self.covariate_cols
         if phecode_to_process == "all":
             self.phecode_list = self.merged_df["phecode"].unique().tolist()
         else:
