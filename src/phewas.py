@@ -225,7 +225,9 @@ class PheWAS:
             var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col)
 
             # logistic regression
-            warnings.simplefilter("ignore", ConvergenceWarning)
+            warnings.filterwarnings("ignore",
+                                    category=ConvergenceWarning,
+                                    message=f"Phecode {phecode}: Convergence Warning!")
             y = regressors["y"].to_numpy()
             regressors = regressors[analysis_covariate_cols].to_numpy()
             regressors = sm.tools.add_constant(regressors, prepend=False)
