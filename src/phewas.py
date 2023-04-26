@@ -46,7 +46,7 @@ class PheWAS:
         else:
             self.phecode_list = phecode_to_process
 
-        self.result = self.run()
+        self.result = None
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Done    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
@@ -256,8 +256,6 @@ class PheWAS:
 
         result_dicts = [job.result() for job in tqdm(jobs) if job.result()]
         result_df = pl.from_dicts(result_dicts)
-        result_df = result_df.join(self.phecode_df[["ICD", "flag", "phecode_string", "phecode_category"]])
+        self.result = result_df.join(self.phecode_df[["ICD", "flag", "phecode_string", "phecode_category"]])
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-
-        return result_df
