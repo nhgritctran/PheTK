@@ -261,8 +261,8 @@ class PheWAS:
 
         result_dicts = [job.result() for job in tqdm(jobs) if job.result()]
         result_df = pl.from_dicts(result_dicts)
-        self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]],
-                                     how="inner",
+        self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
+                                     how="left",
                                      on="phecode")
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -271,7 +271,9 @@ class PheWAS:
         self.bonferroni = 0.05 / self.tested_count
         self.above_bonferroni_count = len(self.result.filter(pl.col("neg_log_p_value") > self.bonferroni))
 
+        print()
         print("Run Summary:")
+        print("-----------")
         print("Total number of phecodes in cohort:", len(self.phecode_list))
         print(f"Number of phecodes having less than {self.min_cases} cases:", self.not_tested_count)
         print("Number of phecodes tested:", self.tested_count)
