@@ -38,8 +38,8 @@ class PheWAS:
         self.cores = multiprocessing.cpu_count() - 1
 
         # merge phecode_counts and covariate_df and define column name groups
-        self.gender_specific_var_cols = self.covariate_cols + [self.independent_var_col]
-        self.var_cols = self.covariate_cols + [self.gender_col] + [self.independent_var_col]
+        self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
+        self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
         self.merged_df = covariate_df.join(phecode_counts, how="inner", on="person_id")
         if phecode_to_process == "all":
             self.phecode_list = self.merged_df["phecode"].unique().to_list()
@@ -214,7 +214,7 @@ class PheWAS:
             regressors = cases.vstack(controls)
 
             # get index of independent_var_col; +1 to account for constant column added subsequently
-            var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col) + 1
+            var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col)
 
             # logistic regression
             y = regressors["y"].to_numpy()
