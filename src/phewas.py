@@ -86,8 +86,8 @@ class PheWAS:
         # exclude_range can be single code (e.g., "777"), single range (e.g., "777-780"),
         # or multiple ranges/codes (e.g., "750-777,586.2")
         phecodes_without_exclude_range = self.merged_df.filter(
-            pl.col("exclude_range").is_null()["phecode"].unique().to_list()
-        )
+            pl.col("exclude_range").is_null()
+        )["phecode"].unique().to_list()
         if phecode in phecodes_without_exclude_range:
             exclude_range = []
         else:
