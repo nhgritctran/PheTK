@@ -251,7 +251,7 @@ class PheWAS:
         #
         # return pl.from_dicts(result_dicts)
 
-        for phecode in self.phecode_list:
+        for phecode in tqdm(self.phecode_list):
             self._logistic_regression(phecode)
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
