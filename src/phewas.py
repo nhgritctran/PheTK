@@ -1,4 +1,5 @@
 from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 import numpy as np
 import pandas as pd
@@ -237,15 +238,15 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        with multiprocessing.Pool() as pool:
-            results = pool.map_async(self._logistic_regression, self.phecode_list)
+        jobs = []
+        with ThreadPoolExecutor(max_workers=os.cpu_count() - 1) as executor:
+            for phecode in tqdm(self.phecode_list):
+                jobs.append(self._logistic_regression, phecode)
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        result_list = []
-        for result in tqdm(results.get()):
-            result_list.append(result)
+        result_dicts = [job.result() for job in jobs]
 
-        return pl.from_dicts(result_list)
+        return pl.from_dicts(result_dicts)
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
