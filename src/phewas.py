@@ -239,7 +239,7 @@ class PheWAS:
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         jobs = []
-        with ThreadPoolExecutor(max_workers=os.cpu_count() - 1) as executor:
+        with ThreadPoolExecutor() as executor:
             for phecode in tqdm(self.phecode_list):
                 jobs.append(self._logistic_regression, phecode)
 
