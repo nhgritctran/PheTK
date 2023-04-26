@@ -217,8 +217,9 @@ class PheWAS:
             var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col) + 1
 
             # logistic regression
+            y = regressors["y"].to_numpy()
             regressors = sm.tools.add_constant(regressors[analysis_covariate_cols].to_numpy())
-            logit = sm.Logit(regressors["y"].to_numpy(), regressors, missing="drop")
+            logit = sm.Logit(y, regressors, missing="drop")
             result = logit.fit(disp=False)
 
             # choose to see results on the fly
