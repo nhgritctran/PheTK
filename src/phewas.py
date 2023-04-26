@@ -70,11 +70,11 @@ class PheWAS:
         sex_restriction = filtered_df["sex"].unique().to_list()[0]
 
         if sex_restriction == "Both":
-            analysis_covariate_cols = self.var_cols
+            analysis_var_cols = self.var_cols
         else:
-            analysis_covariate_cols = self.gender_specific_var_cols
+            analysis_var_cols = self.gender_specific_var_cols
 
-        return sex_restriction, analysis_covariate_cols
+        return sex_restriction, analysis_var_cols
 
     def _exclude_range(self, phecode):
         """
@@ -124,15 +124,15 @@ class PheWAS:
                                       (pl.col("count") >= self.min_phecode_count))
 
         # select data based on phecode "sex", e.g., male/female only or both
-        sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
+        sex_restriction, analysis_var_cols = self._sex_restriction(phecode)
         if sex_restriction == "Male":
             cases = cases.filter(pl.col("male") == 1)
         elif sex_restriction == "Female":
             cases = cases.filter(pl.col("female") == 1)
 
         # drop duplicates and keep analysis covariate cols only
-        duplicate_check_cols = ["person_id"] + analysis_covariate_cols
-        cases = cases.unique(subset=duplicate_check_cols)[analysis_covariate_cols]
+        duplicate_check_cols = ["person_id"] + analysis_var_cols
+        cases = cases.unique(subset=duplicate_check_cols)[analysis_var_cols]
 
         return cases
 
