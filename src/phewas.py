@@ -226,8 +226,13 @@ class PheWAS:
             y = regressors["y"].to_numpy()
             regressors = regressors[analysis_covariate_cols].to_numpy()
             regressors = sm.tools.add_constant(regressors, prepend=False)
-            logit = sm.Logit(y, regressors, missing="drop")
-            result = logit.fit(disp=False)
+
+            try:
+                logit = sm.Logit(y, regressors, missing="drop")
+                result = logit.fit(disp=False)
+            except ValueError as e:
+                print(e)
+                return
 
             # process result
             base_dict = {"phecode": phecode,
@@ -277,5 +282,5 @@ class PheWAS:
         print("Total number of phecodes in cohort:", len(self.phecode_list))
         print(f"Number of phecodes having less than {self.min_cases} cases:", self.not_tested_count)
         print("Number of phecodes tested:", self.tested_count)
-        print(u"Suggested -log10 Bonferroni correction (-log\u20810 scale):", self.bonferroni)
+        print(u"Suggested Bonferroni correction (-log\u2081\u2080 scale):", self.bonferroni)
         print("Number of phecodes above Bonferroni correction:", self.above_bonferroni_count)
