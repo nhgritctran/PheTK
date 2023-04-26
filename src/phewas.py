@@ -268,7 +268,7 @@ class PheWAS:
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         self.tested_count = len(self.phecode_list) - self.not_tested_count
-        self.bonferroni = 0.05 / self.tested_count
+        self.bonferroni = -np.log10(0.05 / self.tested_count)
         self.above_bonferroni_count = len(self.result.filter(pl.col("neg_log_p_value") > self.bonferroni))
 
         print()
@@ -277,5 +277,5 @@ class PheWAS:
         print("Total number of phecodes in cohort:", len(self.phecode_list))
         print(f"Number of phecodes having less than {self.min_cases} cases:", self.not_tested_count)
         print("Number of phecodes tested:", self.tested_count)
-        print("Suggested Bonferroni correction:", self.bonferroni)
+        print("Suggested -log10 Bonferroni correction:", self.bonferroni)
         print("Number of phecodes above Bonferroni correction:", self.above_bonferroni_count)
