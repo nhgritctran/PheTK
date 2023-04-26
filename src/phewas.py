@@ -256,7 +256,7 @@ class PheWAS:
 
         result_dicts = [job.result() for job in tqdm(jobs) if job.result()]
         result_df = pl.from_dicts(result_dicts)
-        result_df = result_df.join(self.phecode_df[["ICD", "flag", "phecode_strings", "phecode_category"]])
+        result_df = result_df.join(self.phecode_df[["ICD", "flag", "phecode_string", "phecode_category"]])
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
