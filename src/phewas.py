@@ -38,9 +38,9 @@ class PheWAS:
         self.cores = multiprocessing.cpu_count() - 1
 
         # merge phecode_counts and covariate_df and define column name groups
+        self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
+        self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
         self.merged_df = covariate_df.join(phecode_counts, how="inner", on="person_id")
-        self.covariate_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
-        self.gender_specific_covariate_cols = [self.independent_var_col] + self.covariate_cols
         if phecode_to_process == "all":
             self.phecode_list = self.merged_df["phecode"].unique().to_list()
         else:
@@ -70,9 +70,9 @@ class PheWAS:
         sex_restriction = filtered_df["sex"].unique().to_list()[0]
 
         if sex_restriction == "Both":
-            analysis_covariate_cols = self.covariate_cols
+            analysis_covariate_cols = self.var_cols
         else:
-            analysis_covariate_cols = self.gender_specific_covariate_cols
+            analysis_covariate_cols = self.gender_specific_var_cols
 
         return sex_restriction, analysis_covariate_cols
 
