@@ -38,8 +38,8 @@ class PheWAS:
         self.cores = multiprocessing.cpu_count() - 1
 
         # merge phecode_counts and covariate_df and define column name groups
-        self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
-        self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
+        self.gender_specific_var_cols = self.covariate_cols + [self.independent_var_col]
+        self.var_cols = self.covariate_cols + [self.gender_col] + [self.independent_var_col]
         self.merged_df = covariate_df.join(phecode_counts, how="inner", on="person_id")
         if phecode_to_process == "all":
             self.phecode_list = self.merged_df["phecode"].unique().to_list()
@@ -218,7 +218,7 @@ class PheWAS:
 
             # logistic regression
             y = regressors["y"].to_numpy()
-            regressors = regressors[analysis_covariate_cols].to_pandas()
+            regressors = regressors[analysis_covariate_cols].to_numpy()
             regressors = sm.tools.add_constant(regressors)
             logit = sm.Logit(y, regressors, missing="drop")
             result = logit.fit(disp=False)
@@ -249,7 +249,7 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        result_dicts = [job.result() for job in jobs]
+        result_dicts = [job.result() for job in tqdm(jobs)]
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
