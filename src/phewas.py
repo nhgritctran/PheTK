@@ -92,7 +92,7 @@ class PheWAS:
             exclude_range = []
         else:
             # get exclude_range value of phecode
-            ex_val = self.merged_df.filter(pl.col("phecode") == phecode)["exclude_range"].unique().to_list()[0]
+            ex_val = self.phecode_df.filter(pl.col("phecode") == phecode)["exclude_range"].unique().to_list()[0]
 
             # split multiple codes/ranges
             comma_split = ex_val.split(",")
