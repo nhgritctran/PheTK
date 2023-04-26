@@ -232,10 +232,12 @@ class PheWAS:
 
             # choose to see results on the fly
             if self.verbose:
-                print(regressors)
                 print(result_dict)
 
             return result_dict
+
+        else:
+            print(f"{phecode} has {len(cases)} less than {self.min_cases}")
 
     # now define function for running PheWAS
     def run(self):
