@@ -37,7 +37,7 @@ class PheWAS:
         self.cores = multiprocessing.cpu_count() - 1
 
         # merge phecode_counts and covariate_df and define column name groups
-        self.merged_df = pl.join(covariate_df, phecode_counts, how="inner", on="person_id")
+        self.merged_df = covariate_df.join(phecode_counts, how="inner", on="person_id")
         self.covariate_cols = self.independent_var_col + self.covariate_cols + self.gender_col
         self.gender_specific_covariate_cols = self.independent_var_col + self.covariate_cols
         if phecode_to_process == "all":
