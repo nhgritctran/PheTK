@@ -236,9 +236,6 @@ class PheWAS:
 
             return result_dict
 
-        else:
-            print(f"{phecode} has {len(cases)} less than {self.min_cases}")
-
     # now define function for running PheWAS
     def run(self):
 
@@ -251,10 +248,7 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        result_dicts = []
-        for job in tqdm(jobs):
-            print(job.result())
-            result_dicts.append(job)
+        result_dicts = [job.result() for job in tqdm(jobs) if job.result()]
         result_df = pl.from_dicts(result_dicts)
         result_df = result_df.drop_nulls()
 
