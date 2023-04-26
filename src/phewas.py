@@ -251,7 +251,10 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        result_dicts = [job.result() for job in tqdm(jobs) if pl.Null not in job]
+        result_dicts = []
+        for job in tqdm(jobs):
+            print(job.result())
+            result_dicts.append(job)
         result_df = pl.from_dicts(result_dicts)
         result_df = result_df.drop_nulls()
 
