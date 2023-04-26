@@ -241,7 +241,7 @@ class PheWAS:
         jobs = []
         with ThreadPoolExecutor() as executor:
             for phecode in tqdm(self.phecode_list):
-                jobs.append(self._logistic_regression, phecode)
+                jobs.append(executor.submit(self._logistic_regression, phecode))
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
