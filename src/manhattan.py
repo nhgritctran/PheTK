@@ -241,7 +241,7 @@ def Manhattan_Plot_Plus(PheWAS_results,
     if title is not None:
         plt.title(title, weight="bold", size=16)
 
-        ###################
+    ###################
     # DATA PROCESSING #
     ###################
 
