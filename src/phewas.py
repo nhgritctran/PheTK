@@ -46,6 +46,8 @@ class PheWAS:
         else:
             self.phecode_list = phecode_to_process
 
+        self.result = self.run()
+
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Done    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     @staticmethod
