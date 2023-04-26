@@ -211,10 +211,7 @@ class PheWAS:
             controls = controls.with_columns(pl.Series([0] * len(controls)).alias("y"))
 
             # merge cases & controls
-            try:
-                regressors = pl.concat(cases, controls)
-            except:
-                print(cases.schema, controls.schema)
+            regressors = pl.concat(cases, controls)
 
             # get index of independent_var_col; +1 to account for constant column added subsequently
             var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col) + 1
