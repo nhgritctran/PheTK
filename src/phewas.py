@@ -39,7 +39,6 @@ class PheWAS:
 
         # merge phecode_counts and covariate_df and define column name groups
         self.merged_df = covariate_df.join(phecode_counts, how="inner", on="person_id")
-        self.merged_df_schema = {"person_id": pl.Utf8} | self.merged_df.schema
         self.covariate_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
         self.gender_specific_covariate_cols = [self.independent_var_col] + self.covariate_cols
         if phecode_to_process == "all":
@@ -134,7 +133,6 @@ class PheWAS:
         # drop duplicates and keep analysis covariate cols only
         duplicate_check_cols = ["person_id"] + analysis_covariate_cols
         cases = cases.unique(subset=duplicate_check_cols)[analysis_covariate_cols]
-        cases.schema = self.merged_df_schema
 
         return cases
 
@@ -164,7 +162,6 @@ class PheWAS:
         # drop duplicates and keep analysis covariate cols only
         duplicate_check_cols = ["person_id"] + analysis_covariate_cols
         controls = controls.unique(subset=duplicate_check_cols)[analysis_covariate_cols]
-        controls.schema = self.merged_df_schema
 
         return controls
 
@@ -214,7 +211,11 @@ class PheWAS:
             controls = controls.with_columns(pl.Series([0] * len(controls)).alias("y"))
 
             # merge cases & controls
-            regressors = pl.concat(cases, controls)
+            try:
+                regressors = pl.concat(cases, controls)
+            except:
+                print(cases.schema, controls.schema)
+
             # get index of independent_var_col; +1 to account for constant column added subsequently
             var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col) + 1
 
