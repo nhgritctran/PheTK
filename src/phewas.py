@@ -261,8 +261,12 @@ class PheWAS:
 
         result_dicts = []
         for job in tqdm(jobs):
-            if job.result():
-                result_dicts.append(job.result())
+            try:
+                if job.result():
+                    result_dicts.append(job.result())
+            except ValueError as e:
+                print(e)
+                pass
         result_df = pl.from_dicts(result_dicts)
         self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
                                      how="left",
