@@ -252,7 +252,6 @@ class PheWAS:
 
         result_dicts = [job.result() for job in tqdm(jobs) if job.result()]
         result_df = pl.from_dicts(result_dicts)
-        result_df = result_df.drop_nulls()
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
