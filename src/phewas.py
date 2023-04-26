@@ -232,7 +232,7 @@ class PheWAS:
 
             # choose to see results on the fly
             if self.verbose:
-                print(result.summary())
+                print(regressors)
                 print(result_dict)
 
             return result_dict
@@ -250,7 +250,9 @@ class PheWAS:
         print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         result_dicts = [job.result() for job in tqdm(jobs)]
+        result_df = pl.from_dicts(result_dicts)
+        result_df = result_df.drop_nulls()
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        return pl.from_dicts(result_dicts)
+        return result_df
