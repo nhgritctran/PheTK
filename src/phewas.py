@@ -218,8 +218,8 @@ class PheWAS:
 
             # logistic regression
             y = regressors["y"].to_numpy()
-            regressors = sm.tools.add_constant(regressors[analysis_covariate_cols].to_numpy())
-            print(regressors)
+            regressors = regressors[analysis_covariate_cols].to_numpy()
+            regressors = sm.tools.add_constant(regressors)
             logit = sm.Logit(y, regressors, missing="drop")
             result = logit.fit(disp=False)
 
@@ -241,18 +241,15 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        # jobs = []
-        # with ThreadPoolExecutor() as executor:
-        #     for phecode in tqdm(self.phecode_list):
-        #         jobs.append(executor.submit(self._logistic_regression, phecode))
-        #
-        # print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        #
-        # result_dicts = [job.result() for job in jobs]
-        #
-        # return pl.from_dicts(result_dicts)
+        jobs = []
+        with ThreadPoolExecutor() as executor:
+            for phecode in tqdm(self.phecode_list):
+                jobs.append(executor.submit(self._logistic_regression, phecode))
 
-        for phecode in tqdm(self.phecode_list):
-            self._logistic_regression(phecode)
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+        result_dicts = [job.result() for job in jobs]
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+        return pl.from_dicts(result_dicts)
