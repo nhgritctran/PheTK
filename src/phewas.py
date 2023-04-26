@@ -207,8 +207,8 @@ class PheWAS:
             controls = self._control_prep(phecode)
 
             # add case/control values
-            cases = cases.with_columns(pl.Series([1] * len(cases)).alias("case"))
-            controls = controls.with_columns(pl.Series([0] * len(controls)).alias("case"))
+            cases = cases.with_columns(pl.Series([1] * len(cases)).alias("y"))
+            controls = controls.with_columns(pl.Series([0] * len(controls)).alias("y"))
 
             # merge cases & controls
             regressors = pl.concat(cases, controls)
@@ -217,7 +217,7 @@ class PheWAS:
 
             # logistic regression
             regressors = sm.tools.add_constant(regressors[analysis_covariate_cols].to_numpy())
-            logit = sm.Logit(regressors["case"].to_numpy(), regressors, missing="drop")
+            logit = sm.Logit(regressors["y"].to_numpy(), regressors, missing="drop")
             result = logit.fit(disp=False)
 
             # choose to see results on the fly
