@@ -181,8 +181,8 @@ class PheWAS:
 
         p_value = result.pvalues[var_of_interest_index]
         beta_ind = result.params[var_of_interest_index]
-        conf_int_1 = res.loc[var_of_interest_index]['[0.025']
-        conf_int_2 = res.loc[var_of_interest_index]['0.975]']
+        conf_int_1 = res.iloc[var_of_interest_index]['[0.025']
+        conf_int_2 = res.iloc[var_of_interest_index]['0.975]']
         neg_log_p_value = -np.log10(p_value)
 
         return {"p_value": p_value,
@@ -219,6 +219,7 @@ class PheWAS:
             # logistic regression
             y = regressors["y"].to_numpy()
             regressors = sm.tools.add_constant(regressors[analysis_covariate_cols].to_numpy())
+            print(regressors)
             logit = sm.Logit(y, regressors, missing="drop")
             result = logit.fit(disp=False)
 
