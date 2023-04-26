@@ -234,10 +234,13 @@ class PheWAS:
 
             # choose to see results on the fly
             if self.verbose:
-                print(result.summary())
-                print(result_dict)
+                print(f"Phecode {phecode}: {result_dict}")
 
             return result_dict
+
+        else:
+            if self.verbose:
+                print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.")
 
     # now define function for running PheWAS
     def run(self):
