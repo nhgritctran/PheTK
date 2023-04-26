@@ -47,8 +47,8 @@ class PheWAS:
             self.phecode_list = phecode_to_process
 
         self.result = None
-        self.not_tested_count = None
-        self.tested_count = None
+        self.not_tested_count = 0
+        self.tested_count = 0
         self.bonferroni = None
         self.above_bonferroni_count = None
 
