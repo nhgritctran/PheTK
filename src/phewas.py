@@ -223,16 +223,17 @@ class PheWAS:
             logit = sm.Logit(y, regressors, missing="drop")
             result = logit.fit(disp=False)
 
-            # choose to see results on the fly
-            if self.verbose:
-                print(result.summary())
-
             # process result
             base_dict = {"phecode": phecode,
                          "cases": len(cases),
                          "controls": len(controls)}
             stats_dict = self._result_prep(result=result, var_of_interest_index=var_index)
             result_dict = base_dict | stats_dict
+
+            # choose to see results on the fly
+            if self.verbose:
+                print(result.summary())
+                print(result_dict)
 
             return result_dict
 
