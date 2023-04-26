@@ -234,7 +234,7 @@ class PheWAS:
 
             # choose to see results on the fly
             if self.verbose:
-                print(regressors)
+                print(result.summary())
                 print(result_dict)
 
             return result_dict
