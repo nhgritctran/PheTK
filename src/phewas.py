@@ -226,13 +226,8 @@ class PheWAS:
             y = regressors["y"].to_numpy()
             regressors = regressors[analysis_covariate_cols].to_numpy()
             regressors = sm.tools.add_constant(regressors, prepend=False)
-
-            try:
-                logit = sm.Logit(y, regressors, missing="drop")
-                result = logit.fit(disp=False)
-            except ValueError as e:
-                print(e)
-                return
+            logit = sm.Logit(y, regressors, missing="drop")
+            result = logit.fit(disp=False)
 
             # process result
             base_dict = {"phecode": phecode,
@@ -264,7 +259,10 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        result_dicts = [job.result() for job in tqdm(jobs) if job.result()]
+        result_dicts = []
+        for job in tqdm(jobs):
+            if job.result():
+                result_dicts.append(job.result())
         result_df = pl.from_dicts(result_dicts)
         self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
                                      how="left",
