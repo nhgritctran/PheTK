@@ -119,7 +119,7 @@ class PheWAS:
         :return: polars dataframe of case data
         """
 
-        # case participants with at least 2 of the phecode
+        # case participants with at least <min_phecode_count> phecodes
         cases = self.merged_df.filter((pl.col("phecode") == phecode) &
                                       (pl.col("count") >= self.min_phecode_count))
 
@@ -133,6 +133,7 @@ class PheWAS:
         # drop duplicates and keep analysis covariate cols only
         duplicate_check_cols = ["person_id"] + analysis_covariate_cols
         cases = cases.unique(subset=duplicate_check_cols)[analysis_covariate_cols]
+        print(cases.head())
 
         return cases
 
@@ -162,6 +163,7 @@ class PheWAS:
         # drop duplicates and keep analysis covariate cols only
         duplicate_check_cols = ["person_id"] + analysis_covariate_cols
         controls = controls.unique(subset=duplicate_check_cols)[analysis_covariate_cols]
+        print(controls.head())
 
         return controls
 
