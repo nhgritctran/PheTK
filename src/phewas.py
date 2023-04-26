@@ -41,7 +41,7 @@ class PheWAS:
         self.covariate_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
         self.gender_specific_covariate_cols = [self.independent_var_col] + self.covariate_cols
         if phecode_to_process == "all":
-            self.phecode_list = self.merged_df["phecode"].unique().tolist()
+            self.phecode_list = self.merged_df["phecode"].unique().to_list()
         else:
             self.phecode_list = phecode_to_process
 
