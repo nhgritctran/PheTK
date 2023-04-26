@@ -45,7 +45,7 @@ class PheWAS:
             self.phecode_list = self.merged_df["phecode"].unique().to_list()
         else:
             self.phecode_list = phecode_to_process
-
+        self.not_tested_count = 0
         self.result = None
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Done    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -203,7 +203,6 @@ class PheWAS:
 
         sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
         cases = self._case_prep(phecode)
-        self.not_tested_count = 0
 
         # only run regression if number of cases > min_cases
         if len(cases) >= self.min_cases:
