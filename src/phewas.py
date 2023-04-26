@@ -215,13 +215,13 @@ class PheWAS:
             # merge cases & controls
             regressors = cases.vstack(controls)
 
-            # get index of independent_var_col; +1 to account for constant column added subsequently
+            # get index of independent_var_col
             var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col)
 
             # logistic regression
             y = regressors["y"].to_numpy()
             regressors = regressors[analysis_covariate_cols].to_numpy()
-            regressors = sm.tools.add_constant(regressors)
+            regressors = sm.tools.add_constant(regressors, prepend=False)
             logit = sm.Logit(y, regressors, missing="drop")
             result = logit.fit(disp=False)
 
@@ -234,6 +234,7 @@ class PheWAS:
 
             # choose to see results on the fly
             if self.verbose:
+                print(regressors)
                 print(result_dict)
 
             return result_dict
