@@ -1,4 +1,3 @@
-# Manhattan plot
 import adjustText
 from adjustText import *
 from matplotlib.lines import Line2D

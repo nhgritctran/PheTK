@@ -1,4 +1,6 @@
+from tqdm import tqdm
 import multiprocessing
+import numpy as np
 import pandas as pd
 import polars as pl
 import statsmodels.api as sm
@@ -34,16 +36,14 @@ class PheWAS:
         self.use_exclusion = use_exclusion
         self.cores = multiprocessing.cpu_count() - 1
 
-        # self.phecode_list
-        if phecode_to_process == "all":
-            self.phecode_list = phecode_counts["phecode"].unique().tolist()
-        else:
-            self.phecode_list = phecode_to_process
-
         # merge phecode_counts and covariate_df and define column name groups
         self.merged_df = pl.join(covariate_df, phecode_counts, how="inner", on="person_id")
         self.covariate_cols = self.independent_var_col + self.covariate_cols + self.gender_col
         self.gender_specific_covariate_cols = self.independent_var_col + self.covariate_cols
+        if phecode_to_process == "all":
+            self.phecode_list = self.merged_df["phecode"].unique().tolist()
+        else:
+            self.phecode_list = phecode_to_process
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Done    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
@@ -182,8 +182,14 @@ class PheWAS:
         beta_ind = result.params[var_of_interest_index]
         conf_int_1 = res.loc[var_of_interest_index]['[0.025']
         conf_int_2 = res.loc[var_of_interest_index]['0.975]']
+        neg_log_p_value = -np.log10(p_value)
 
-        return [p_value, beta_ind, conf_int_1, conf_int_2, converged]
+        return {"p_value": p_value,
+                "neg_log_p_value": neg_log_p_value,
+                "beta_ind": beta_ind,
+                "conf_int_1": conf_int_1,
+                "conf_int_2": conf_int_2,
+                "converged": converged}
 
     def _logistic_regression(self, phecode):
         """
@@ -210,7 +216,7 @@ class PheWAS:
 
             # logistic regression
             regressors = sm.tools.add_constant(regressors[analysis_covariate_cols].to_numpy())
-            logit = sm.Logit(regressors["case"].to_numpy(), regressors, missing='drop')
+            logit = sm.Logit(regressors["case"].to_numpy(), regressors, missing="drop")
             result = logit.fit(disp=False)
 
             # choose to see results on the fly
@@ -218,47 +224,28 @@ class PheWAS:
                 print(result.summary())
 
             # process result
-            stats = self._result_prep(result=result, var_of_interest_index=var_index)
-            stats = [phecode, len(cases), len(controls)] + stats
+            base_dict = {"phecode": phecode,
+                         "cases": len(cases),
+                         "controls": len(controls)}
+            stats_dict = self._result_prep(result=result, var_of_interest_index=var_index)
+            result_dict = base_dict | stats_dict
 
-            return {phecode: stats}
+            return result_dict
 
     # now define function for running PheWAS
     def run(self):
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        # we will use multiprocessing tool for this
-        manager = multiprocessing.Manager()
-        return_dict = manager.dict()
-
-        # this needs to have a particular list structure for the multiprocessing
-        partitions = [
-            list(ind) for ind in np.array_split(self.phecode_list, self.cores)
-        ]
-        pool = multiprocessing.Pool(processes=self.cores)
-
-        # iterating over the list of indices 'partitions'
-        # and subsetting the phenotypes to just the batch in index i of indices
-        map_result = pool.map_async(self._logistic_regression, partitions)
-
-        pool.close()
-        pool.join()
+        with multiprocessing.Pool() as pool:
+            results = pool.map_async(self._logistic_regression, self.phecode_list)
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        # processing output
-        logit_Phecode_results = [return_dict[k] for k in return_dict.keys()]
-        logit_Phecode_results = pd.DataFrame(logit_Phecode_results)
-        logit_Phecode_results.columns = ["phecode", "cases",
-                                         "control", "p_value",
-                                         "beta_ind", "conf_int_1",
-                                         "conf_int_2", "converged"]
-        logit_Phecode_results["code_val"] = logit_Phecode_results["phecode"].astype('float')
-        logit_Phecode_results["neg_p_log_10"] = -np.log10(logit_Phecode_results["p_value"])
-        logit_Phecode_results = pd.merge(phecode_info, logit_Phecode_results)
+        result_list = []
+        for result in tqdm(results.get()):
+            result_list.append(result)
 
-        # now save logit phecode as attribute
-        self.logit_Phecode_results = logit_Phecode_results
+        return pl.from_dicts(result_list)
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
