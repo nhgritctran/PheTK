@@ -277,5 +277,5 @@ class PheWAS:
         print("Total number of phecodes in cohort:", len(self.phecode_list))
         print(f"Number of phecodes having less than {self.min_cases} cases:", self.not_tested_count)
         print("Number of phecodes tested:", self.tested_count)
-        print(r"Suggested -log10 Bonferroni correction ($-\log_{10}$ scale):", self.bonferroni)
+        print(u"Suggested -log10 Bonferroni correction (-log\u20810 scale):", self.bonferroni)
         print("Number of phecodes above Bonferroni correction:", self.above_bonferroni_count)
