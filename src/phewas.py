@@ -45,8 +45,12 @@ class PheWAS:
             self.phecode_list = self.merged_df["phecode"].unique().to_list()
         else:
             self.phecode_list = phecode_to_process
-        self.not_tested_count = 0
+
         self.result = None
+        self.not_tested_count = None
+        self.tested_count = None
+        self.bonferroni = None
+        self.above_bonferroni_count = None
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Done    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
@@ -257,9 +261,19 @@ class PheWAS:
 
         result_dicts = [job.result() for job in tqdm(jobs) if job.result()]
         result_df = pl.from_dicts(result_dicts)
-        self.result = result_df.join(self.phecode_df[["phecode", "ICD", "flag", "phecode_string", "phecode_category"]],
+        self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]],
                                      how="left",
                                      on="phecode")
-        print("Not tested:", self.not_tested_count)
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+        self.tested_count = len(self.phecode_list) - self.not_tested_count
+        self.bonferroni = 0.05 / self.tested_count
+        self.above_bonferroni_count = len(self.result.filter(pl.col("neg_log_p_value") > self.bonferroni))
+
+        print("Run Summary:")
+        print("Total number of phecodes in cohort:", len(self.phecode_list))
+        print(f"Number of phecodes having less than {self.min_cases} cases:", self.not_tested_count)
+        print("Number of phecodes tested:", self.tested_count)
+        print("Suggested Bonferroni correction:", self.bonferroni)
+        print("Number of phecodes above Bonferroni correction:", self.above_bonferroni_count)
