@@ -1,10 +1,12 @@
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
+from statsmodels.tools.sm_exceptions import ConvergenceWarning
 import multiprocessing
 import numpy as np
 import pandas as pd
 import polars as pl
 import statsmodels.api as sm
+import warnings
 
 
 class PheWAS:
@@ -223,6 +225,7 @@ class PheWAS:
             var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col)
 
             # logistic regression
+            warnings.simplefilter("ignore", ConvergenceWarning)
             y = regressors["y"].to_numpy()
             regressors = regressors[analysis_covariate_cols].to_numpy()
             regressors = sm.tools.add_constant(regressors, prepend=False)
