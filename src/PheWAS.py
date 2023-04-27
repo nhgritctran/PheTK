@@ -41,7 +41,7 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        # basic attributes
+        # basic attributes from instantiation
         self.phecode_df = phecode_df
         self.phecode_counts = self._to_polars(phecode_counts)
         self.covariate_df = self._to_polars(covariate_df)
@@ -54,7 +54,7 @@ class PheWAS:
         self.use_exclusion = use_exclusion
         self.suppress_warnings = suppress_warnings
 
-        # merge phecode_counts and covariate_df and define column name groups
+        # additional attributes
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
         self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
         self.merged_df = covariate_df.join(phecode_counts, how="inner", on="person_id")
@@ -64,6 +64,7 @@ class PheWAS:
         else:
             self.phecode_list = phecode_to_process
 
+        # attributes for reporting PheWAS results
         self.result = None
         self.not_tested_count = 0
         self.tested_count = 0
