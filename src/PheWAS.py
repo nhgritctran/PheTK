@@ -1,5 +1,4 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from numpy.linalg.linalg import LinAlgError
 from tqdm import tqdm
 import multiprocessing
 import numpy as np
@@ -260,7 +259,7 @@ class PheWAS:
             for job in tqdm(as_completed(jobs), total=len(self.phecode_list)):
                 try:
                     result = job.result()
-                except LinAlgError as err:
+                except np.linalg.linalg.LinAlgError as err:
                     if "Singular matrix" in str(err):
                         pass
                     else:
