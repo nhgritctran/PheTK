@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from numpy.linalg.linalg import LinAlgError
 from tqdm import tqdm
 import multiprocessing
@@ -263,7 +263,7 @@ class PheWAS:
         print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         result_dicts = []
-        for job in tqdm(jobs):
+        for job in tqdm(as_completed(jobs)):
             try:
                 result = job.result()
             except LinAlgError as err:
@@ -285,7 +285,7 @@ class PheWAS:
         self.above_bonferroni_count = len(self.result.filter(pl.col("neg_log_p_value") > self.bonferroni))
 
         print()
-        print("Run Summary:")
+        print("Run Summary")
         print("-----------")
         print("Total number of phecodes in cohort:", len(self.phecode_list))
         print(f"Number of phecodes having less than {self.min_cases} cases:", self.not_tested_count)
