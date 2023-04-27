@@ -260,23 +260,22 @@ class PheWAS:
             for phecode in tqdm(self.phecode_list):
                 jobs.append(executor.submit(self._logistic_regression, phecode))
 
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-
-        result_dicts = []
-        for job in tqdm(as_completed(jobs)):
-            try:
-                result = job.result()
-            except LinAlgError as err:
-                if "Singular matrix" in str(err):
-                    pass
-                else:
-                    raise
-            if result:
-                result_dicts.append(result)
+            result_dicts = []
+            for job in tqdm(as_completed(jobs)):
+                try:
+                    result = job.result()
+                except LinAlgError as err:
+                    if "Singular matrix" in str(err):
+                        pass
+                    else:
+                        raise
+                if result:
+                    result_dicts.append(result)
         result_df = pl.from_dicts(result_dicts)
         self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
                                      how="left",
                                      on="phecode")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
