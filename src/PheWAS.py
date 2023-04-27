@@ -280,6 +280,7 @@ class PheWAS:
         print()
         print("Run Summary")
         print("-----------")
+        print("Total number of participant in cohort:", {self.merged_df.person_id.n_unique()})
         print("Total number of phecodes in cohort:", len(self.phecode_list))
         print(f"Number of phecodes having less than {self.min_cases} cases:", self.not_tested_count)
         print("Number of phecodes tested:", self.tested_count)
