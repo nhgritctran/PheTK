@@ -13,15 +13,31 @@ class PheWAS:
                  phecode_df,
                  phecode_counts,
                  covariate_df,
-                 gender_col=None,
-                 covariate_cols=None,
-                 independent_var_col=None,
+                 gender_col,
+                 covariate_cols,
+                 independent_var_col,
                  phecode_to_process="all",
                  min_cases=50,
                  min_phecode_count=2,
                  use_exclusion=True,
                  verbose=False,
-                 suppress_error=True):
+                 suppress_warnings=True):
+        """
+        :param phecode_df: dataframe contains phecode information & mapping; included in folder "phecode"
+        :param phecode_counts: phecode count of relevant participants at minimum
+        :param covariate_df: dataframe contains person_id and covariates of interest;
+                             must have both "male" and "female" columns
+        :param gender_col: gender/sex column of interest; either "male" or "female" column can be used
+        :param covariate_cols: name of covariate columns; excluding independent var of interest
+        :param independent_var_col: binary "case" column to specify participants with/without variant of interest
+        :param phecode_to_process: defaults to "all"; otherwise, a list of phecodes must be provided
+        :param min_cases: defaults to 50; minimum number of cases for each phecode to be considered for PheWAS
+        :param min_phecode_count: defaults to 2; minimum number of phecode count to qualify as case for PheWAS
+        :param use_exclusion: defaults to True; whether to use additional exclusion range in control for PheWAS
+        :param verbose: defaults to False; if True, print brief result of each phecode run
+        :param suppress_warnings: defaults to True;
+                                  if True, ignore common exception warnings such as ConvergenceWarnings, etc.
+        """
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
@@ -36,7 +52,7 @@ class PheWAS:
         self.min_cases = min_cases
         self.min_phecode_count = min_phecode_count
         self.use_exclusion = use_exclusion
-        self.suppress_error = suppress_error
+        self.suppress_warnings = suppress_warnings
 
         # merge phecode_counts and covariate_df and define column name groups
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
@@ -224,7 +240,7 @@ class PheWAS:
             var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col)
 
             # logistic regression
-            if self.suppress_error:
+            if self.suppress_warnings:
                 warnings.simplefilter("ignore")
             y = regressors["y"].to_numpy()
             regressors = regressors[analysis_covariate_cols].to_numpy()
