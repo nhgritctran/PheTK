@@ -1,6 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
-import multiprocessing
 import numpy as np
 import pandas as pd
 import polars as pl
@@ -21,7 +20,8 @@ class PheWAS:
                  min_cases=50,
                  min_phecode_count=2,
                  use_exclusion=True,
-                 verbose=False):
+                 verbose=False,
+                 suppress_error=True):
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
@@ -36,7 +36,7 @@ class PheWAS:
         self.min_cases = min_cases
         self.min_phecode_count = min_phecode_count
         self.use_exclusion = use_exclusion
-        self.cores = multiprocessing.cpu_count() - 1
+        self.suppress_error = suppress_error
 
         # merge phecode_counts and covariate_df and define column name groups
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
@@ -223,7 +223,8 @@ class PheWAS:
             var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col)
 
             # logistic regression
-            warnings.simplefilter("ignore")
+            if self.suppress_error:
+                warnings.simplefilter("ignore")
             y = regressors["y"].to_numpy()
             regressors = regressors[analysis_covariate_cols].to_numpy()
             regressors = sm.tools.add_constant(regressors, prepend=False)
