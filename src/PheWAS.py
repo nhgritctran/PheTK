@@ -52,6 +52,7 @@ class PheWAS:
         self.not_tested_count = 0
         self.tested_count = 0
         self.bonferroni = None
+        self.phecodes_above_bonferroni = None
         self.above_bonferroni_count = None
 
     @staticmethod
@@ -276,7 +277,8 @@ class PheWAS:
 
         self.tested_count = len(self.phecode_list) - self.not_tested_count
         self.bonferroni = -np.log10(0.05 / self.tested_count)
-        self.above_bonferroni_count = len(self.result.filter(pl.col("neg_log_p_value") > self.bonferroni))
+        self.phecodes_above_bonferroni = self.result.filter(pl.col("neg_log_p_value") > self.bonferroni)
+        self.above_bonferroni_count = len(self.phecodes_above_bonferroni)
 
         print()
         print("Run Summary")
@@ -287,3 +289,4 @@ class PheWAS:
         print("Number of phecodes tested:", self.tested_count)
         print(u"Suggested Bonferroni correction (-log\u2081\u2080 scale):", self.bonferroni)
         print("Number of phecodes above Bonferroni correction:", self.above_bonferroni_count)
+        print(self.phecodes_above_bonferroni)
