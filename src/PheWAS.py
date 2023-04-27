@@ -255,13 +255,10 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        jobs = []
         with ThreadPoolExecutor() as executor:
-            for phecode in tqdm(self.phecode_list):
-                jobs.append(executor.submit(self._logistic_regression, phecode))
-
+            jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
             result_dicts = []
-            for job in tqdm(as_completed(jobs)):
+            for job in tqdm(as_completed(jobs), total=len(self.phecode_list)):
                 try:
                     result = job.result()
                 except LinAlgError as err:
