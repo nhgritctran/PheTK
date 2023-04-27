@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from IPython.display import display
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
@@ -289,4 +290,4 @@ class PheWAS:
         print("Number of phecodes tested:", self.tested_count)
         print(u"Suggested Bonferroni correction (-log\u2081\u2080 scale):", self.bonferroni)
         print("Number of phecodes above Bonferroni correction:", self.above_bonferroni_count)
-        print(self.phecodes_above_bonferroni)
+        display(self.phecodes_above_bonferroni)
