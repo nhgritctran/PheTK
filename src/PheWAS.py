@@ -280,9 +280,6 @@ class PheWAS:
         self.phecodes_above_bonferroni = self.result.filter(pl.col("neg_log_p_value") > self.bonferroni)
         self.above_bonferroni_count = len(self.phecodes_above_bonferroni)
 
-        print()
-        print("Run Summary")
-        print("-----------")
         print("Number of participants in cohort:", self.cohort_size)
         print("Number of phecodes in cohort:", len(self.phecode_list))
         print(f"Number of phecodes having less than {self.min_cases} cases:", self.not_tested_count)
