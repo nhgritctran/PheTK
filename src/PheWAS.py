@@ -43,6 +43,7 @@ class PheWAS:
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
         self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
         self.merged_df = covariate_df.join(phecode_counts, how="inner", on="person_id")
+        self.cohort_size = self.covariate_df.n_unique()
         if phecode_to_process == "all":
             self.phecode_list = self.merged_df["phecode"].unique().to_list()
         else:
@@ -280,7 +281,7 @@ class PheWAS:
         print()
         print("Run Summary")
         print("-----------")
-        print("Total number of participant in cohort:", {self.covariate_df.n_unique()})
+        print("Total number of participant in cohort:", {self.cohort_size})
         print("Total number of phecodes in cohort:", len(self.phecode_list))
         print(f"Number of phecodes having less than {self.min_cases} cases:", self.not_tested_count)
         print("Number of phecodes tested:", self.tested_count)
