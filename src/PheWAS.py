@@ -1,5 +1,4 @@
 from concurrent.futures import ThreadPoolExecutor
-from statsmodels.tools.sm_exceptions import ConvergenceWarning
 from numpy.linalg.linalg import LinAlgError
 from tqdm import tqdm
 import multiprocessing
@@ -226,7 +225,7 @@ class PheWAS:
             var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col)
 
             # logistic regression
-            warnings.simplefilter("ignore", ConvergenceWarning)
+            warnings.simplefilter("ignore")
             y = regressors["y"].to_numpy()
             regressors = regressors[analysis_covariate_cols].to_numpy()
             regressors = sm.tools.add_constant(regressors, prepend=False)
@@ -269,7 +268,7 @@ class PheWAS:
                 result_dicts.append(job.result())
             except LinAlgError as err:
                 if "Singular matrix" in str(err):
-                    print(job.result())
+                    pass
                 else:
                     raise
 
