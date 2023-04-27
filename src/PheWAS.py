@@ -1,5 +1,4 @@
 from concurrent.futures import ThreadPoolExecutor
-from numpy.linalg.linalg import LinAlgError
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 from tqdm import tqdm
 import multiprocessing
@@ -263,7 +262,6 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        warnings.simplefilter("ignore", LinAlgError)
         result_dicts = []
         for job in tqdm(jobs):
             try:
