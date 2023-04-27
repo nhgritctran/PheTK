@@ -1,6 +1,7 @@
-from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
+from numpy.linalg.linalg import LinAlgError
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
+from tqdm import tqdm
 import multiprocessing
 import numpy as np
 import pandas as pd
@@ -225,14 +226,16 @@ class PheWAS:
             var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col)
 
             # logistic regression
-            warnings.filterwarnings("ignore",
-                                    category=ConvergenceWarning,
-                                    message=f"Phecode {phecode}: Convergence Warning!")
             y = regressors["y"].to_numpy()
             regressors = regressors[analysis_covariate_cols].to_numpy()
             regressors = sm.tools.add_constant(regressors, prepend=False)
-            logit = sm.Logit(y, regressors, missing="drop")
-            result = logit.fit(disp=False)
+
+            try:
+                logit = sm.Logit(y, regressors, missing="drop")
+                result = logit.fit(disp=False)
+            except ConvergenceWarning:
+                print(f"Phecode {phecode} ({len(cases)} cases : {len(controls)} controls): Convergence Warning!")
+                print(result.summary())
 
             # process result
             base_dict = {"phecode": phecode,
