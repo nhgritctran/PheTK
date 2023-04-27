@@ -227,7 +227,6 @@ class PheWAS:
 
             # logistic regression
             warnings.simplefilter("ignore", ConvergenceWarning)
-            warnings.simplefilter("ignore", LinAlgError)
             y = regressors["y"].to_numpy()
             regressors = regressors[analysis_covariate_cols].to_numpy()
             regressors = sm.tools.add_constant(regressors, prepend=False)
@@ -264,6 +263,7 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
+        warnings.simplefilter("ignore", LinAlgError)
         result_dicts = []
         for job in tqdm(jobs):
             try:
