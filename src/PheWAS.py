@@ -24,7 +24,7 @@ class PheWAS:
                  use_exclusion=True,
                  verbose=False):
 
-        print("~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         # basic attributes
         self.phecode_df = phecode_df
@@ -53,8 +53,6 @@ class PheWAS:
         self.tested_count = 0
         self.bonferroni = None
         self.above_bonferroni_count = None
-
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Done    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     @staticmethod
     def _to_polars(df):
@@ -253,7 +251,7 @@ class PheWAS:
     # now define function for running PheWAS
     def run(self):
 
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         with ThreadPoolExecutor() as executor:
             jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
@@ -272,9 +270,8 @@ class PheWAS:
         self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
                                      how="left",
                                      on="phecode")
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~    Processing Results    ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         self.tested_count = len(self.phecode_list) - self.not_tested_count
         self.bonferroni = -np.log10(0.05 / self.tested_count)
