@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
+from numpy.linalg.linalg import LinAlgError
 from tqdm import tqdm
 import multiprocessing
 import numpy as np
@@ -265,11 +266,13 @@ class PheWAS:
         result_dicts = []
         for job in tqdm(jobs):
             try:
-                if job.result():
-                    result_dicts.append(job.result())
-            except ValueError as e:
-                print(e)
-                pass
+                result_dicts.append(job.result())
+            except LinAlgError as err:
+                if "Singular matrix" in str(err):
+                    print(job.result())
+                else:
+                    raise
+
         result_df = pl.from_dicts(result_dicts)
         self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
                                      how="left",
