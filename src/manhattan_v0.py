@@ -180,6 +180,7 @@ def map_color(df):
 
 
 def Manhattan_Plot_Plus(PheWAS_results,
+                        bonferroni,
                         group="all",
                         annotate="description",
                         by_beta_abs=True,  # Otherwise by p_value
@@ -221,7 +222,8 @@ def Manhattan_Plot_Plus(PheWAS_results,
 
     # boferroni
     #     bonf_corr = .05/phecode_counts["phecode"].nunique() # based on total phecodes available
-    bonf_corr = .05 / PheWAS_results_ehr["phecode"].nunique()  # based on number phecodes in PheWAS result
+    # bonf_corr = .05 / PheWAS_results_ehr["phecode"].nunique()  # based on number phecodes in PheWAS result
+    bonf_corr = bonferroni
 
     # initilize plot
     fig, ax = plt.subplots(figsize=(20, 10))
