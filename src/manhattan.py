@@ -397,8 +397,8 @@ def manhattan_plot(phewas_result,
     adjustText.plt.xlim(float(PheWAS_results_ehr[xtick_val].min()) - line_x_offset - 1,
                         float(PheWAS_results_ehr[xtick_val].max()) + line_x_offset + 1)
     # x axes ticks
-    adjustText.plt.xticks(PheWas_ticks[xtick_val].sort_values("phecode_category"),
-                          PheWas_ticks["phecode_category"],
+    adjustText.plt.xticks(PheWas_ticks[xtick_val],
+                          PheWas_ticks.sort_values("phecode_category")["phecode_category"],
                           rotation=45,
                           ha="right",
                           weight="bold",
