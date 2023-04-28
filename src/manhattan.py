@@ -1,3 +1,4 @@
+from adjustText import *
 from IPython.display import display
 from matplotlib.lines import Line2D
 import adjustText
