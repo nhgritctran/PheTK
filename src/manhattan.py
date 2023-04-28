@@ -186,7 +186,7 @@ def map_color(df):
     return df
 
 
-def Manhattan_Plot(phewas_result,
+def manhattan_plot(phewas_result,
                    bonferroni,
                    phecode_category="all",
                    annotate="phecode_string",
