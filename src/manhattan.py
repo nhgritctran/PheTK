@@ -404,7 +404,7 @@ def manhattan_plot(phewas_result,
                           weight="bold",
                           size=12)
     # tick colors
-    tickcolors = PheWAS_results_ehr["color"].unique().tolist()
+    tickcolors = PheWAS_results_ehr.sort_values("phecode_category")["color"].unique().tolist()
     for ticklabel, tickcolor in zip(adjustText.plt.gca().get_xticklabels(), tickcolors):
         ticklabel.set_color(tickcolor)
 
