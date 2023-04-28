@@ -362,7 +362,7 @@ def Manhattan_Plot_Plus(PheWAS_results,
               label="0.05")
 
     # bonferroni line
-    ax.hlines(-np.log10(bonf_corr),
+    ax.hlines(bonf_corr,
               0 - line_x_offset,
               PheWAS_results_ehr[xlim_col_name].max() + line_x_offset,
               colors="g",
