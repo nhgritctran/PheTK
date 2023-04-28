@@ -1,69 +1,77 @@
-import adjustText
-from adjustText import *
+from IPython.display import display
 from matplotlib.lines import Line2D
-import matplotlib.colors as mc
+import adjustText
 import colorsys
+import matplotlib.colors as mc
+import pandas as pd
 
 
 def adjust_lightness(color, amount=0.5):
-    '''
-    method to djust color lightness
-    ---
-    input
-        color: str, color name, in 'color' column in result table
-        amount: default = 0.5
-    ---
-    output
-        color from HSV coordinates to RGB coordinates
-    '''
+    """
+    adjust color lightness
+    :param color: str, color name, in 'color' column in result table
+    :param amount: defaults to 0.5
+    :return: color from HSV coordinates to RGB coordinates
+    """
     try:
         c = mc.cnames[color]
-    except:
+    except NameError:
         c = color
     c = colorsys.rgb_to_hls(*mc.to_rgb(c))
     return colorsys.hls_to_rgb(c[0], max(0, min(1, amount * c[1])), c[2])
 
 
 def return_table(df, phenotypes, name="", as_or=False):
+    """
+    method to manipulate input dataframe
+    :param df: input dataframe
+    :param phenotypes: series, phenotype phecode_string
+    :param name: str
+    :param as_or: defaults to False
+    :return: table with new columns, including "β" or "OR"
+    """
     '''
     method to manipulate input dataframe
     ---
     input
         df: dataframe
-        phenotypes: series, phenotype description
+        phenotypes: series, phenotype phecode_string
         name: str
     ---
     output
         return table with new columns, including "β" or "OR"
     '''
-    if as_or == False:
+    if not as_or:
         # print(phenotypes)
-        ret = df.loc[df["description"].isin(phenotypes)][["index", "phecode", "description",
-                                                          "group", "cases", "control",
+        ret = df.loc[df["phecode_string"].isin(phenotypes)][["index", "phecode", "phecode_string",
+                                                          "phecode_category", "cases", "control",
                                                           "beta_ind", "conf_int_1",
                                                           "conf_int_2", "p_value", "color"]]
         #         display(ret.head())
-        ret["β"] = (np.round(ret['beta_ind'], decimals=2).apply(str) + " (" +
-                    np.round(ret['conf_int_1'], decimals=2).apply(str) + ", " +
-                    np.round(ret['conf_int_2'], decimals=2).apply(str) + ")")
+        ret["β"] = (adjustText.adjustText.np.round(ret['beta_ind'], decimals=2).apply(str) + " (" +
+                    adjustText.adjustText.np.round(ret['conf_int_1'], decimals=2).apply(str) + ", " +
+                    adjustText.adjustText.np.round(ret['conf_int_2'], decimals=2).apply(str) + ")")
 
         ret = ret.drop(["beta_ind", "conf_int_1", "conf_int_2"], axis=1)
         ret.columns = [str(col) + "_" + name for col in ret.columns]
     else:
-        ret = df.loc[df["description"].isin(phenotypes)][["index", "phecode", "description",
-                                                          "group", "cases", "control",
+        ret = df.loc[df["phecode_string"].isin(phenotypes)][["index", "phecode", "phecode_string",
+                                                          "phecode_category", "cases", "control",
                                                           "beta_ind", "conf_int_1",
                                                           "conf_int_2", "p_value", "color"]]
-        ret["OR"] = (np.round(np.exp(ret['beta_ind']), decimals=2).apply(str) + " (" +
-                     np.round(np.exp(ret['conf_int_1']), decimals=2).apply(str) + ", " +
-                     np.round(np.exp(ret['conf_int_2']), decimals=2).apply(str) + ")")
+        ret["OR"] = (adjustText.adjustText.np.round(adjustText.adjustText.np.exp(ret['beta_ind']), decimals=2).apply(
+            str) + " (" +
+                     adjustText.adjustText.np.round(adjustText.adjustText.np.exp(ret['conf_int_1']), decimals=2).apply(
+                         str) + ", " +
+                     adjustText.adjustText.np.round(adjustText.adjustText.np.exp(ret['conf_int_2']), decimals=2).apply(
+                         str) + ")")
         # ret = ret.drop(["beta_ind","conf_int_1","conf_int_2" ], axis=1)
         ret.columns = [str(col) + "_" + name for col in ret.columns]
     return ret
 
 
 def top_phenotypes(df_this, name="top", num=10, by_beta_abs=True):
-    '''
+    """
     method to get top phenotypes
     ---
     input
@@ -74,29 +82,29 @@ def top_phenotypes(df_this, name="top", num=10, by_beta_abs=True):
     ---
     ouput
         top phenotype table
-    '''
+    """
 
     # This line might give you empty phenotypes
     # df_this = df_this[df_this["neg_p_log_10"] >= bonf]
-    df_this["beta_abs"] = np.abs(df_this["beta_ind"])
+    df_this["beta_abs"] = adjustText.adjustText.np.abs(df_this["beta_ind"])
     if by_beta_abs:
         top = df_this.sort_values(["beta_abs"], ascending=False)
     else:
         top = df_this.sort_values(["p_value"], ascending=True)
-    table_formatted = return_table(df=top, phenotypes=top["description"], name=name)
+    table_formatted = return_table(df=top, phenotypes=top["phecode_string"], name=name)
     return table_formatted.head(num)
 
 
 def split_long_text(s):
-    '''
-    method to split long text, used for labeling phecode description
+    """
+    method to split long text, used for labeling phecode phecode_string
     ---
     input
-        s: tring variable, e.g., phecode description
+        s: tring variable, e.g., phecode phecode_string
     ---
     output
         s if len(s) < 40, else splitted into 2 lines at mid point
-    '''
+    """
     if len(s) > 40:
         words = s.split(" ")
         mid = len(words) // 2
@@ -115,7 +123,7 @@ def label_data(df,
                ccol,
                label_size=10,
                label_weight="normal"):
-    '''
+    """
     method to label data
     ---
     input
@@ -128,7 +136,7 @@ def label_data(df,
     ---
     output
         labels in plot via adjust_text function
-    '''
+    """
 
     texts = []
     for i in range(len(df)):
@@ -139,67 +147,72 @@ def label_data(df,
             color = df[ccol].iloc[i]
 
         # create texts variable
-        texts.append(plt.text(float(df[xcol].iloc[i]),
-                              df[ycol].iloc[i],
-                              split_long_text(df[dcol].iloc[i]),
-                              color=color,
-                              size=label_size,
-                              weight=label_weight))
+        texts.append(adjustText.plt.text(float(df[xcol].iloc[i]),
+                                         df[ycol].iloc[i],
+                                         split_long_text(df[dcol].iloc[i]),
+                                         color=color,
+                                         size=label_size,
+                                         weight=label_weight))
 
-    return adjust_text(texts, arrowprops=dict(arrowstyle="-", color='gray', lw=0.5))
+    return adjustText.adjust_text(texts, arrowprops=dict(arrowstyle="-", color='gray', lw=0.5))
 
 
 def map_color(df):
-    color_dict = {"blue": "blue",
-                  "darkcyan": "indianred",
-                  "brown": "darkcyan",
-                  "darkorange1": "goldenrod",
-                  "magenta": "darkblue",
-                  "darkblue": "magenta",
-                  "darkseagreen4": "green",
-                  "red": "red",
-                  "coral4": "darkturquoise",
-                  "chartreuse4": "olive",
-                  "black": "black",
-                  "royalblue4": "royalblue",
-                  "firebrick": "maroon",
-                  "darkolivegreen": "darkolivegreen",
-                  "mediumspringgreen": "coral",
-                  "purple": "purple",
-                  "gray50": "gray"}
-    if set(df["color"].unique()) == set(color_dict.values()):
-        pass
-    else:
-        df["color"] = df["color"].map(color_dict)
+    color_dict = {"Auditory": "blue",
+                  "Cardiovascular": "indianred",
+                  "Complications of care": "darkcyan",
+                  "Congenital": "goldenrod",
+                  "Dermatologic": "darkblue",
+                  "Developmental": "magenta",
+                  "Endocrine": "green",
+                  "Gastrointestinal": "red",
+                  "Genitourinary": "darkturquoise",
+                  "Haematopoietic": "olive",
+                  "Infectious": "black",
+                  "Metabolic": "royalblue",
+                  "Musculoskeletal": "maroon",
+                  "Neonate": "darkolivegreen",
+                  "Neoplastic": "coral",
+                  "Neurologic": "purple",
+                  "Ophthalmologic": "gray",
+                  "Pregnancy": "blue",
+                  "Psychiatric": "indianred",
+                  "Pulmonary": "darkcyan",
+                  "Rx": "goldenrod",
+                  "Signs/Symptoms": "darkblue",
+                  "Statistics": "magenta",
+                  "Traumatic": "green"}
+    df["color"] = df["phecode_category"].map(color_dict)
     return df
 
 
-def Manhattan_Plot_Plus(PheWAS_results,
-                        group="all",
-                        annotate="description",
-                        by_beta_abs=True,  # Otherwise by p_value
-                        size_beta=True,
-                        show_neg_beta=True,
-                        xtick_val="phecode",
-                        n_labels=10,
-                        label_size=10,
-                        label_weight="normal",
-                        label_color=None,
-                        title=None,
-                        show_legend=True,
-                        ylim=None):
-    '''
+def Manhattan_Plot(phewas_result,
+                   bonferroni,
+                   phecode_category="all",
+                   annotate="phecode_string",
+                   by_beta_abs=True,  # Otherwise by p_value
+                   size_beta=True,
+                   show_neg_beta=True,
+                   xtick_val="phecode",
+                   n_labels=10,
+                   label_size=10,
+                   label_weight="normal",
+                   label_color=None,
+                   title=None,
+                   show_legend=True,
+                   ylim=None):
+    """
     method for plotting Manhattan Plot
     ---
     input
-        group: list of groups to display (e.g. all, neoplasms)
-        annotate: "description" - phecode description
+        phecode_category: list of phecode_category to display (e.g. all, neoplasms)
+        annotate: "phecode_string" - phecode phecode_string
                   "phecode" - phecode
                   a list of phecode - custom list to annotate
     ---
     output
         Manhattan plot
-    '''
+    """
 
     #################
     # MISC SETTINGS #
@@ -209,17 +222,18 @@ def Manhattan_Plot_Plus(PheWAS_results,
     pd.options.mode.chained_assignment = None  # default='warn'
 
     # colors
-    PheWAS_results_ehr = map_color(PheWAS_results.copy())
+    PheWAS_results_ehr = map_color(phewas_result.copy())
 
     # sort and add index column for phecode order
     PheWAS_results_ehr = PheWAS_results_ehr.sort_values("code_val").reset_index(drop=True).reset_index()
 
     # boferroni
-    #     bonf_corr = .05/phecode_counts["phecode"].nunique() # based on total phecodes available
-    bonf_corr = .05 / PheWAS_results_ehr["phecode"].nunique()  # based on number phecodes in PheWAS result
+    # bonf_corr = .05/phecode_counts["phecode"].nunique() # based on total phecodes available
+    # bonf_corr = .05 / PheWAS_results_ehr["phecode"].nunique()  # based on number phecodes in PheWAS result
+    bonf_corr = bonferroni
 
     # initilize plot
-    fig, ax = plt.subplots(figsize=(20, 10))
+    fig, ax = adjustText.plt.subplots(figsize=(20, 10))
 
     # column to get value for x axis limit
     if xtick_val == "phecode":
@@ -239,22 +253,22 @@ def Manhattan_Plot_Plus(PheWAS_results,
 
     # plot title
     if title is not None:
-        plt.title(title, weight="bold", size=16)
+        adjustText.plt.title(title, weight="bold", size=16)
 
     ###################
     # DATA PROCESSING #
     ###################
 
-    # subset to particular group
-    if group != "all":
-        PheWAS_results_ehr = PheWAS_results_ehr.loc[PheWAS_results_ehr["group"] == group]
+    # subset to particular phecode_category
+    if phecode_category != "all":
+        PheWAS_results_ehr = PheWAS_results_ehr.loc[PheWAS_results_ehr["phecode_category"] == phecode_category]
 
-        # now separate into positive and negative effect sizes
+    # now separate into positive and negative effect sizes
     pos_beta = PheWAS_results_ehr.loc[PheWAS_results_ehr["beta_ind"] >= 0]
     neg_beta = PheWAS_results_ehr.loc[PheWAS_results_ehr["beta_ind"] < 0]
 
-    # now set colors if only one group
-    if group != "all":
+    # now set colors if only one phecode_category
+    if phecode_category != "all":
         pos_color = adjust_lightness(pos_beta["color"].iloc[0], amount=.5)
         neg_color = adjust_lightness(neg_beta["color"].iloc[0], amount=1.)
 
@@ -264,24 +278,27 @@ def Manhattan_Plot_Plus(PheWAS_results,
     pos_beta_top = top_phenotypes(pos_beta, num=num, by_beta_abs=by_beta_abs)
 
     # check to see if any infs in the p-values
-    if sum(np.isinf(PheWAS_results_ehr["neg_p_log_10"])) > 0:
+    if sum(adjustText.adjustText.np.isinf(PheWAS_results_ehr["neg_p_log_10"])) > 0:
         # if the p-values are 0, then map to max non-inf+c for plotting
-        inf_map = np.sort(np.unique(PheWAS_results_ehr["neg_p_log_10"]))[::-1][1] + 50
+        inf_map = \
+        adjustText.adjustText.np.sort(adjustText.adjustText.np.unique(PheWAS_results_ehr["neg_p_log_10"]))[::-1][1] + 50
         inf_map_plot = inf_map + 10
-        pos_beta["neg_p_log_10"] = np.where(np.isinf(pos_beta["neg_p_log_10"]),
-                                            inf_map_plot,
-                                            pos_beta["neg_p_log_10"])
+        pos_beta["neg_p_log_10"] = adjustText.adjustText.np.where(
+            adjustText.adjustText.np.isinf(pos_beta["neg_p_log_10"]),
+            inf_map_plot,
+            pos_beta["neg_p_log_10"])
 
-        neg_beta["neg_p_log_10"] = np.where(np.isinf(neg_beta["neg_p_log_10"]),
-                                            inf_map_plot,
-                                            neg_beta["neg_p_log_10"])
-        pos_beta_top["p_value_top"] = np.where(pos_beta_top["p_value_top"] == 0,
-                                               10 ** (-inf_map_plot),
-                                               pos_beta_top["p_value_top"])
+        neg_beta["neg_p_log_10"] = adjustText.adjustText.np.where(
+            adjustText.adjustText.np.isinf(neg_beta["neg_p_log_10"]),
+            inf_map_plot,
+            neg_beta["neg_p_log_10"])
+        pos_beta_top["p_value_top"] = adjustText.adjustText.np.where(pos_beta_top["p_value_top"] == 0,
+                                                                     10 ** (-inf_map_plot),
+                                                                     pos_beta_top["p_value_top"])
 
-        neg_beta_top["p_value_top"] = np.where(neg_beta_top["p_value_top"] == 0,
-                                               10 ** (-inf_map_plot),
-                                               neg_beta_top["p_value_top"])
+        neg_beta_top["p_value_top"] = adjustText.adjustText.np.where(neg_beta_top["p_value_top"] == 0,
+                                                                     10 ** (-inf_map_plot),
+                                                                     neg_beta_top["p_value_top"])
         # infinity line
         ax.hlines(inf_map,
                   0 - line_x_offset,
@@ -293,13 +310,14 @@ def Manhattan_Plot_Plus(PheWAS_results,
     # TOP BETAS #
     #############
 
-    max_val = PheWAS_results_ehr["neg_p_log_10"].loc[PheWAS_results_ehr["neg_p_log_10"] != np.inf].max()
-    np.seterr(divide='ignore')
-    neg_beta_top["neg_log"] = -np.log10(neg_beta_top["p_value_top"])
-    neg_beta_top["neg_log"].loc[neg_beta_top["neg_log"] == np.inf] = max_val + 60
-    pos_beta_top["neg_log"] = -np.log10(pos_beta_top["p_value_top"])
-    pos_beta_top["neg_log"].loc[pos_beta_top["neg_log"] == np.inf] = max_val + 60
-    np.seterr(divide='warn')
+    max_val = PheWAS_results_ehr["neg_p_log_10"].loc[
+        PheWAS_results_ehr["neg_p_log_10"] != adjustText.adjustText.np.inf].max()
+    adjustText.adjustText.np.seterr(divide='ignore')
+    neg_beta_top["neg_log"] = -adjustText.adjustText.np.log10(neg_beta_top["p_value_top"])
+    neg_beta_top["neg_log"].loc[neg_beta_top["neg_log"] == adjustText.adjustText.np.inf] = max_val + 60
+    pos_beta_top["neg_log"] = -adjustText.adjustText.np.log10(pos_beta_top["p_value_top"])
+    pos_beta_top["neg_log"].loc[pos_beta_top["neg_log"] == adjustText.adjustText.np.inf] = max_val + 60
+    adjustText.adjustText.np.seterr(divide='warn')
 
     print("\033[1m", "Top positive betas:", "\033[0m")
     display(pos_beta_top.head(10).reset_index(drop=True))
@@ -322,39 +340,39 @@ def Manhattan_Plot_Plus(PheWAS_results,
         plot_val = "code_val"
     else:
         plot_val = xtick_val
-    if group != "all":
+    if phecode_category != "all":
         ax.scatter(pos_beta[plot_val],
                    pos_beta["neg_p_log_10"],
-                   s=150 * np.exp(pos_beta['beta_ind']) if size_beta else 100,
+                   s=150 * adjustText.adjustText.np.exp(pos_beta['beta_ind']) if size_beta else 100,
                    c=pos_color, marker='^',
                    alpha=.3)
         ax.scatter(neg_beta[plot_val],
                    neg_beta["neg_p_log_10"],
-                   s=150 * np.exp(neg_beta['beta_ind']) if size_beta else 100,
+                   s=150 * adjustText.adjustText.np.exp(neg_beta['beta_ind']) if size_beta else 100,
                    c=neg_color, marker='v',
                    alpha=.3)
     else:
         ax.scatter(pos_beta[plot_val],
                    pos_beta["neg_p_log_10"],
-                   s=15 * np.exp(pos_beta['beta_ind']) if size_beta else 100,
+                   s=15 * adjustText.adjustText.np.exp(pos_beta['beta_ind']) if size_beta else 100,
                    c=pos_beta['color'],
                    marker='^', alpha=.3)
         ax.scatter(neg_beta[plot_val],
                    neg_beta["neg_p_log_10"],
-                   s=15 * np.exp(neg_beta['beta_ind']) if size_beta else 100,
+                   s=15 * adjustText.adjustText.np.exp(neg_beta['beta_ind']) if size_beta else 100,
                    c=neg_beta['color'],
                    marker='v',
                    alpha=.3)
 
     # nominal significance line
-    ax.hlines(-np.log10(.05),
+    ax.hlines(-adjustText.adjustText.np.log10(.05),
               0 - line_x_offset,
               PheWAS_results_ehr[xlim_col_name].max() + line_x_offset,
               colors="r",
               label="0.05")
 
     # bonferroni line
-    ax.hlines(-np.log10(bonf_corr),
+    ax.hlines(-adjustText.adjustText.np.log10(bonf_corr),
               0 - line_x_offset,
               PheWAS_results_ehr[xlim_col_name].max() + line_x_offset,
               colors="g",
@@ -362,7 +380,7 @@ def Manhattan_Plot_Plus(PheWAS_results,
 
     # xticks
     # dataframe for x ticks
-    PheWas_ticks = PheWAS_results_ehr[["index", "phecode", "group"]].astype({"phecode": float})
+    PheWas_ticks = PheWAS_results_ehr[["index", "phecode", "phecode_category"]].astype({"phecode": float})
     # remove certain phecodes to avoid skewing the tick positions
     PheWas_ticks = PheWas_ticks.loc[~PheWas_ticks["phecode"].isin([860,
                                                                    931,
@@ -374,20 +392,20 @@ def Manhattan_Plot_Plus(PheWAS_results,
                                                                    947,
                                                                    980])]
     # group and get mean of phecode for use as tick position
-    PheWas_ticks = PheWas_ticks.groupby("group", as_index=False).mean()
+    PheWas_ticks = PheWas_ticks.groupby("phecode_category", as_index=False).mean()
     # reshape the final plot to just fit the phecodes in the subgroup
-    plt.xlim(float(PheWAS_results_ehr[xtick_val].min()) - line_x_offset - 1,
-             float(PheWAS_results_ehr[xtick_val].max()) + line_x_offset + 1)
+    adjustText.plt.xlim(float(PheWAS_results_ehr[xtick_val].min()) - line_x_offset - 1,
+                        float(PheWAS_results_ehr[xtick_val].max()) + line_x_offset + 1)
     # x axes ticks
-    plt.xticks(PheWas_ticks[xtick_val],
-               PheWas_ticks["group"],
-               rotation=45,
-               ha="right",
-               weight="bold",
-               size=12)
+    adjustText.plt.xticks(PheWas_ticks[xtick_val],
+                          PheWas_ticks["phecode_category"],
+                          rotation=45,
+                          ha="right",
+                          weight="bold",
+                          size=12)
     # tick colors
-    tickcolors = PheWAS_results_ehr.sort_values("group")["color"].unique().tolist()
-    for ticklabel, tickcolor in zip(plt.gca().get_xticklabels(), tickcolors):
+    tickcolors = PheWAS_results_ehr.sort_values("phecode_category")["color"].unique().tolist()
+    for ticklabel, tickcolor in zip(adjustText.plt.gca().get_xticklabels(), tickcolors):
         ticklabel.set_color(tickcolor)
 
     ##############
@@ -412,7 +430,7 @@ def Manhattan_Plot_Plus(PheWAS_results,
                    ccol=ccol,
                    label_size=label_size,
                    label_weight=label_weight)
-        if show_neg_beta == True:
+        if show_neg_beta:
             label_data(neg_beta_top,
                        xcol=xcol,
                        ycol="neg_log",
@@ -421,7 +439,7 @@ def Manhattan_Plot_Plus(PheWAS_results,
                        label_size=label_size,
                        label_weight=label_weight)
 
-    elif annotate == "description":
+    elif annotate == "phecode_string":
         # set xcol values
         xcol = xtick_val + "_top"
 
@@ -429,15 +447,15 @@ def Manhattan_Plot_Plus(PheWAS_results,
         label_data(pos_beta_top,
                    xcol=xcol,
                    ycol="neg_log",
-                   dcol="description_top",
+                   dcol="phecode_string_top",
                    ccol=ccol,
                    label_size=label_size,
                    label_weight=label_weight)
-        if show_neg_beta == True:
+        if show_neg_beta:
             label_data(neg_beta_top,
                        xcol=xcol,
                        ycol="neg_log",
-                       dcol="description_top",
+                       dcol="phecode_string_top",
                        ccol=ccol,
                        label_size=label_size,
                        label_weight=label_weight)
@@ -452,27 +470,27 @@ def Manhattan_Plot_Plus(PheWAS_results,
             # pass what's in the list
         res = PheWAS_results_ehr[
             PheWAS_results_ehr["code_val"].isin(annotate)
-        ][["index", "code_val", "neg_p_log_10", "description", "color"]]
+        ][["index", "code_val", "neg_p_log_10", "phecode_string", "color"]]
         res["color_top"] = res["color"].copy()
 
         ## drop infs
-        res = res[~np.isinf(res["neg_p_log_10"])]
+        res = res[~adjustText.adjustText.np.isinf(res["neg_p_log_10"])]
 
         # label data
         label_data(res,
                    xcol=xcol,
                    ycol="neg_p_log_10",
-                   dcol="description",
+                   dcol="phecode_string",
                    ccol=ccol,
                    label_size=label_size,
                    label_weight=label_weight)
 
-        ##########
+    ##########
     # LEGEND #
     ##########
 
     if show_legend:
-        if group != "all":
+        if phecode_category != "all":
             legend_elements = [Line2D([0], [0], color='b', lw=4,
                                       label='Infinity'),
                                Line2D([0], [0], color='g', lw=4,
