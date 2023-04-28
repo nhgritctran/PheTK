@@ -286,7 +286,7 @@ class PheWAS_Pool:
                                          "beta_ind", "conf_int_1",
                                          "conf_int_2", "converged"]
         logit_Phecode_results["code_val"] = logit_Phecode_results["phecode"].astype('float')
-        logit_Phecode_results["neg_p_log_10"] = -np.log10(logit_Phecode_results["p_value"])
+        logit_Phecode_results["neg_log_p_value"] = -np.log10(logit_Phecode_results["p_value"])
         logit_Phecode_results = pd.merge(phecode_info, logit_Phecode_results)
 
         # now save logit phecode as attribute

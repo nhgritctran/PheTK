@@ -78,7 +78,7 @@ def top_phenotypes(df_this, name="top", num=10, by_beta_abs=True):
     '''
 
     # This line might give you empty phenotypes
-    # df_this = df_this[df_this["neg_p_log_10"] >= bonf]
+    # df_this = df_this[df_this["neg_log_p_value"] >= bonf]
     df_this["beta_abs"] = np.abs(df_this["beta_ind"])
     if by_beta_abs:
         top = df_this.sort_values(["beta_abs"], ascending=False)
@@ -265,17 +265,17 @@ def Manhattan_Plot_Plus(PheWAS_results,
     pos_beta_top = top_phenotypes(pos_beta, num=num, by_beta_abs=by_beta_abs)
 
     # check to see if any infs in the p-values
-    if sum(np.isinf(PheWAS_results_ehr["neg_p_log_10"])) > 0:
+    if sum(np.isinf(PheWAS_results_ehr["neg_log_p_value"])) > 0:
         # if the p-values are 0, then map to max non-inf+c for plotting
-        inf_map = np.sort(np.unique(PheWAS_results_ehr["neg_p_log_10"]))[::-1][1] + 50
+        inf_map = np.sort(np.unique(PheWAS_results_ehr["neg_log_p_value"]))[::-1][1] + 50
         inf_map_plot = inf_map + 10
-        pos_beta["neg_p_log_10"] = np.where(np.isinf(pos_beta["neg_p_log_10"]),
+        pos_beta["neg_log_p_value"] = np.where(np.isinf(pos_beta["neg_log_p_value"]),
                                             inf_map_plot,
-                                            pos_beta["neg_p_log_10"])
+                                            pos_beta["neg_log_p_value"])
 
-        neg_beta["neg_p_log_10"] = np.where(np.isinf(neg_beta["neg_p_log_10"]),
+        neg_beta["neg_log_p_value"] = np.where(np.isinf(neg_beta["neg_log_p_value"]),
                                             inf_map_plot,
-                                            neg_beta["neg_p_log_10"])
+                                            neg_beta["neg_log_p_value"])
         pos_beta_top["p_value_top"] = np.where(pos_beta_top["p_value_top"] == 0,
                                                10 ** (-inf_map_plot),
                                                pos_beta_top["p_value_top"])
@@ -294,7 +294,7 @@ def Manhattan_Plot_Plus(PheWAS_results,
     # TOP BETAS #
     #############
 
-    max_val = PheWAS_results_ehr["neg_p_log_10"].loc[PheWAS_results_ehr["neg_p_log_10"] != np.inf].max()
+    max_val = PheWAS_results_ehr["neg_log_p_value"].loc[PheWAS_results_ehr["neg_log_p_value"] != np.inf].max()
     np.seterr(divide='ignore')
     neg_beta_top["neg_log"] = -np.log10(neg_beta_top["p_value_top"])
     neg_beta_top["neg_log"].loc[neg_beta_top["neg_log"] == np.inf] = max_val + 60
@@ -325,23 +325,23 @@ def Manhattan_Plot_Plus(PheWAS_results,
         plot_val = xtick_val
     if group != "all":
         ax.scatter(pos_beta[plot_val],
-                   pos_beta["neg_p_log_10"],
+                   pos_beta["neg_log_p_value"],
                    s=150 * np.exp(pos_beta['beta_ind']) if size_beta else 100,
                    c=pos_color, marker='^',
                    alpha=.3)
         ax.scatter(neg_beta[plot_val],
-                   neg_beta["neg_p_log_10"],
+                   neg_beta["neg_log_p_value"],
                    s=150 * np.exp(neg_beta['beta_ind']) if size_beta else 100,
                    c=neg_color, marker='v',
                    alpha=.3)
     else:
         ax.scatter(pos_beta[plot_val],
-                   pos_beta["neg_p_log_10"],
+                   pos_beta["neg_log_p_value"],
                    s=15 * np.exp(pos_beta['beta_ind']) if size_beta else 100,
                    c=pos_beta['color'],
                    marker='^', alpha=.3)
         ax.scatter(neg_beta[plot_val],
-                   neg_beta["neg_p_log_10"],
+                   neg_beta["neg_log_p_value"],
                    s=15 * np.exp(neg_beta['beta_ind']) if size_beta else 100,
                    c=neg_beta['color'],
                    marker='v',
@@ -453,16 +453,16 @@ def Manhattan_Plot_Plus(PheWAS_results,
             # pass what's in the list
         res = PheWAS_results_ehr[
             PheWAS_results_ehr["code_val"].isin(annotate)
-        ][["index", "code_val", "neg_p_log_10", "description", "color"]]
+        ][["index", "code_val", "neg_log_p_value", "description", "color"]]
         res["color_top"] = res["color"].copy()
 
         ## drop infs
-        res = res[~np.isinf(res["neg_p_log_10"])]
+        res = res[~np.isinf(res["neg_log_p_value"])]
 
         # label data
         label_data(res,
                    xcol=xcol,
-                   ycol="neg_p_log_10",
+                   ycol="neg_log_p_value",
                    dcol="description",
                    ccol=ccol,
                    label_size=label_size,
