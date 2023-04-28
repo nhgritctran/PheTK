@@ -44,7 +44,7 @@ def return_table(df, phenotypes, name="", as_or=False):
     if not as_or:
         # print(phenotypes)
         ret = df.loc[df["phecode_string"].isin(phenotypes)][["index", "phecode", "phecode_string",
-                                                          "phecode_category", "cases", "control",
+                                                          "phecode_category", "cases", "controls",
                                                           "beta_ind", "conf_int_1",
                                                           "conf_int_2", "p_value", "color"]]
         #         display(ret.head())
@@ -56,7 +56,7 @@ def return_table(df, phenotypes, name="", as_or=False):
         ret.columns = [str(col) + "_" + name for col in ret.columns]
     else:
         ret = df.loc[df["phecode_string"].isin(phenotypes)][["index", "phecode", "phecode_string",
-                                                          "phecode_category", "cases", "control",
+                                                          "phecode_category", "cases", "controls",
                                                           "beta_ind", "conf_int_1",
                                                           "conf_int_2", "p_value", "color"]]
         ret["OR"] = (adjustText.np.round(adjustText.np.exp(ret['beta_ind']), decimals=2).apply(
