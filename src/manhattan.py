@@ -394,10 +394,10 @@ def manhattan_plot(phewas_result,
     # group and get mean of phecode for use as tick position
     PheWas_ticks = PheWas_ticks.groupby("phecode_category", as_index=False).mean()
     # reshape the final plot to just fit the phecodes in the subgroup
-    adjustText.plt.xlim(float(PheWAS_results_ehr[xtick_val].min()) - line_x_offset - 1,
-                        float(PheWAS_results_ehr[xtick_val].max()) + line_x_offset + 1)
+    adjustText.plt.xlim(float(PheWAS_results_ehr[xlim_col_name].min()) - line_x_offset - 1,
+                        float(PheWAS_results_ehr[xlim_col_name].max()) + line_x_offset + 1)
     # x axes ticks
-    adjustText.plt.xticks(PheWas_ticks[xtick_val],
+    adjustText.plt.xticks(PheWas_ticks[xlim_col_name],
                           PheWas_ticks["phecode_category"],
                           rotation=45,
                           ha="right",
