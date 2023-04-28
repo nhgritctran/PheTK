@@ -474,7 +474,7 @@ def manhattan_plot(phewas_result,
         res["color_top"] = res["color"].copy()
 
         ## drop infs
-        res = res[~adjustText..np.isinf(res["neg_p_log_10"])]
+        res = res[~adjustText.np.isinf(res["neg_p_log_10"])]
 
         # label data
         label_data(res,
