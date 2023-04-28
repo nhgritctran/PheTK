@@ -176,12 +176,12 @@ def map_color(df):
                   "Neurologic": "purple",
                   "Ophthalmologic": "gray",
                   "Pregnancy": "darkcyan",
-                  "Psychiatric": "darkorange1",
-                  "Pulmonary": "coral4",
-                  "Rx": "chartreuse4",
+                  "Psychiatric": "darkorange",
+                  "Pulmonary": "coral",
+                  "Rx": "chartreuse",
                   "Signs/Symptoms": "firebrick",
                   "Statistics": "mediumspringgreen",
-                  "Traumatic": "gray50"}
+                  "Traumatic": "gray"}
     df["color"] = df["phecode_category"].map(color_dict)
     return df
 
