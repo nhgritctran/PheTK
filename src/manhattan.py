@@ -1,4 +1,3 @@
-from adjustText import *
 from IPython.display import display
 from matplotlib.lines import Line2D
 import adjustText
@@ -49,9 +48,9 @@ def return_table(df, phenotypes, name="", as_or=False):
                                                           "beta_ind", "conf_int_1",
                                                           "conf_int_2", "p_value", "color"]]
         #         display(ret.head())
-        ret["β"] = (adjustText.adjustText.np.round(ret['beta_ind'], decimals=2).apply(str) + " (" +
-                    adjustText.adjustText.np.round(ret['conf_int_1'], decimals=2).apply(str) + ", " +
-                    adjustText.adjustText.np.round(ret['conf_int_2'], decimals=2).apply(str) + ")")
+        ret["β"] = (adjustText.np.round(ret['beta_ind'], decimals=2).apply(str) + " (" +
+                    adjustText.np.round(ret['conf_int_1'], decimals=2).apply(str) + ", " +
+                    adjustText.np.round(ret['conf_int_2'], decimals=2).apply(str) + ")")
 
         ret = ret.drop(["beta_ind", "conf_int_1", "conf_int_2"], axis=1)
         ret.columns = [str(col) + "_" + name for col in ret.columns]
@@ -60,11 +59,11 @@ def return_table(df, phenotypes, name="", as_or=False):
                                                           "phecode_category", "cases", "control",
                                                           "beta_ind", "conf_int_1",
                                                           "conf_int_2", "p_value", "color"]]
-        ret["OR"] = (adjustText.adjustText.np.round(adjustText.adjustText.np.exp(ret['beta_ind']), decimals=2).apply(
+        ret["OR"] = (adjustText.np.round(adjustText.np.exp(ret['beta_ind']), decimals=2).apply(
             str) + " (" +
-                     adjustText.adjustText.np.round(adjustText.adjustText.np.exp(ret['conf_int_1']), decimals=2).apply(
+                     adjustText.np.round(adjustText.np.exp(ret['conf_int_1']), decimals=2).apply(
                          str) + ", " +
-                     adjustText.adjustText.np.round(adjustText.adjustText.np.exp(ret['conf_int_2']), decimals=2).apply(
+                     adjustText.np.round(adjustText.np.exp(ret['conf_int_2']), decimals=2).apply(
                          str) + ")")
         # ret = ret.drop(["beta_ind","conf_int_1","conf_int_2" ], axis=1)
         ret.columns = [str(col) + "_" + name for col in ret.columns]
@@ -87,7 +86,7 @@ def top_phenotypes(df_this, name="top", num=10, by_beta_abs=True):
 
     # This line might give you empty phenotypes
     # df_this = df_this[df_this["neg_p_log_10"] >= bonf]
-    df_this["beta_abs"] = adjustText.adjustText.np.abs(df_this["beta_ind"])
+    df_this["beta_abs"] = adjustText.np.abs(df_this["beta_ind"])
     if by_beta_abs:
         top = df_this.sort_values(["beta_abs"], ascending=False)
     else:
@@ -279,25 +278,25 @@ def manhattan_plot(phewas_result,
     pos_beta_top = top_phenotypes(pos_beta, num=num, by_beta_abs=by_beta_abs)
 
     # check to see if any infs in the p-values
-    if sum(adjustText.adjustText.np.isinf(PheWAS_results_ehr["neg_p_log_10"])) > 0:
+    if sum(adjustText.np.isinf(PheWAS_results_ehr["neg_p_log_10"])) > 0:
         # if the p-values are 0, then map to max non-inf+c for plotting
         inf_map = \
-        adjustText.adjustText.np.sort(adjustText.adjustText.np.unique(PheWAS_results_ehr["neg_p_log_10"]))[::-1][1] + 50
+        adjustText.np.sort(adjustText.np.unique(PheWAS_results_ehr["neg_p_log_10"]))[::-1][1] + 50
         inf_map_plot = inf_map + 10
-        pos_beta["neg_p_log_10"] = adjustText.adjustText.np.where(
-            adjustText.adjustText.np.isinf(pos_beta["neg_p_log_10"]),
+        pos_beta["neg_p_log_10"] = adjustText.np.where(
+            adjustText.np.isinf(pos_beta["neg_p_log_10"]),
             inf_map_plot,
             pos_beta["neg_p_log_10"])
 
-        neg_beta["neg_p_log_10"] = adjustText.adjustText.np.where(
-            adjustText.adjustText.np.isinf(neg_beta["neg_p_log_10"]),
+        neg_beta["neg_p_log_10"] = adjustText.np.where(
+            adjustText.np.isinf(neg_beta["neg_p_log_10"]),
             inf_map_plot,
             neg_beta["neg_p_log_10"])
-        pos_beta_top["p_value_top"] = adjustText.adjustText.np.where(pos_beta_top["p_value_top"] == 0,
+        pos_beta_top["p_value_top"] = adjustText.np.where(pos_beta_top["p_value_top"] == 0,
                                                                      10 ** (-inf_map_plot),
                                                                      pos_beta_top["p_value_top"])
 
-        neg_beta_top["p_value_top"] = adjustText.adjustText.np.where(neg_beta_top["p_value_top"] == 0,
+        neg_beta_top["p_value_top"] = adjustText.np.where(neg_beta_top["p_value_top"] == 0,
                                                                      10 ** (-inf_map_plot),
                                                                      neg_beta_top["p_value_top"])
         # infinity line
@@ -312,13 +311,13 @@ def manhattan_plot(phewas_result,
     #############
 
     max_val = PheWAS_results_ehr["neg_p_log_10"].loc[
-        PheWAS_results_ehr["neg_p_log_10"] != adjustText.adjustText.np.inf].max()
-    adjustText.adjustText.np.seterr(divide='ignore')
-    neg_beta_top["neg_log"] = -adjustText.adjustText.np.log10(neg_beta_top["p_value_top"])
-    neg_beta_top["neg_log"].loc[neg_beta_top["neg_log"] == adjustText.adjustText.np.inf] = max_val + 60
-    pos_beta_top["neg_log"] = -adjustText.adjustText.np.log10(pos_beta_top["p_value_top"])
-    pos_beta_top["neg_log"].loc[pos_beta_top["neg_log"] == adjustText.adjustText.np.inf] = max_val + 60
-    adjustText.adjustText.np.seterr(divide='warn')
+        PheWAS_results_ehr["neg_p_log_10"] != adjustText.np.inf].max()
+    adjustText.np.seterr(divide='ignore')
+    neg_beta_top["neg_log"] = -adjustText.np.log10(neg_beta_top["p_value_top"])
+    neg_beta_top["neg_log"].loc[neg_beta_top["neg_log"] == adjustText.np.inf] = max_val + 60
+    pos_beta_top["neg_log"] = -adjustText.np.log10(pos_beta_top["p_value_top"])
+    pos_beta_top["neg_log"].loc[pos_beta_top["neg_log"] == adjustText.np.inf] = max_val + 60
+    adjustText.np.seterr(divide='warn')
 
     print("\033[1m", "Top positive betas:", "\033[0m")
     display(pos_beta_top.head(10).reset_index(drop=True))
@@ -344,36 +343,36 @@ def manhattan_plot(phewas_result,
     if phecode_category != "all":
         ax.scatter(pos_beta[plot_val],
                    pos_beta["neg_p_log_10"],
-                   s=150 * adjustText.adjustText.np.exp(pos_beta['beta_ind']) if size_beta else 100,
+                   s=150 * adjustText.np.exp(pos_beta['beta_ind']) if size_beta else 100,
                    c=pos_color, marker='^',
                    alpha=.3)
         ax.scatter(neg_beta[plot_val],
                    neg_beta["neg_p_log_10"],
-                   s=150 * adjustText.adjustText.np.exp(neg_beta['beta_ind']) if size_beta else 100,
+                   s=150 * adjustText.np.exp(neg_beta['beta_ind']) if size_beta else 100,
                    c=neg_color, marker='v',
                    alpha=.3)
     else:
         ax.scatter(pos_beta[plot_val],
                    pos_beta["neg_p_log_10"],
-                   s=15 * adjustText.adjustText.np.exp(pos_beta['beta_ind']) if size_beta else 100,
+                   s=15 * adjustText.np.exp(pos_beta['beta_ind']) if size_beta else 100,
                    c=pos_beta['color'],
                    marker='^', alpha=.3)
         ax.scatter(neg_beta[plot_val],
                    neg_beta["neg_p_log_10"],
-                   s=15 * adjustText.adjustText.np.exp(neg_beta['beta_ind']) if size_beta else 100,
+                   s=15 * adjustText.np.exp(neg_beta['beta_ind']) if size_beta else 100,
                    c=neg_beta['color'],
                    marker='v',
                    alpha=.3)
 
     # nominal significance line
-    ax.hlines(-adjustText.adjustText.np.log10(.05),
+    ax.hlines(-adjustText.np.log10(.05),
               0 - line_x_offset,
               PheWAS_results_ehr[xlim_col_name].max() + line_x_offset,
               colors="r",
               label="0.05")
 
     # bonferroni line
-    ax.hlines(-adjustText.adjustText.np.log10(bonf_corr),
+    ax.hlines(-adjustText.np.log10(bonf_corr),
               0 - line_x_offset,
               PheWAS_results_ehr[xlim_col_name].max() + line_x_offset,
               colors="g",
@@ -475,7 +474,7 @@ def manhattan_plot(phewas_result,
         res["color_top"] = res["color"].copy()
 
         ## drop infs
-        res = res[~adjustText.adjustText.np.isinf(res["neg_p_log_10"])]
+        res = res[~adjustText..np.isinf(res["neg_p_log_10"])]
 
         # label data
         label_data(res,
