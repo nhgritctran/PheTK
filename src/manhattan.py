@@ -380,7 +380,7 @@ def manhattan_plot(phewas_result,
 
     # xticks
     # dataframe for x ticks
-    PheWas_ticks = PheWAS_results_ehr[["index", "phecode_category"]]
+    PheWas_ticks = PheWAS_results_ehr[["index", "phecode_category", "code_val"]]
     # # remove certain phecodes to avoid skewing the tick positions
     # PheWas_ticks = PheWas_ticks.loc[~PheWas_ticks["phecode"].isin([860,
     #                                                                931,
