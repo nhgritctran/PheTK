@@ -175,13 +175,13 @@ def map_color(df):
                   "Neoplastic": "coral",
                   "Neurologic": "purple",
                   "Ophthalmologic": "gray",
-                  "Pregnancy": "blue",
-                  "Psychiatric": "indianred",
-                  "Pulmonary": "darkcyan",
-                  "Rx": "goldenrod",
-                  "Signs/Symptoms": "darkblue",
-                  "Statistics": "magenta",
-                  "Traumatic": "green"}
+                  "Pregnancy": "darkcyan",
+                  "Psychiatric": "darkorange1",
+                  "Pulmonary": "coral4",
+                  "Rx": "chartreuse4",
+                  "Signs/Symptoms": "firebrick",
+                  "Statistics": "mediumspringgreen",
+                  "Traumatic": "gray50"}
     df["color"] = df["phecode_category"].map(color_dict)
     return df
 
@@ -398,7 +398,7 @@ def manhattan_plot(phewas_result,
                         float(PheWAS_results_ehr[xtick_val].max()) + line_x_offset + 1)
     # x axes ticks
     adjustText.plt.xticks(PheWas_ticks[xtick_val],
-                          PheWas_ticks.sort_values("phecode_category")["phecode_category"],
+                          PheWas_ticks["phecode_category"],
                           rotation=45,
                           ha="right",
                           weight="bold",
