@@ -4,6 +4,7 @@ from adjustText import *
 from matplotlib.lines import Line2D
 import matplotlib.colors as mc
 import colorsys
+import pandas as pd
 
 
 def adjust_lightness(color, amount=0.5):
@@ -370,16 +371,16 @@ def Manhattan_Plot_Plus(PheWAS_results,
     # xticks
     # dataframe for x ticks
     PheWas_ticks = PheWAS_results_ehr[["index", "phecode", "phecode_category"]].astype({"phecode": float})
-    # remove certain phecodes to avoid skewing the tick positions
-    PheWas_ticks = PheWas_ticks.loc[~PheWas_ticks["phecode"].isin([860,
-                                                                   931,
-                                                                   938,
-                                                                   938.1,
-                                                                   938.2,
-                                                                   939,
-                                                                   939.1,
-                                                                   947,
-                                                                   980])]
+    # # remove certain phecodes to avoid skewing the tick positions
+    # PheWas_ticks = PheWas_ticks.loc[~PheWas_ticks["phecode"].isin([860,
+    #                                                                931,
+    #                                                                938,
+    #                                                                938.1,
+    #                                                                938.2,
+    #                                                                939,
+    #                                                                939.1,
+    #                                                                947,
+    #                                                                980])]
     # group and get mean of phecode for use as tick position
     PheWas_ticks = PheWas_ticks.groupby("phecode_category", as_index=False).mean()
     # reshape the final plot to just fit the phecodes in the subgroup
