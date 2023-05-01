@@ -268,19 +268,6 @@ class PheWAS:
             if self.verbose:
                 print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.")
 
-    def regression_validation(self, phecode):
-        try:
-            result = self._logistic_regression(phecode)
-        except np.linalg.linalg.LinAlgError as err:
-            if "Singular matrix" in str(err):
-                pass
-            else:
-                raise
-            result = None
-
-        if pl.Null not in result.values():
-            return result
-
     # now define function for running PheWAS
     def run(self, multi_threaded=True):
 
@@ -289,22 +276,20 @@ class PheWAS:
         result_dicts = []
         if multi_threaded:
             with ThreadPoolExecutor() as executor:
-                # jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
-                jobs = [executor.submit(self.regression_validation, phecode) for phecode in self.phecode_list]
-                result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
-                # for job in tqdm(as_completed(jobs), total=len(self.phecode_list)):
-                #     try:
-                #         result = job.result()
-                #     except np.linalg.linalg.LinAlgError as err:
-                #         if "Singular matrix" in str(err):
-                #             pass
-                #         else:
-                #             raise
-                #     if result:
-                #         result_dicts.append(result)
+                jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
+                for job in tqdm(as_completed(jobs), total=len(self.phecode_list)):
+                    try:
+                        result = job.result()
+                    except np.linalg.linalg.LinAlgError as err:
+                        if "Singular matrix" in str(err):
+                            pass
+                        else:
+                            raise
+                    if result:
+                        result_dicts.append(result)
         else:
             with multiprocessing.Pool(multiprocessing.cpu_count()-1) as p:
-                result_dicts = list(tqdm(p.imap(self.regression_validation, self.phecode_list),
+                result_dicts = list(tqdm(p.imap(self._logistic_regression, self.phecode_list),
                                                 total=len(self.phecode_list)))
         result_df = pl.from_dicts(result_dicts)
         print(result_df)
