@@ -264,7 +264,6 @@ class PheWAS:
             return result_dict
 
         else:
-            self.not_tested_count += 1
             if self.verbose:
                 print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.")
 
@@ -300,7 +299,8 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        self.tested_count = len(self.phecode_list) - self.not_tested_count
+        self.tested_count = len(self.result)
+        self.not_tested_count = len(self.phecode_list) - self.tested_count
         self.bonferroni = -np.log10(0.05 / self.tested_count)
         self.phecodes_above_bonferroni = self.result.filter(pl.col("neg_log_p_value") > self.bonferroni)
         self.above_bonferroni_count = len(self.phecodes_above_bonferroni)
