@@ -278,7 +278,8 @@ class PheWAS:
                 raise
             result = None
 
-        return result
+        if result:
+            return result
 
     # now define function for running PheWAS
     def run(self, multi_threaded=True):
@@ -303,6 +304,7 @@ class PheWAS:
             with multiprocessing.Pool(multiprocessing.cpu_count()-1) as p:
                 result_dicts = list(tqdm(p.imap(self.regression_validation, self.phecode_list),
                                                 total=len(self.phecode_list)))
+                result_dicts =
         result_df = pl.from_dicts(result_dicts)
         self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
                                      how="left",
