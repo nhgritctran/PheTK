@@ -280,6 +280,12 @@ class PheWAS:
 
     # now define function for running PheWAS
     def run(self, multi_threaded=True):
+        """
+        run parallel logistic regressions
+        :param multi_threaded: defaults to True, utilizing concurrent.futures.ThreadPoolExecutor();
+                               if False: use multiprocessing.Pool()
+        :return: PheWAS summary statistics Polars dataframe
+        """
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
