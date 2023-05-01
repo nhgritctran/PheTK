@@ -248,6 +248,8 @@ class PheWAS:
             regressors = regressors[analysis_covariate_cols].to_numpy()
             regressors = sm.tools.add_constant(regressors, prepend=False)
             logit = sm.Logit(y, regressors, missing="drop")
+
+            # catch Singular matrix error
             try:
                 result = logit.fit(disp=False)
             except np.linalg.linalg.LinAlgError as err:
@@ -285,16 +287,17 @@ class PheWAS:
         if multi_threaded:
             with ThreadPoolExecutor() as executor:
                 jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
-                for job in tqdm(as_completed(jobs), total=len(self.phecode_list)):
-                    try:
-                        result = job.result()
-                    except np.linalg.linalg.LinAlgError as err:
-                        if "Singular matrix" in str(err):
-                            pass
-                        else:
-                            raise
-                    if result:
-                        result_dicts.append(result)
+                result_dicts = [job.rsult() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
+                # for job in tqdm(as_completed(jobs), total=len(self.phecode_list)):
+                #     try:
+                #         result = job.result()
+                #     except np.linalg.linalg.LinAlgError as err:
+                #         if "Singular matrix" in str(err):
+                #             pass
+                #         else:
+                #             raise
+                #     if result:
+                #         result_dicts.append(result)
         else:
             with multiprocessing.Pool(multiprocessing.cpu_count()-1) as p:
                 result_dicts = list(tqdm(p.imap(self._logistic_regression, self.phecode_list),
