@@ -198,24 +198,34 @@ class PheWAS:
         :param var_of_interest_index: index of variable of interest
         :return: dataframe with key statistics
         """
+        try:
+            results_as_html = result.summary().tables[0].as_html()
+            converged = pd.read_html(results_as_html)[0].iloc[5, 1]
+            results_as_html = result.summary().tables[1].as_html()
+            res = pd.read_html(results_as_html, header=0, index_col=0)[0]
 
-        results_as_html = result.summary().tables[0].as_html()
-        converged = pd.read_html(results_as_html)[0].iloc[5, 1]
-        results_as_html = result.summary().tables[1].as_html()
-        res = pd.read_html(results_as_html, header=0, index_col=0)[0]
+            p_value = result.pvalues[var_of_interest_index]
+            beta_ind = result.params[var_of_interest_index]
+            conf_int_1 = res.iloc[var_of_interest_index]['[0.025']
+            conf_int_2 = res.iloc[var_of_interest_index]['0.975]']
+            neg_log_p_value = -np.log10(p_value)
 
-        p_value = result.pvalues[var_of_interest_index]
-        beta_ind = result.params[var_of_interest_index]
-        conf_int_1 = res.iloc[var_of_interest_index]['[0.025']
-        conf_int_2 = res.iloc[var_of_interest_index]['0.975]']
-        neg_log_p_value = -np.log10(p_value)
+            result = {"p_value": p_value,
+                      "neg_log_p_value": neg_log_p_value,
+                      "beta_ind": beta_ind,
+                      "conf_int_1": conf_int_1,
+                      "conf_int_2": conf_int_2,
+                      "converged": converged}
 
-        return {"p_value": p_value,
-                "neg_log_p_value": neg_log_p_value,
-                "beta_ind": beta_ind,
-                "conf_int_1": conf_int_1,
-                "conf_int_2": conf_int_2,
-                "converged": converged}
+        except np.linalg.linalg.LinAlgError as err:
+            if "Singular matrix" in str(err):
+                pass
+            else:
+                raise
+            result = None
+
+        if result:
+            return result
 
     def _logistic_regression(self, phecode):
         """
@@ -288,20 +298,8 @@ class PheWAS:
                         result_dicts.append(result)
         else:
             with multiprocessing.Pool(multiprocessing.cpu_count()-1) as p:
-                for result in tqdm(p.imap(self._logistic_regression, self.phecode_list),
-                                                total=len(self.phecode_list)):
-                    try:
-                        result
-                    except np.linalg.linalg.LinAlgError as err:
-                        if "Singular matrix" in str(err):
-                            pass
-                        else:
-                            raise
-                    if result:
-                        result_dicts.append(result)
-
-                # result_dicts = list(tqdm(p.imap(self._logistic_regression, self.phecode_list),
-                #                                 total=len(self.phecode_list)))
+                result_dicts = list(tqdm(p.imap(self._logistic_regression, self.phecode_list),
+                                                total=len(self.phecode_list)))
         result_dicts = [result for result in result_dicts if result]
         result_df = pl.from_dicts(result_dicts)
         self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
