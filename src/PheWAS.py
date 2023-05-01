@@ -278,7 +278,7 @@ class PheWAS:
                 raise
             result = None
 
-        if result:
+        if pl.Null not in result.values():
             return result
 
     # now define function for running PheWAS
