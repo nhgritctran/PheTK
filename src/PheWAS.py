@@ -279,24 +279,26 @@ class PheWAS:
                 print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.")
 
     # now define function for running PheWAS
-    def run(self, multi_threaded=True):
+    def run(self, parallelization="multithreading"):
         """
         run parallel logistic regressions
-        :param multi_threaded: defaults to True, utilizing concurrent.futures.ThreadPoolExecutor();
-                               if False: use multiprocessing.Pool()
+        :param parallelization: defaults to "multithreading", utilizing concurrent.futures.ThreadPoolExecutor();
+                                if "multiprocessing": use multiprocessing.Pool()
         :return: PheWAS summary statistics Polars dataframe
         """
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        if multi_threaded:
+        if parallelization == "multithreading":
             with ThreadPoolExecutor() as executor:
                 jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
                 result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
-        else:
+        elif parallelization == "multiprocessing":
             with multiprocessing.Pool(multiprocessing.cpu_count()-1) as p:
                 result_dicts = list(tqdm(p.imap(self._logistic_regression, self.phecode_list),
                                                 total=len(self.phecode_list)))
+        else:
+            return "Invalid parallelization method! Use either \"multithreading\" or \"multiprocessing\""
         result_dicts = [result for result in result_dicts if result]
         result_df = pl.from_dicts(result_dicts)
         self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
