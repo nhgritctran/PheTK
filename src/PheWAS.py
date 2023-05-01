@@ -198,34 +198,24 @@ class PheWAS:
         :param var_of_interest_index: index of variable of interest
         :return: dataframe with key statistics
         """
-        try:
-            results_as_html = result.summary().tables[0].as_html()
-            converged = pd.read_html(results_as_html)[0].iloc[5, 1]
-            results_as_html = result.summary().tables[1].as_html()
-            res = pd.read_html(results_as_html, header=0, index_col=0)[0]
 
-            p_value = result.pvalues[var_of_interest_index]
-            beta_ind = result.params[var_of_interest_index]
-            conf_int_1 = res.iloc[var_of_interest_index]['[0.025']
-            conf_int_2 = res.iloc[var_of_interest_index]['0.975]']
-            neg_log_p_value = -np.log10(p_value)
+        results_as_html = result.summary().tables[0].as_html()
+        converged = pd.read_html(results_as_html)[0].iloc[5, 1]
+        results_as_html = result.summary().tables[1].as_html()
+        res = pd.read_html(results_as_html, header=0, index_col=0)[0]
 
-            result = {"p_value": p_value,
-                      "neg_log_p_value": neg_log_p_value,
-                      "beta_ind": beta_ind,
-                      "conf_int_1": conf_int_1,
-                      "conf_int_2": conf_int_2,
-                      "converged": converged}
+        p_value = result.pvalues[var_of_interest_index]
+        beta_ind = result.params[var_of_interest_index]
+        conf_int_1 = res.iloc[var_of_interest_index]['[0.025']
+        conf_int_2 = res.iloc[var_of_interest_index]['0.975]']
+        neg_log_p_value = -np.log10(p_value)
 
-        except np.linalg.linalg.LinAlgError as err:
-            if "Singular matrix" in str(err):
-                pass
-            else:
-                raise
-            result = None
-
-        if result:
-            return result
+        return {"p_value": p_value,
+                "neg_log_p_value": neg_log_p_value,
+                "beta_ind": beta_ind,
+                "conf_int_1": conf_int_1,
+                "conf_int_2": conf_int_2,
+                "converged": converged}
 
     def _logistic_regression(self, phecode):
         """
@@ -258,20 +248,29 @@ class PheWAS:
             regressors = regressors[analysis_covariate_cols].to_numpy()
             regressors = sm.tools.add_constant(regressors, prepend=False)
             logit = sm.Logit(y, regressors, missing="drop")
-            result = logit.fit(disp=False)
+            try:
+                result = logit.fit(disp=False)
+            except np.linalg.linalg.LinAlgError as err:
+                if "Singular matrix" in str(err):
+                    pass
+                else:
+                    raise
+                result = None
 
-            # process result
-            base_dict = {"phecode": phecode,
-                         "cases": len(cases),
-                         "controls": len(controls)}
-            stats_dict = self._result_prep(result=result, var_of_interest_index=var_index)
-            result_dict = base_dict | stats_dict
+            if result:
 
-            # choose to see results on the fly
-            if self.verbose:
-                print(f"Phecode {phecode}: {result_dict}")
+                # process result
+                base_dict = {"phecode": phecode,
+                             "cases": len(cases),
+                             "controls": len(controls)}
+                stats_dict = self._result_prep(result=result, var_of_interest_index=var_index)
+                result_dict = base_dict | stats_dict
 
-            return result_dict
+                # choose to see results on the fly
+                if self.verbose:
+                    print(f"Phecode {phecode}: {result_dict}")
+
+                return result_dict
 
         else:
             if self.verbose:
