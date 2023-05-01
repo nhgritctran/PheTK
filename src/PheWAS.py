@@ -273,10 +273,10 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
+        result_dicts = []
         if multi_threaded:
             with ThreadPoolExecutor() as executor:
                 jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
-                result_dicts = []
                 for job in tqdm(as_completed(jobs), total=len(self.phecode_list)):
                     try:
                         result = job.result()
@@ -287,13 +287,20 @@ class PheWAS:
                             raise
                     if result:
                         result_dicts.append(result)
-            result_df = pl.from_dicts(result_dicts)
-
         else:
             with multiprocessing.Pool(multiprocessing.cpu_count()-1) as p:
-                jobs = list(tqdm(p.imap(self._logistic_regression, self.phecode_list), total=len(self.phecode_list)))
-            result_df = pl.from_dicts(jobs)
-
+                for job in tqdm(p.imap(self._logistic_regression, self.phecode_list), total=len(self.phecode_list)):
+                    try:
+                        result = job
+                    except np.linalg.linalg.LinAlgError as err:
+                        if "Singular matrix" in str(err):
+                            pass
+                        else:
+                            raise
+                    if result:
+                        result_dicts.append(result)
+                # jobs = list(tqdm(p.imap(self._logistic_regression, self.phecode_list), total=len(self.phecode_list)))
+        result_df = pl.from_dicts(result_dicts)
         self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
                                      how="left",
                                      on="phecode")
