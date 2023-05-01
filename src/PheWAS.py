@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
+import multiprocessing
 import numpy as np
 import pandas as pd
 import polars as pl
@@ -268,24 +269,31 @@ class PheWAS:
                 print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.")
 
     # now define function for running PheWAS
-    def run(self):
+    def run(self, multi_threaded=True):
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        with ThreadPoolExecutor() as executor:
-            jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
-            result_dicts = []
-            for job in tqdm(as_completed(jobs), total=len(self.phecode_list)):
-                try:
-                    result = job.result()
-                except np.linalg.linalg.LinAlgError as err:
-                    if "Singular matrix" in str(err):
-                        pass
-                    else:
-                        raise
-                if result:
-                    result_dicts.append(result)
-        result_df = pl.from_dicts(result_dicts)
+        if multi_threaded:
+            with ThreadPoolExecutor() as executor:
+                jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
+                result_dicts = []
+                for job in tqdm(as_completed(jobs), total=len(self.phecode_list)):
+                    try:
+                        result = job.result()
+                    except np.linalg.linalg.LinAlgError as err:
+                        if "Singular matrix" in str(err):
+                            pass
+                        else:
+                            raise
+                    if result:
+                        result_dicts.append(result)
+            result_df = pl.from_dicts(result_dicts)
+
+        else:
+            with multiprocessing.Pool(multiprocessing.cpu_count()-1) as p:
+                jobs = list(tqdm(p.imap(self._logistic_regression, self.phecode_list), total=len(self.phecode_list)))
+            result_df = pl.from_dicts(jobs)
+
         self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
                                      how="left",
                                      on="phecode")
