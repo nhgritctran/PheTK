@@ -290,7 +290,6 @@ class PheWAS:
             with multiprocessing.Pool(multiprocessing.cpu_count()-1) as p:
                 result_dicts = list(tqdm(p.imap(self._logistic_regression, self.phecode_list),
                                                 total=len(self.phecode_list)))
-        print(result_dicts)
         result_dicts = [result for result in result_dicts if result]
         result_df = pl.from_dicts(result_dicts)
         self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
