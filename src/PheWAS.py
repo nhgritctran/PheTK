@@ -265,7 +265,8 @@ class PheWAS:
                              "cases": len(cases),
                              "controls": len(controls)}
                 stats_dict = self._result_prep(result=result, var_of_interest_index=var_index)
-                result_dict = base_dict | stats_dict
+                result_dict = {**base_dict, **stats_dict}
+                # result_dict = base_dict | stats_dict  # python 3.9 or later
 
                 # choose to see results on the fly
                 if self.verbose:
