@@ -287,7 +287,7 @@ class PheWAS:
         if multi_threaded:
             with ThreadPoolExecutor() as executor:
                 jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
-                result_dicts = [job.rsult() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
+                result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
                 # for job in tqdm(as_completed(jobs), total=len(self.phecode_list)):
                 #     try:
                 #         result = job.result()
