@@ -268,6 +268,18 @@ class PheWAS:
             if self.verbose:
                 print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.")
 
+    @staticmethod
+    def regression_validation(regression_function, phecode):
+        try:
+            result = regression_function(phecode)
+        except np.linalg.linalg.LinAlgError as err:
+            if "Singular matrix" in str(err):
+                pass
+            else:
+                raise
+
+        return result
+
     # now define function for running PheWAS
     def run(self, multi_threaded=True):
 
@@ -289,17 +301,9 @@ class PheWAS:
                         result_dicts.append(result)
         else:
             with multiprocessing.Pool(multiprocessing.cpu_count()-1) as p:
-                try:
-                    for job in tqdm(p.imap(self._logistic_regression, self.phecode_list), total=len(self.phecode_list)):
-                        result = job
-                except np.linalg.linalg.LinAlgError as err:
-                    if "Singular matrix" in str(err):
-                        pass
-                    else:
-                        raise
-                    if result:
-                        result_dicts.append(result)
-                # jobs = list(tqdm(p.imap(self._logistic_regression, self.phecode_list), total=len(self.phecode_list)))
+                result_dicts = list(tqdm(p.imap(self.regression_validation(self._logistic_regression,
+                                                                           self.phecode_list),
+                                                total=len(self.phecode_list))))
         result_df = pl.from_dicts(result_dicts)
         self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
                                      how="left",
