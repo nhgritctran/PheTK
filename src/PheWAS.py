@@ -289,7 +289,6 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        result_dicts = []
         if multi_threaded:
             with ThreadPoolExecutor() as executor:
                 jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
