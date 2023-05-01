@@ -307,6 +307,7 @@ class PheWAS:
                 result_dicts = list(tqdm(p.imap(self.regression_validation, self.phecode_list),
                                                 total=len(self.phecode_list)))
         result_df = pl.from_dicts(result_dicts)
+        print(result_df)
         self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
                                      how="left",
                                      on="phecode")
