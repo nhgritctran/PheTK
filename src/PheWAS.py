@@ -289,15 +289,14 @@ class PheWAS:
                         result_dicts.append(result)
         else:
             with multiprocessing.Pool(multiprocessing.cpu_count()-1) as p:
-                for job in tqdm(p.imap(self._logistic_regression, self.phecode_list), total=len(self.phecode_list)):
-                    try:
-                        print(job)
+                try:
+                    for job in tqdm(p.imap(self._logistic_regression, self.phecode_list), total=len(self.phecode_list)):
                         result = job
-                    except np.linalg.linalg.LinAlgError as err:
-                        if "Singular matrix" in str(err):
-                            pass
-                        else:
-                            raise
+                except np.linalg.linalg.LinAlgError as err:
+                    if "Singular matrix" in str(err):
+                        pass
+                    else:
+                        raise
                     if result:
                         result_dicts.append(result)
                 # jobs = list(tqdm(p.imap(self._logistic_regression, self.phecode_list), total=len(self.phecode_list)))
