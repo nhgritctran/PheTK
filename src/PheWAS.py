@@ -268,15 +268,15 @@ class PheWAS:
             if self.verbose:
                 print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.")
 
-    @staticmethod
-    def regression_validation(regression_function, phecode):
+    def regression_validation(self, phecode):
         try:
-            result = regression_function(phecode)
+            result = self._logistic_regression(phecode)
         except np.linalg.linalg.LinAlgError as err:
             if "Singular matrix" in str(err):
                 pass
             else:
                 raise
+            result = None
 
         return result
 
