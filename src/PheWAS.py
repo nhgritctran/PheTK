@@ -278,7 +278,6 @@ class PheWAS:
             if self.verbose:
                 print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.")
 
-    # now define function for running PheWAS
     def run(self, parallelization="multithreading"):
         """
         run parallel logistic regressions
