@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 import multiprocessing
 import numpy as np
 import pandas as pd
