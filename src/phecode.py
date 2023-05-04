@@ -25,6 +25,7 @@ def phecode_count(db="aou", phecode_version="X"):
     :return: phecode counts polars dataframe
     """
 
+    # All of Us
     if db == "aou":
         # load phecode mapping file by version
         if phecode_version == "X":
