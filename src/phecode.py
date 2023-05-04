@@ -17,7 +17,7 @@ def _polars_gbq(query):
     return df
 
 
-def extraction(db="aou", phecode_version="X"):
+def phecode_count(db="aou", phecode_version="X"):
     """
     extract phecode counts for a biobank database
     :param db: defaults to "aou"; currently only option
