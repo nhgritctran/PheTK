@@ -115,3 +115,4 @@ def phecode_count(db="aou", phecode_version="X"):
         return phecode_counts
     else:
         print("No phecode count generated.")
+        return None
