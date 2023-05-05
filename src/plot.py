@@ -214,4 +214,4 @@ class Manhattan:
                                           markerfacecolor="b", markersize=12),
                                    Line2D([0], [0], marker="^", label="Increased Risk Effect",
                                           markerfacecolor="b", markersize=12), ]
-            ax.legend(handles=legend_elements, handlelength=2, loc="center left", bbox_to_anchor=(1, 0.5))
+            self.ax.legend(handles=legend_elements, handlelength=2, loc="center left", bbox_to_anchor=(1, 0.5))
