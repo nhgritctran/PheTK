@@ -218,7 +218,7 @@ class Manhattan:
         else:
             x_ticks = self._reset_phecode_index(
                 self._filter_by_phecode_categories(
-                    self.phewas_result[["phecode_category", "phecode_index", "color"]], phecode_categories
+                    self.phewas_result[["phecode_category", "phecode", "color"]], phecode_categories
                 )
             )\
                 .groupby("phecode_category")\
