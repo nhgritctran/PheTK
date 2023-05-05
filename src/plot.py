@@ -155,7 +155,7 @@ class Manhattan:
         return adjustText.adjust_text(texts, arrowprops=dict(arrowstyle="-", color="gray", lw=0.5))
 
     def plot(self,
-             phecode_category=None,
+             phecode_categories=None,
              title=None,
              show_legend=True,
              y_limit=None):
@@ -181,20 +181,20 @@ class Manhattan:
         # PLOTTING #
         ############
         # scatter
-        self._scatter(ax, phecode_category)
+        self._scatter(ax, phecode_categories)
 
         # x axes ticks
-        if not phecode_category:
+        if not phecode_categories:
             x_ticks = self.phewas_result[["phecode_category", "phecode_index", "color"]]\
                 .groupby("phecode_category")\
                 .mean()
             selected_color_dict = self.color_dict
         else:
             x_ticks = self.phewas_result[["phecode_category", "phecode_index", "color"]]\
-                .filter(pl.col("phecode_category") == phecode_category)\
+                .filter(pl.col("phecode_category") == phecode_categories)\
                 .groupby("phecode_category")\
                 .mean()
-            selected_color_dict = {k: self.color_dict[k] for k in [phecode_category]}
+            selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
         adjustText.plt.xticks(x_ticks["phecode_index"],
                               x_ticks["phecode_category"],
                               rotation=45,
@@ -210,7 +210,7 @@ class Manhattan:
         # LEGEND #
         ##########
         if show_legend:
-            if not phecode_category:
+            if not phecode_categories:
                 legend_elements = [Line2D([0], [0], color="b", lw=2, linestyle="dashdot", label="Infinity"),
                                    Line2D([0], [0], color="g", lw=2, label="Bonferroni Correction"),
                                    Line2D([0], [0], color="r", lw=2, label="Nominal Significance Level"),
