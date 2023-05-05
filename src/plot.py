@@ -31,12 +31,6 @@ class Manhattan:
         else:
             self.phecode_version = "X"
 
-        # create plot
-        self.fig, self.ax = adjustText.plt.subplots(figsize=(20, 10))
-
-        # y axis label
-        self.ax.set_ylabel(r"$-\log_{10}$(p-value)", size=12)
-
     def _split_by_beta(self, df):
         """
         :param df: data of interest, e.g., full phewas result or result of a phecode_category
@@ -47,7 +41,7 @@ class Manhattan:
         self.negative_betas = df.filter(pl.col("beta_ind") < 0)
         return self.negative_betas, self.negative_betas
 
-    def _scatter(self, phecode_category=None):
+    def _scatter(self, ax, phecode_category=None):
         """
         generate scatter data points
         :param phecode_category: defaults to None, i.e., use all categories
@@ -60,11 +54,11 @@ class Manhattan:
         else:
             self.positive_betas, self.negative_betas = self._split_by_beta(self.phewas_result)
 
-        self.ax.scatter(self.positive_betas["phecode_index"].to_numpy(),
+        ax.scatter(self.positive_betas["phecode_index"].to_numpy(),
                         self.positive_betas["neg_log_p_value"],
                         marker="^",
                         alpha=.3)
-        self.ax.scatter(self.negative_betas["phecode_index"].to_numpy(),
+        ax.scatter(self.negative_betas["phecode_index"].to_numpy(),
                         self.negative_betas["neg_log_p_value"],
                         marker="v",
                         alpha=.3)
@@ -183,15 +177,21 @@ class Manhattan:
         if title is not None:
             adjustText.plt.title(title, weight="bold", size=16)
 
+        # create plot
+        fig, ax = adjustText.plt.subplots(figsize=(20, 10))
+
         # set limit for display on y axes
         if y_limit is not None:
-            self.ax.set_ylim(-0.2, y_limit)
+            ax.set_ylim(-0.2, y_limit)
+
+        # y axis label
+        ax.set_ylabel(r"$-\log_{10}$(p-value)", size=12)
 
         ############
         # PLOTTING #
         ############
 
-        self._scatter(phecode_category)
+        self._scatter(ax, phecode_category)
 
         ##########
         # LEGEND #
@@ -214,4 +214,4 @@ class Manhattan:
                                           markerfacecolor="b", markersize=12),
                                    Line2D([0], [0], marker="^", label="Increased Risk Effect",
                                           markerfacecolor="b", markersize=12), ]
-            self.ax.legend(handles=legend_elements, handlelength=2, loc="center left", bbox_to_anchor=(1, 0.5))
+            ax.legend(handles=legend_elements, handlelength=2, loc="center left", bbox_to_anchor=(1, 0.5))
