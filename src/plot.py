@@ -194,6 +194,7 @@ class Manhattan:
                               weight="normal",
                               size=12)
         print(self.color_dict.values())
+        print(adjustText.plt.gca().get_xticklabels())
         for tick_label, tick_color in zip(adjustText.plt.gca().get_xticklabels(), self.color_dict.values()):
             tick_label.set_color(tick_color)
 
