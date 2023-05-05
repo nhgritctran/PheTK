@@ -39,7 +39,7 @@ class Manhattan:
         # split to positive and negative beta data
         self.positive_betas = df.filter(pl.col("beta_ind") >= 0)
         self.negative_betas = df.filter(pl.col("beta_ind") < 0)
-        return self.negative_betas, self.negative_betas
+        return self.positive_betas, self.negative_betas
 
     def _scatter(self, ax, phecode_category=None):
         """
