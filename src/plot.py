@@ -41,7 +41,8 @@ class Manhattan:
                                   "green", "red", "darkturquoise", "olive", "black", "royalblue",
                                   "maroon", "darkolivegreen", "coral", "purple", "gray")
         self.phecode_categories = self.phewas_result["phecode_category"].unique().to_list()
-        self.color_dict = {self.phecode_categories.sort()[i]: self.color_palette[i % len(self.color_palette)]
+        self.phecode_categories.sort()
+        self.color_dict = {self.phecode_categories[i]: self.color_palette[i % len(self.color_palette)]
                            for i in range(len(self.phecode_categories))}
         self.phewas_result = self.phewas_result.with_columns(
             pl.col("phecode_category").map_dict(self.color_dict).alias("color")
