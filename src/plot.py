@@ -189,14 +189,13 @@ class Manhattan:
             .mean()
         adjustText.plt.xticks(x_ticks["phecode_index"],
                               x_ticks["phecode_category"],
-                              colors=self.color_dict.values(),
                               rotation=45,
                               ha="right",
                               weight="normal",
                               size=12)
-        # for tick_label, tick_color in zip(adjustText.plt.gca().get_xticklabels(), self.color_dict.values()):
-        #     print(tick_label.text)
-        #     tick_label.set_color(tick_color)
+        for tick_label, tick_color in zip(adjustText.plt.gca().get_xticklabels(), self.color_dict.values()):
+            print(tick_label)
+            tick_label.set_color(tick_color)
 
         ##########
         # LEGEND #
