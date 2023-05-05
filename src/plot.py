@@ -48,6 +48,18 @@ class Manhattan:
             pl.col("phecode_category").map_dict(self.color_dict).alias("color")
         )
 
+    @staticmethod
+    def _filter_by_phecode_categories(df, phecode_categories=None):
+
+        if isinstance(phecode_categories, str):
+            df = df.filter(pl.col("phecode_category") == phecode_categories)
+        elif isinstance(phecode_categories, list):
+            df = df.filter(pl.col("phecode_category").isin(phecode_categories))
+        else:
+            df = df
+
+        return df
+
     def _split_by_beta(self, df):
         """
         :param df: data of interest, e.g., full phewas result or result of a phecode_category
@@ -66,7 +78,7 @@ class Manhattan:
         """
         if phecode_categories:
             self.positive_betas, self.negative_betas = self._split_by_beta(
-                self.phewas_result.filter(pl.col("phecode_category").is_in([phecode_categories]))
+                self._filter_by_phecode_categories(self.phewas_result, phecode_categories)
             )
         else:
             self.positive_betas, self.negative_betas = self._split_by_beta(self.phewas_result)
@@ -194,8 +206,9 @@ class Manhattan:
                 .mean()
             selected_color_dict = self.color_dict
         else:
-            x_ticks = self.phewas_result[["phecode_category", "phecode_index", "color"]]\
-                .filter(pl.col("phecode_category").is_in(phecode_categories))\
+            x_ticks = self._filter_by_phecode_categories(
+                self.phewas_result[["phecode_category", "phecode_index", "color"]]
+            )\
                 .groupby("phecode_category")\
                 .mean()
             selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
