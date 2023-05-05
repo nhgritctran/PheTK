@@ -54,7 +54,7 @@ class Manhattan:
         if isinstance(phecode_categories, str):
             df = df.filter(pl.col("phecode_category") == phecode_categories)
         elif isinstance(phecode_categories, list):
-            df = df.filter(pl.col("phecode_category").isin(phecode_categories))
+            df = df.filter(pl.col("phecode_category").is_in(phecode_categories))
         else:
             df = df
 
