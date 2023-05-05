@@ -193,7 +193,14 @@ class Manhattan:
                               ha="right",
                               weight="normal",
                               size=12)
-        ax.tick_params(axis="x", colors=self.color_dict.values())
+        for k, v in self.color_dict.items():
+            adjustText.plt.xticks(x_ticks.filter(pl.col("phecode_category") == k)["phecode_index"],
+                                  x_ticks["phecode_category"] == k,
+                                  color=v,
+                                  rotation=45,
+                                  ha="right",
+                                  weight="normal",
+                                  size=12)
 
         ##########
         # LEGEND #
