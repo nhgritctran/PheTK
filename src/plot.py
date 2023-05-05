@@ -12,9 +12,11 @@ class Manhattan:
     def __init__(self,
                  phewas_result,
                  bonferroni=None,
-                 phecode_version=None):
-        self.phewas_result = phewas_result
+                 phecode_version=None,
+                 color_palette=None):
+
         # sort and add index column for phecode order
+        self.phewas_result = phewas_result
         self.phewas_result = self.phewas_result\
             .sort(by=["phecode_category", "phecode"])\
             .with_columns(pl.Series("phecode_index", range(1, len(self.phewas_result) + 1)))
@@ -30,6 +32,20 @@ class Manhattan:
             self.phecode_version = phecode_version
         else:
             self.phecode_version = "X"
+
+        # color mapping
+        if color_palette:
+            self.color_palette = color_palette
+        else:
+            self.color_palette = ("blue", "indianred", "darkcyan", "goldenrod", "darkblue", "magenta",
+                                  "green", "red", "darkturquoise", "olive", "black", "royalblue",
+                                  "maroon", "darkolivegreen", "coral", "purple", "gray")
+        self.phecode_categories = self.phewas_result.sort(by="phecode_category").unique().to_list()
+        self.color_dict = {self.phecode_categories[i]: self.color_palette[i % len(self.color_palette)]
+                           for i in range(len(self.phecode_categories))}
+        self.phewas_result = self.phewas_result.with_columns(
+            pl.col("phecode_category").map_dict(self.color_dict).alias("color")
+        )
 
     def _split_by_beta(self, df):
         """
@@ -55,13 +71,15 @@ class Manhattan:
             self.positive_betas, self.negative_betas = self._split_by_beta(self.phewas_result)
 
         ax.scatter(self.positive_betas["phecode_index"].to_numpy(),
-                        self.positive_betas["neg_log_p_value"],
-                        marker="^",
-                        alpha=.3)
+                   self.positive_betas["neg_log_p_value"],
+                   c=self.positive_betas["color"],
+                   marker="^",
+                   alpha=.3)
         ax.scatter(self.negative_betas["phecode_index"].to_numpy(),
-                        self.negative_betas["neg_log_p_value"],
-                        marker="v",
-                        alpha=.3)
+                   self.negative_betas["neg_log_p_value"],
+                   c=self.negative_betas["color"],
+                   marker="v",
+                   alpha=.3)
 
     @staticmethod
     def _adjust_lightness(color, amount=0.5):
@@ -134,34 +152,6 @@ class Manhattan:
                                              weight=label_weight))
 
         return adjustText.adjust_text(texts, arrowprops=dict(arrowstyle="-", color="gray", lw=0.5))
-
-    def _map_color(self):
-        color_dict = {"Auditory": "blue",
-                      "Cardiovascular": "indianred",
-                      "Complications of care": "darkcyan",
-                      "Congenital": "goldenrod",
-                      "Dermatologic": "darkblue",
-                      "Developmental": "magenta",
-                      "Endocrine": "green",
-                      "Gastrointestinal": "red",
-                      "Genitourinary": "darkturquoise",
-                      "Haematopoietic": "olive",
-                      "Infectious": "black",
-                      "Metabolic": "royalblue",
-                      "Musculoskeletal": "maroon",
-                      "Neonate": "darkolivegreen",
-                      "Neoplastic": "coral",
-                      "Neurologic": "purple",
-                      "Ophthalmologic": "gray",
-                      "Pregnancy": "darkcyan",
-                      "Psychiatric": "darkorange",
-                      "Pulmonary": "coral",
-                      "Rx": "chartreuse",
-                      "Signs/Symptoms": "firebrick",
-                      "Statistics": "mediumspringgreen",
-                      "Traumatic": "gray"}
-        self.phewas_result["color"] = self.phewas_result["phecode_category"].map(color_dict)
-        return self.phewas_result
 
     def plot(self,
              phecode_category=None,
