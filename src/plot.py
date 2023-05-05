@@ -191,7 +191,7 @@ class Manhattan:
         # PLOTTING #
         ############
 
-        self._scatter(self.phewas_result, phecode_category=phecode_category)
+        self._scatter(phecode_category)
 
         ##########
         # LEGEND #
