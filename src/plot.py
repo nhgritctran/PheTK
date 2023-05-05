@@ -31,6 +31,44 @@ class Manhattan:
         else:
             self.phecode_version = "X"
 
+        # create plot
+        self.fig, self.ax = adjustText.plt.subplots(figsize=(20, 10))
+
+        # y axis label
+        self.ax.set_ylabel(r"$-\log_{10}$(p-value)", size=12)
+
+    def _split_by_beta(self, df):
+        """
+        :param df: data of interest, e.g., full phewas result or result of a phecode_category
+        :return: positive and negative beta polars dataframes
+        """
+        # split to positive and negative beta data
+        self.positive_betas = df.filter(pl.col("beta_ind") >= 0)
+        self.negative_betas = df.filter(pl.col("beta_ind") < 0)
+        return self.negative_betas, self.negative_betas
+
+    def _scatter(self, phecode_category=None):
+        """
+        generate scatter data points
+        :param phecode_category: defaults to None, i.e., use all categories
+        :return: scatter plot of selected data
+        """
+        if phecode_category:
+            self.positive_betas, self.negative_betas = self._split_by_beta(
+                self.phewas_result.filter(pl.col("phecode_category") == phecode_category)
+            )
+        else:
+            self.positive_betas, self.negative_betas = self._split_by_beta(self.phewas_result)
+
+        self.ax.scatter(self.positive_betas["phecode_index"].to_numpy(),
+                        self.positive_betas["neg_log_p_value"],
+                        marker="^",
+                        alpha=.3)
+        self.ax.scatter(self.negative_betas["phecode_index"].to_numpy(),
+                        self.negative_betas["neg_log_p_value"],
+                        marker="v",
+                        alpha=.3)
+
     @staticmethod
     def _adjust_lightness(color, amount=0.5):
         """
@@ -141,27 +179,19 @@ class Manhattan:
         # MISC SETTINGS #
         #################
 
-        # create plot
-        fig, ax = adjustText.plt.subplots(figsize=(20, 10))
         # plot title
         if title is not None:
             adjustText.plt.title(title, weight="bold", size=16)
 
-        # y axis label
-        ax.set_ylabel(r"$-\log_{10}$(p-value)", size=12)
-
         # set limit for display on y axes
         if y_limit is not None:
-            ax.set_ylim(-0.2, y_limit)
+            self.ax.set_ylim(-0.2, y_limit)
 
         ############
         # PLOTTING #
         ############
 
-        ax.scatter(self.phewas_result["phecode_index"].to_numpy(),
-                   self.phewas_result["neg_log_p_value"],
-                   marker="^",
-                   alpha=.3)
+        self._scatter(self.phewas_result, phecode_category=phecode_category)
 
         ##########
         # LEGEND #
