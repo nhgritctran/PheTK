@@ -184,13 +184,16 @@ class Manhattan:
         self._scatter(ax, phecode_category)
 
         # x axes ticks
-        x_ticks = self.phewas_result[["phecode_category", "phecode_index"]].groupby("phecode_category").mean()
+        x_ticks = self.phewas_result[["phecode_category", "phecode_index", "color"]].groupby("phecode_category").mean()
         adjustText.plt.xticks(x_ticks["phecode_index"],
                               x_ticks["phecode_category"],
                               rotation=45,
                               ha="right",
-                              weight="bold",
+                              weight="normal",
                               size=12)
+        tick_colors = self.color_dict.values()
+        for tick_label, tick_color in zip(adjustText.plt.gca().get_xticklabels(), tick_colors):
+            tick_label.set_color(tick_color)
 
         ##########
         # LEGEND #
