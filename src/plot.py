@@ -201,11 +201,10 @@ class Manhattan:
         # if no phecode_categories specified, use all
         plot_df = self._reset_phecode_index(
             self._filter_by_phecode_categories(
-                self.phewas_result[["phecode_category", "phecode", "color"]], phecode_categories
+                self.phewas_result, phecode_categories
             )
         )
-        x_ticks = plot_df.groupby("phecode_category").mean()
-        # else use only defined one(s); requires "phecode" column but not "phecode_index" as it will be created
+        x_ticks = plot_df[["phecode_category", "phecode_index"]].groupby("phecode_category").mean()
         if phecode_categories:
             if isinstance(phecode_categories, str):
                 phecode_categories = [phecode_categories]
