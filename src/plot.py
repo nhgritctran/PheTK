@@ -184,8 +184,9 @@ class Manhattan:
         self._scatter(ax, phecode_category)
 
         # x axes ticks
-        adjustText.plt.xticks(self.phewas_result["phecode_index"],
-                              self.phewas_result["phecode_category"],
+        x_ticks = self.phewas_result[["phecode_category", "phecode_index"]].groupby("phecode_category").mean()
+        adjustText.plt.xticks(x_ticks["phecode_index"],
+                              x_ticks["phecode_category"],
                               rotation=45,
                               ha="right",
                               weight="bold",
