@@ -151,7 +151,7 @@ def manhattan_plot(phewas_result,
     ##########
     if show_legend:
         if not phecode_category:
-            legend_elements = [Line2D([0], [0], color="b", lw=4, label="Infinity"),
+            legend_elements = [Line2D([0], [0], color="b", lw=4, linestyle="dashdot", label="Infinity"),
                                Line2D([0], [0], color="g", lw=4, label="Bonferroni Correction"),
                                Line2D([0], [0], color="r", lw=4, label="Nominal Significance Level"),
                                Line2D([0], [0], marker="v", label="Decreased Risk Effect",
@@ -159,7 +159,7 @@ def manhattan_plot(phewas_result,
                                Line2D([0], [0], marker="^", label="Increased Risk Effect",
                                       color="b", markerfacecolor="b", markersize=15), ]
         else:
-            legend_elements = [Line2D([0], [0], color="b", lw=2, label="Infinity"),
+            legend_elements = [Line2D([0], [0], color="b", lw=2, linestyle="dashdot", label="Infinity"),
                                Line2D([0], [0], color="g", lw=2, label="Bonferroni Correction"),
                                Line2D([0], [0], color="r", lw=2, label="Nominal Significance Level"),
                                Line2D([0], [0], marker="v", label="Decreased Risk Effect",
