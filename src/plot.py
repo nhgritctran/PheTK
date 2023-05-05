@@ -193,7 +193,7 @@ class Manhattan:
                               ha="right",
                               weight="normal",
                               size=12)
-        ax.tick_params(axis="x", colors=self.color_dict)
+        ax.tick_params(axis="x", colors=self.color_dict.values())
 
         ##########
         # LEGEND #
