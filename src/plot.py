@@ -163,7 +163,6 @@ class Manhattan:
         #################
         # MISC SETTINGS #
         #################
-
         # plot title
         if title is not None:
             adjustText.plt.title(title, weight="bold", size=16)
@@ -181,13 +180,20 @@ class Manhattan:
         ############
         # PLOTTING #
         ############
-
+        # scatter
         self._scatter(ax, phecode_category)
+
+        # x axes ticks
+        adjustText.plt.xticks(self.phewas_result["phecode_index"],
+                              self.phewas_result["phecode_category"],
+                              rotation=45,
+                              ha="right",
+                              weight="bold",
+                              size=12)
 
         ##########
         # LEGEND #
         ##########
-
         if show_legend:
             if not phecode_category:
                 legend_elements = [Line2D([0], [0], color="b", lw=2, linestyle="dashdot", label="Infinity"),
