@@ -58,15 +58,15 @@ class Manhattan:
         self.negative_betas = df.filter(pl.col("beta_ind") < 0)
         return self.positive_betas, self.negative_betas
 
-    def _scatter(self, ax, phecode_category=None):
+    def _scatter(self, ax, phecode_categories=None):
         """
         generate scatter data points
-        :param phecode_category: defaults to None, i.e., use all categories
+        :param phecode_categories: defaults to None, i.e., use all categories
         :return: scatter plot of selected data
         """
-        if phecode_category:
+        if phecode_categories:
             self.positive_betas, self.negative_betas = self._split_by_beta(
-                self.phewas_result.filter(pl.col("phecode_category") == phecode_category)
+                self.phewas_result.filter(pl.col("phecode_category").is_in([phecode_categories]))
             )
         else:
             self.positive_betas, self.negative_betas = self._split_by_beta(self.phewas_result)
