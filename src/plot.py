@@ -206,15 +206,14 @@ class Manhattan:
         ############
         # PLOTTING #
         ############
-        # scatter
-        self._scatter(ax, phecode_categories)
-
         # x axes ticks
+        # if no phecode_categories specified, use all
         if not phecode_categories:
             x_ticks = self.phewas_result[["phecode_category", "phecode_index", "color"]]\
                 .groupby("phecode_category")\
                 .mean()
             selected_color_dict = self.color_dict
+        # else use only defined one(s)
         else:
             x_ticks = self._reset_phecode_index(
                 self._filter_by_phecode_categories(
@@ -226,6 +225,7 @@ class Manhattan:
             if isinstance(phecode_categories, str):
                 phecode_categories = [phecode_categories]
             selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
+        # create x ticks labels and colors
         adjustText.plt.xticks(x_ticks["phecode_index"],
                               x_ticks["phecode_category"],
                               rotation=45,
@@ -236,6 +236,9 @@ class Manhattan:
         sorted_labels = sorted(tick_labels, key=lambda label: label.get_text())
         for tick_label, tick_color in zip(sorted_labels, selected_color_dict.values()):
             tick_label.set_color(tick_color)
+
+        # scatter
+        self._scatter(ax, phecode_categories)
 
         ##########
         # LEGEND #
