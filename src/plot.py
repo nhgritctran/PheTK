@@ -60,6 +60,16 @@ class Manhattan:
 
         return df
 
+    @staticmethod
+    def _reset_phecode_index(df):
+
+        if "phecode_index" in df.columns:
+            df = df.drop("phecode_index")
+        df = df.sort(by=["phecode_category", "phecode"])\
+               .with_columns(pl.Series("phecode_index", range(1, len(df) + 1)))
+
+        return df
+
     def _split_by_beta(self, df):
         """
         :param df: data of interest, e.g., full phewas result or result of a phecode_category
@@ -206,8 +216,10 @@ class Manhattan:
                 .mean()
             selected_color_dict = self.color_dict
         else:
-            x_ticks = self._filter_by_phecode_categories(
-                self.phewas_result[["phecode_category", "phecode_index", "color"]], phecode_categories
+            x_ticks = self._reset_phecode_index(
+                self._filter_by_phecode_categories(
+                    self.phewas_result[["phecode_category", "phecode_index", "color"]], phecode_categories
+                )
             )\
                 .groupby("phecode_category")\
                 .mean()
