@@ -193,7 +193,7 @@ class Manhattan:
                               ha="right",
                               weight="normal",
                               size=12)
-        ax.set_xticklabels(self.color_dict.keys(), color=[self.color_dict[x_label] for x_label in self.color_dict.keys()])
+        ax.tick_params(axis="x", colors=self.color_dict)
 
         ##########
         # LEGEND #
