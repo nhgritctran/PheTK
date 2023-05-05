@@ -194,7 +194,7 @@ class Manhattan:
                 .filter(pl.col("phecode_category") == phecode_category)\
                 .groupby("phecode_category")\
                 .mean()
-            selected_color_dict = self.color_dict.get[phecode_category]
+            selected_color_dict = self.color_dict.get(phecode_category)
         adjustText.plt.xticks(x_ticks["phecode_index"],
                               x_ticks["phecode_category"],
                               rotation=45,
