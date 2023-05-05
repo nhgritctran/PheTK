@@ -191,7 +191,7 @@ class Manhattan:
             selected_color_dict = self.color_dict
         else:
             x_ticks = self.phewas_result[["phecode_category", "phecode_index", "color"]]\
-                .filter(pl.col("phecode_category").isin([phecode_categories]))\
+                .filter(pl.col("phecode_category").is_in([phecode_categories]))\
                 .groupby("phecode_category")\
                 .mean()
             selected_color_dict = {k: self.color_dict[k] for k in [phecode_categories]}
