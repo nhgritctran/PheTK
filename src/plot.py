@@ -177,15 +177,20 @@ class Manhattan:
         # MISC SETTINGS #
         #################
         if phecode_categories:
-            if len(phecode_categories) == 1:
+            if isinstance(phecode_categories, str):
                 phecode_categories = [phecode_categories]
+            selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
+            n_categories = len(phecode_categories)
+        else:
+            selected_color_dict = self.color_dict
+            n_categories = len(self.phewas_result.columns)
 
         # plot title
         if title is not None:
             adjustText.plt.title(title, weight="bold", size=16)
 
         # create plot
-        fig, ax = adjustText.plt.subplots(figsize=(20, 10))
+        fig, ax = adjustText.plt.subplots(figsize=(20*(n_categories/len(self.phewas_result.columns)), 10))
 
         # set limit for display on y axes
         if y_limit is not None:
@@ -205,12 +210,7 @@ class Manhattan:
             )
         )
         x_ticks = plot_df[["phecode_category", "phecode_index"]].groupby("phecode_category").mean()
-        if phecode_categories:
-            if isinstance(phecode_categories, str):
-                phecode_categories = [phecode_categories]
-            selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
-        else:
-            selected_color_dict = self.color_dict
+        
         # create x ticks labels and colors
         adjustText.plt.xticks(x_ticks["phecode_index"],
                               x_ticks["phecode_category"],
