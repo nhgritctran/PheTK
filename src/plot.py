@@ -186,7 +186,6 @@ class Manhattan:
         # x axes ticks
         x_ticks = self.phewas_result[["phecode_category", "phecode_index", "color"]]\
             .groupby("phecode_category")\
-            .sort(by="phecode_category")\
             .mean()
         adjustText.plt.xticks(x_ticks["phecode_index"],
                               x_ticks["phecode_category"],
@@ -194,8 +193,7 @@ class Manhattan:
                               ha="right",
                               weight="normal",
                               size=12)
-        tick_colors = self.color_dict.values()
-        for tick_label, tick_color in zip(adjustText.plt.gca().get_xticklabels(), tick_colors):
+        for tick_label, tick_color in self.color_dict.items():
             tick_label.set_color(tick_color)
 
         ##########
