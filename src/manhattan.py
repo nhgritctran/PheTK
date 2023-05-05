@@ -151,31 +151,19 @@ def manhattan_plot(phewas_result,
     ##########
     if show_legend:
         if not phecode_category:
-            legend_elements = [Line2D([0], [0], color="b", lw=4,
-                                      label="Infinity"),
-                               Line2D([0], [0], color="g", lw=4,
-                                      label="Bonferroni Correction"),
-                               Line2D([0], [0], color="r", lw=4,
-                                      label="Nominal Significance Level"),
-                               Line2D([0], [0], marker="v",
-                                      label="Decreased Risk Effect",
-                                      color="b",
-                                      markerfacecolor="b", markersize=15),
-                               Line2D([0], [0], marker="^",
-                                      label="Increased Risk Effect",
-                                      color="b",
-                                      markerfacecolor="b", markersize=15), ]
+            legend_elements = [Line2D([0], [0], color="b", lw=4, label="Infinity").set_linestyle("dashdot"),
+                               Line2D([0], [0], color="g", lw=4, label="Bonferroni Correction"),
+                               Line2D([0], [0], color="r", lw=4, label="Nominal Significance Level"),
+                               Line2D([0], [0], marker="v", label="Decreased Risk Effect",
+                                      color="b", markerfacecolor="b", markersize=15),
+                               Line2D([0], [0], marker="^", label="Increased Risk Effect",
+                                      color="b", markerfacecolor="b", markersize=15), ]
         else:
-            legend_elements = [Line2D([0], [0], color="b", lw=2, linestyle="dashdot",
-                                      label="Infinity"),
-                               Line2D([0], [0], color="g", lw=2,
-                                      label="Bonferroni Correction"),
-                               Line2D([0], [0], color="r", lw=2,
-                                      label="Nominal Significance Level"),
-                               Line2D([0], [0], marker="v",
-                                      label="Decreased Risk Effect",
+            legend_elements = [Line2D([0], [0], color="b", lw=2, label="Infinity").set_linestyle("dashdot"),
+                               Line2D([0], [0], color="g", lw=2, label="Bonferroni Correction"),
+                               Line2D([0], [0], color="r", lw=2, label="Nominal Significance Level"),
+                               Line2D([0], [0], marker="v", label="Decreased Risk Effect",
                                       markerfacecolor="b", markersize=12),
-                               Line2D([0], [0], marker="^",
-                                      label="Increased Risk Effect",
+                               Line2D([0], [0], marker="^", label="Increased Risk Effect",
                                       markerfacecolor="b", markersize=12), ]
         ax.legend(handles=legend_elements, handlelength=2, loc="center left", bbox_to_anchor=(1, 0.5))
