@@ -211,6 +211,8 @@ class Manhattan:
             )\
                 .groupby("phecode_category")\
                 .mean()
+            if isinstance(phecode_categories, str):
+                phecode_categories = [phecode_categories]
             selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
         adjustText.plt.xticks(x_ticks["phecode_index"],
                               x_ticks["phecode_category"],
