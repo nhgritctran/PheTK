@@ -122,7 +122,7 @@ def manhattan_plot(phewas_result,
     #################
 
     # colors
-    phewas_result = _map_color(phewas_result.copy())
+    # phewas_result = _map_color(phewas_result.copy())
 
     # sort and add index column for phecode order
     phewas_result = phewas_result.sort(by=["phecode_category", "phecode"])\
