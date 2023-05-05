@@ -205,6 +205,12 @@ class Manhattan:
                 .groupby("phecode_category")\
                 .mean()
             selected_color_dict = self.color_dict
+            adjustText.plt.xticks(x_ticks["phecode_index"],
+                                  x_ticks["phecode_category"],
+                                  rotation=45,
+                                  ha="right",
+                                  weight="normal",
+                                  size=12)
         else:
             x_ticks = self._filter_by_phecode_categories(
                 self.phewas_result[["phecode_category", "phecode_index", "color"]]
@@ -214,12 +220,12 @@ class Manhattan:
             if isinstance(phecode_categories, str):
                 phecode_categories = [phecode_categories]
             selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
-        adjustText.plt.xticks(x_ticks["phecode_index"],
-                              x_ticks["phecode_category"],
-                              rotation=45,
-                              ha="right",
-                              weight="normal",
-                              size=12)
+            adjustText.plt.xticks(x_ticks["phecode_index"],
+                                  x_ticks["phecode_category"],
+                                  rotation=45,
+                                  ha="right",
+                                  weight="normal",
+                                  size=12)
         tick_labels = adjustText.plt.gca().get_xticklabels()
         sorted_labels = sorted(tick_labels, key=lambda label: label.get_text())
         for tick_label, tick_color in zip(sorted_labels, selected_color_dict.values()):
