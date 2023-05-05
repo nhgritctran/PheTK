@@ -188,16 +188,21 @@ class Manhattan:
             x_ticks = self.phewas_result[["phecode_category", "phecode_index", "color"]]\
                 .groupby("phecode_category")\
                 .mean()
-            adjustText.plt.xticks(x_ticks["phecode_index"],
-                                  x_ticks["phecode_category"],
-                                  rotation=45,
-                                  ha="right",
-                                  weight="normal",
-                                  size=12)
-            tick_labels = adjustText.plt.gca().get_xticklabels()
-            sorted_labels = sorted(tick_labels, key=lambda label: label.get_text())
-            for tick_label, tick_color in zip(sorted_labels, self.color_dict.values()):
-                tick_label.set_color(tick_color)
+        else:
+            x_ticks = self.phewas_result[["phecode_category", "phecode_index", "color"]]\
+                .filter(pl.col("phecode_category") == phecode_category)\
+                .groupby("phecode_category")\
+                .mean()
+        adjustText.plt.xticks(x_ticks["phecode_index"],
+                              x_ticks["phecode_category"],
+                              rotation=45,
+                              ha="right",
+                              weight="normal",
+                              size=12)
+        tick_labels = adjustText.plt.gca().get_xticklabels()
+        sorted_labels = sorted(tick_labels, key=lambda label: label.get_text())
+        for tick_label, tick_color in zip(sorted_labels, self.color_dict.values()):
+            tick_label.set_color(tick_color)
 
         ##########
         # LEGEND #
