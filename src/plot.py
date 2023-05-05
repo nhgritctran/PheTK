@@ -187,12 +187,12 @@ class Manhattan:
         x_ticks = self.phewas_result[["phecode_category", "phecode_index", "color"]]\
             .groupby("phecode_category")\
             .mean()
-        adjustText.plt.xticks(x_ticks["phecode_index"],
-                              x_ticks["phecode_category"],
-                              rotation=45,
-                              ha="right",
-                              weight="normal",
-                              size=12)
+        # adjustText.plt.xticks(x_ticks["phecode_index"],
+        #                       x_ticks["phecode_category"],
+        #                       rotation=45,
+        #                       ha="right",
+        #                       weight="normal",
+        #                       size=12)
         for k, v in self.color_dict.items():
             adjustText.plt.xticks(x_ticks.filter(pl.col("phecode_category") == k)["phecode_index"],
                                   x_ticks["phecode_category"] == k,
