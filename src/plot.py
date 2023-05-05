@@ -17,9 +17,6 @@ class Manhattan:
 
         # sort and add index column for phecode order
         self.phewas_result = phewas_result
-        self.phewas_result = self.phewas_result\
-            .sort(by=["phecode_category", "phecode"])\
-            .with_columns(pl.Series("phecode_index", range(1, len(self.phewas_result) + 1)))
 
         # bonferroni
         if not bonferroni:
@@ -50,10 +47,9 @@ class Manhattan:
 
     @staticmethod
     def _filter_by_phecode_categories(df, phecode_categories=None):
-
-        if isinstance(phecode_categories, str):
-            df = df.filter(pl.col("phecode_category") == phecode_categories)
-        elif isinstance(phecode_categories, list):
+        if phecode_categories:
+            if isinstance(phecode_categories, str):
+                phecode_categories = [phecode_categories]
             df = df.filter(pl.col("phecode_category").is_in(phecode_categories))
         else:
             df = df
@@ -208,23 +204,19 @@ class Manhattan:
         ############
         # x axes ticks
         # if no phecode_categories specified, use all
-        if not phecode_categories:
-            x_ticks = self.phewas_result[["phecode_category", "phecode_index", "color"]]\
-                .groupby("phecode_category")\
-                .mean()
-            selected_color_dict = self.color_dict
-        # else use only defined one(s)
-        else:
-            x_ticks = self._reset_phecode_index(
-                self._filter_by_phecode_categories(
-                    self.phewas_result[["phecode_category", "phecode", "color"]], phecode_categories
-                )
-            )\
-                .groupby("phecode_category")\
-                .mean()
+        plot_df = self._reset_phecode_index(
+            self._filter_by_phecode_categories(
+                self.phewas_result[["phecode_category", "phecode", "color"]], phecode_categories
+            )
+        )
+        x_ticks = plot_df.groupby("phecode_category").mean()
+        # else use only defined one(s); requires "phecode" column but not "phecode_index" as it will be created
+        if phecode_categories:
             if isinstance(phecode_categories, str):
                 phecode_categories = [phecode_categories]
             selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
+        else:
+            selected_color_dict = self.color_dict
         # create x ticks labels and colors
         adjustText.plt.xticks(x_ticks["phecode_index"],
                               x_ticks["phecode_category"],
