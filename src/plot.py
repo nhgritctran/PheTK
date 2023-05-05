@@ -217,7 +217,7 @@ class Manhattan:
             n_categories = len(self.phewas_result.columns)
 
         # create plot
-        fig, ax = adjustText.plt.subplots(figsize=(20*(n_categories/len(self.phewas_result.columns)), 10), dpi=800)
+        fig, ax = adjustText.plt.subplots(figsize=(20*(n_categories/len(self.phewas_result.columns)), 10), dpi=200)
 
         # plot title
         if title is not None:
