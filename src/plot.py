@@ -75,11 +75,27 @@ class Manhattan:
         self.positive_betas = df.filter(pl.col("beta_ind") >= 0)
         self.negative_betas = df.filter(pl.col("beta_ind") < 0)
         return self.positive_betas, self.negative_betas
-
+    
+    @staticmethod
+    def _x_ticks(plot_df, selected_color_dict):
+        x_ticks = plot_df[["phecode_category", "phecode_index"]].groupby("phecode_category").mean()
+        # create x ticks labels and colors
+        adjustText.plt.xticks(x_ticks["phecode_index"],
+                              x_ticks["phecode_category"],
+                              rotation=45,
+                              ha="right",
+                              weight="normal",
+                              size=12)
+        tick_labels = adjustText.plt.gca().get_xticklabels()
+        sorted_labels = sorted(tick_labels, key=lambda label: label.get_text())
+        for tick_label, tick_color in zip(sorted_labels, selected_color_dict.values()):
+            tick_label.set_color(tick_color)
+        
+        
     def _scatter(self, ax, plot_df):
         """
         generate scatter data points
-        :param phecode_categories: defaults to None, i.e., use all categories
+        :param plot_df: dataframe containing data required for plotting
         :return: scatter plot of selected data
         """
         self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
@@ -176,6 +192,8 @@ class Manhattan:
         #################
         # MISC SETTINGS #
         #################
+        
+        # setup some variables based on phecode_categories
         if phecode_categories:
             if isinstance(phecode_categories, str):
                 phecode_categories = [phecode_categories]
@@ -198,30 +216,32 @@ class Manhattan:
 
         # y axis label
         ax.set_ylabel(r"$-\log_{10}$(p-value)", size=12)
-
-        ############
-        # PLOTTING #
-        ############
-        # x axes ticks
-        # if no phecode_categories specified, use all
+        
+        # create plot_df containing only necessary data for plotting
         plot_df = self._reset_phecode_index(
             self._filter_by_phecode_categories(
                 self.phewas_result, phecode_categories
             )
         )
+
+        ############
+        # PLOTTING #
+        ############
+        # x axes ticks
         x_ticks = plot_df[["phecode_category", "phecode_index"]].groupby("phecode_category").mean()
-        
+
         # create x ticks labels and colors
-        adjustText.plt.xticks(x_ticks["phecode_index"],
-                              x_ticks["phecode_category"],
-                              rotation=45,
-                              ha="right",
-                              weight="normal",
-                              size=12)
-        tick_labels = adjustText.plt.gca().get_xticklabels()
-        sorted_labels = sorted(tick_labels, key=lambda label: label.get_text())
-        for tick_label, tick_color in zip(sorted_labels, selected_color_dict.values()):
-            tick_label.set_color(tick_color)
+        self._x_ticks(plot_df, selected_color_dict)
+        # adjustText.plt.xticks(x_ticks["phecode_index"],
+        #                       x_ticks["phecode_category"],
+        #                       rotation=45,
+        #                       ha="right",
+        #                       weight="normal",
+        #                       size=12)
+        # tick_labels = adjustText.plt.gca().get_xticklabels()
+        # sorted_labels = sorted(tick_labels, key=lambda label: label.get_text())
+        # for tick_label, tick_color in zip(sorted_labels, selected_color_dict.values()):
+        #     tick_label.set_color(tick_color)
 
         # scatter
         self._scatter(ax, plot_df)
