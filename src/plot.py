@@ -14,10 +14,18 @@ class Manhattan:
                  bonferroni=None,
                  phecode_version=None):
         self.phewas_result = phewas_result
+        # sort and add index column for phecode order
+        self.phewas_result = self.phewas_result\
+            .sort(by=["phecode_category", "phecode"])\
+            .with_columns(pl.Series("phecode_index", range(1, len(self.phewas_result) + 1)))
+
+        # bonferroni
         if not bonferroni:
             self.bonferroni = -np.log10(0.05 / len(self.phewas_result))
         else:
             self.bonferroni = bonferroni
+
+        # phecode_version
         if phecode_version:
             self.phecode_version = phecode_version
         else:
@@ -37,7 +45,6 @@ class Manhattan:
             c = color
         c = colorsys.rgb_to_hls(*mc.to_rgb(c))
         return colorsys.hls_to_rgb(c[0], max(0, min(1, amount * c[1])), c[2])
-
 
     @staticmethod
     def _split_long_text(s):
@@ -134,16 +141,8 @@ class Manhattan:
         # MISC SETTINGS #
         #################
 
-        # colors
-        # phewas_result = _map_color(phewas_result.copy())
-
-        # sort and add index column for phecode order
-        phewas_result = self.phewas_result.sort(by=["phecode_category", "phecode"])\
-                                     .with_columns(pl.Series("phecode_index", range(1, len(phewas_result) + 1)))
-
         # create plot
         fig, ax = adjustText.plt.subplots(figsize=(20, 10))
-
         # plot title
         if title is not None:
             adjustText.plt.title(title, weight="bold", size=16)
@@ -154,6 +153,15 @@ class Manhattan:
         # set limit for display on y axes
         if y_limit is not None:
             ax.set_ylim(-0.2, y_limit)
+
+        ############
+        # PLOTTING #
+        ############
+
+        ax.scatter(self.phewas_result["phecode_index"].to_numpy(),
+                   self.phewas_result["neg_log_p_value"],
+                   marker="^",
+                   alpha=.3)
 
         ##########
         # LEGEND #
