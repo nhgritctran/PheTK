@@ -189,6 +189,7 @@ class Manhattan:
             .mean()
         adjustText.plt.xticks(x_ticks["phecode_index"],
                               x_ticks["phecode_category"],
+                              color=self.color_dict.values(),
                               rotation=45,
                               ha="right",
                               weight="normal",
