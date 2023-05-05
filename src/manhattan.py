@@ -145,7 +145,7 @@ def manhattan_plot(phewas_result,
     # plot title
     if title is not None:
         adjustText.plt.title(title, weight="bold", size=16)
-f
+
     ##########
     # LEGEND #
     ##########
