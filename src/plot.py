@@ -163,6 +163,10 @@ class Manhattan:
         #################
         # MISC SETTINGS #
         #################
+        if phecode_categories:
+            if len(phecode_categories) == 1:
+                phecode_categories = [phecode_categories]
+
         # plot title
         if title is not None:
             adjustText.plt.title(title, weight="bold", size=16)
@@ -191,10 +195,10 @@ class Manhattan:
             selected_color_dict = self.color_dict
         else:
             x_ticks = self.phewas_result[["phecode_category", "phecode_index", "color"]]\
-                .filter(pl.col("phecode_category").is_in([phecode_categories]))\
+                .filter(pl.col("phecode_category").is_in(phecode_categories))\
                 .groupby("phecode_category")\
                 .mean()
-            selected_color_dict = {k: self.color_dict[k] for k in [phecode_categories]}
+            selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
         adjustText.plt.xticks(x_ticks["phecode_index"],
                               x_ticks["phecode_category"],
                               rotation=45,
