@@ -76,18 +76,13 @@ class Manhattan:
         self.negative_betas = df.filter(pl.col("beta_ind") < 0)
         return self.positive_betas, self.negative_betas
 
-    def _scatter(self, ax, phecode_categories=None):
+    def _scatter(self, ax, plot_df):
         """
         generate scatter data points
         :param phecode_categories: defaults to None, i.e., use all categories
         :return: scatter plot of selected data
         """
-        if phecode_categories:
-            self.positive_betas, self.negative_betas = self._split_by_beta(
-                self._filter_by_phecode_categories(self.phewas_result, phecode_categories)
-            )
-        else:
-            self.positive_betas, self.negative_betas = self._split_by_beta(self.phewas_result)
+        self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
 
         ax.scatter(self.positive_betas["phecode_index"].to_numpy(),
                    self.positive_betas["neg_log_p_value"],
@@ -230,7 +225,7 @@ class Manhattan:
             tick_label.set_color(tick_color)
 
         # scatter
-        self._scatter(ax, phecode_categories)
+        self._scatter(ax, plot_df)
 
         ##########
         # LEGEND #
