@@ -259,13 +259,18 @@ class Manhattan:
         ##########
         if show_legend:
             if not phecode_categories:
-                legend_elements = [Line2D([0], [0], color="b", lw=2, linestyle="dashdot", label="Infinity", size=legend_text_size),
-                                   Line2D([0], [0], color="g", lw=2, label="Bonferroni Correction"),
-                                   Line2D([0], [0], color="r", lw=2, label="Nominal Significance Level"),
+                legend_elements = [Line2D([0], [0], color="b", lw=2, linestyle="dashdot", label="Infinity",
+                                          prop={"size": legend_text_size}),
+                                   Line2D([0], [0], color="g", lw=2, label="Bonferroni Correction",
+                                          prop={"size": legend_text_size}),
+                                   Line2D([0], [0], color="r", lw=2, label="Nominal Significance Level",
+                                          prop={"size": legend_text_size}),
                                    Line2D([0], [0], marker="^", label="Increased Risk Effect",
-                                          color="b", markerfacecolor="b", markersize=legend_marker_size),
+                                          color="b", markerfacecolor="b", markersize=legend_marker_size,
+                                          prop={"size": legend_text_size}),
                                    Line2D([0], [0], marker="v", label="Decreased Risk Effect",
-                                          color="b", markerfacecolor="b", markersize=legend_marker_size), ]
+                                          color="b", markerfacecolor="b", markersize=legend_marker_size,
+                                          prop={"size": legend_text_size}), ]
             else:
                 legend_elements = [Line2D([0], [0], color="b", lw=2, linestyle="dashdot", label="Infinity"),
                                    Line2D([0], [0], color="g", lw=2, label="Bonferroni Correction"),
