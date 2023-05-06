@@ -46,6 +46,10 @@ class Manhattan:
         # plot element scaling ratio
         self.ratio = 1
 
+        # color lightness
+        self.positive_alpha = 0.8
+        self.negative_alpha = 0.2
+
     @staticmethod
     def _filter_by_phecode_categories(df, phecode_categories=None):
         """
@@ -120,36 +124,21 @@ class Manhattan:
                    self.positive_betas["neg_log_p_value"],
                    c=self.positive_betas["color"],
                    marker="^",
-                   alpha=.6)
+                   alpha=self.positive_alpha)
         ax.scatter(self.negative_betas["phecode_index"].to_numpy(),
                    self.negative_betas["neg_log_p_value"],
                    c=self.negative_betas["color"],
                    marker="v",
-                   alpha=.3)
+                   alpha=self.negative_alpha)
 
     @staticmethod
-    def _adjust_lightness(color, amount=0.5):
-        """
-        adjust color lightness
-        :param color: str, color name, in "color" column in result table
-        :param amount: defaults to 0.5
-        :return: color from HSV coordinates to RGB coordinates
-        """
-        try:
-            c = mc.cnames[color]
-        except NameError:
-            c = color
-        c = colorsys.rgb_to_hls(*mc.to_rgb(c))
-        return colorsys.hls_to_rgb(c[0], max(0, min(1, amount * c[1])), c[2])
-
-    @staticmethod
-    def _split_long_text(s):
+    def _split_long_text(s, threshold=40):
         """
         split long text label
         :param s: text string
         :return: split text if longer than 40 chars
         """
-        if len(s) > 40:
+        if len(s) > threshold:
             words = s.split(" ")
             mid = len(words) // 2
             first_half = " ".join(words[:mid])
@@ -265,10 +254,10 @@ class Manhattan:
             legend_elements = [Line2D([0], [0], color="b", lw=2, linestyle="dashdot", label="Infinity"),
                                Line2D([0], [0], color="g", lw=2, label="Bonferroni Correction"),
                                Line2D([0], [0], color="r", lw=2, label="Nominal Significance Level"),
-                               Line2D([0], [0], marker="^", label="Increased Risk Effect",
-                                      color="b", markerfacecolor="b", alpha=.6, markersize=legend_marker_size),
-                               Line2D([0], [0], marker="v", label="Decreased Risk Effect",
-                                      color="b", markerfacecolor="b", alpha=.3, markersize=legend_marker_size), ]
+                               Line2D([0], [0], marker="^", label="Increased Risk Effect", color="b",
+                                      markerfacecolor="b", alpha=self.positive_alpha, markersize=legend_marker_size),
+                               Line2D([0], [0], marker="v", label="Decreased Risk Effect", color="b",
+                                      markerfacecolor="b", alpha=self.negative_alpha, markersize=legend_marker_size), ]
             ax.legend(handles=legend_elements,
                       handlelength=2,
                       loc="center left",
