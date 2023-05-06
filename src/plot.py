@@ -256,6 +256,10 @@ class Manhattan:
         # PLOTTING #
         ############
 
+        # x-axis offset
+        adjustText.plt.xlim(float(plot_df["phecode_index"].min()) - self.offset - 1,
+                            float(plot_df["phecode_index"].max()) + self.offset + 1)
+
         # create x ticks labels and colors
         self._x_ticks(plot_df, selected_color_dict)
 
