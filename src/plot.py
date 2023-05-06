@@ -138,12 +138,12 @@ class Manhattan:
         # nominal significance line
         ax.hlines(-adjustText.np.log10(.05),
                   0 - self.offset,
-                  plot_df["phecode_index"].max() + self.offset,
+                  # plot_df["phecode_index"].max() + self.offset,
                   colors="r")
         # bonferroni
         ax.hlines(self.bonferroni,
                   0 - self.offset,
-                  plot_df["phecode_index"].max() + self.offset,
+                  # plot_df["phecode_index"].max() + self.offset,
                   colors="g")
 
     @staticmethod
