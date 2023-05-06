@@ -218,7 +218,7 @@ class Manhattan:
 
         # create plot
         ratio = (n_categories/len(self.phewas_result.columns))
-        fig, ax = adjustText.plt.subplots(figsize=(10*ratio, 5), dpi=200)
+        fig, ax = adjustText.plt.subplots(figsize=(10*ratio, 5), dpi=150)
 
         # plot title
         if title is not None:
