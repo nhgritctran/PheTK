@@ -43,7 +43,7 @@ class Manhattan:
             pl.col("phecode_category").map_dict(self.color_dict).alias("color")
         )
 
-        self.ratio = None
+        self.ratio = 1
 
     @staticmethod
     def _filter_by_phecode_categories(df, phecode_categories=None):
@@ -220,7 +220,7 @@ class Manhattan:
 
         # create plot
         self.ratio = (n_categories/len(self.phewas_result.columns))
-        fig, ax = adjustText.plt.subplots(figsize=(15*self.ratio, 8), dpi=max(150*self.ratio, 100))
+        fig, ax = adjustText.plt.subplots(figsize=(15*self.ratio, 8), dpi=None)
 
         # plot title
         if title is not None:
@@ -231,7 +231,7 @@ class Manhattan:
             ax.set_ylim(-0.2, y_limit)
 
         # y axis label
-        ax.set_ylabel(r"$-\log_{10}$(p-value)", size=10*self.ratio)
+        ax.set_ylabel(r"$-\log_{10}$(p-value)", size=10)
 
         # create plot_df containing only necessary data for plotting
         plot_df = self._create_phecode_index(
