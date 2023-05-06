@@ -192,17 +192,17 @@ class Manhattan:
 
         texts = []
         for i in range(len(self.phewas_result)):
-            # set value for color variable
-            if mc.is_color_like(ccol):
-                color = ccol
-            else:
-                color = self.phewas_result[ccol].iloc[i]
+            # # set value for color variable
+            # if mc.is_color_like(ccol):
+            #     color = ccol
+            # else:
+            #     color = self.phewas_result[ccol].iloc[i]
 
             # create texts variable
             texts.append(adjustText.plt.text(float(self.phewas_result[x_col].iloc[i]),
                                              self.phewas_result[y_col].iloc[i],
                                              self._split_text(self.phewas_result[label_col].iloc[i]),
-                                             color=color,
+                                             # color=color,
                                              size=label_size,
                                              weight=label_weight))
 
