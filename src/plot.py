@@ -224,7 +224,7 @@ class Manhattan:
         # create plot
         self.ratio = (n_categories/len(self.phewas_result.columns))
         if phecode_categories:
-            dpi = None
+            dpi = 110
         else:
             dpi = 150
         fig, ax = adjustText.plt.subplots(figsize=(12*self.ratio, 7), dpi=dpi)
