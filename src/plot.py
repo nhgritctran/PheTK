@@ -204,8 +204,7 @@ class Manhattan:
              show_legend=True,
              y_limit=None,
              axis_text_size=8,
-             legend_text_size=8,
-             legend_marker_size=8,
+             legend_marker_size=4,
              title_text_size=10):
 
         #################
