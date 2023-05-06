@@ -251,9 +251,9 @@ class Manhattan:
         # LEGEND #
         ##########
         if show_legend:
-            legend_elements = [Line2D([0], [0], color="b", lw=2, linestyle="dashdot", label="Infinity"),
-                               Line2D([0], [0], color="g", lw=2, label="Bonferroni Correction"),
-                               Line2D([0], [0], color="r", lw=2, label="Nominal Significance Level"),
+            legend_elements = [Line2D([0], [0], color="b", lw=1, linestyle="dashdot", label="Infinity"),
+                               Line2D([0], [0], color="g", lw=1, label="Bonferroni Correction"),
+                               Line2D([0], [0], color="r", lw=1, label="Nominal Significance Level"),
                                Line2D([0], [0], marker="^", label="Increased Risk Effect", color="b",
                                       markerfacecolor="b", alpha=self.positive_alpha, markersize=legend_marker_size),
                                Line2D([0], [0], marker="v", label="Decreased Risk Effect", color="b",
