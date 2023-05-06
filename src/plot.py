@@ -120,7 +120,7 @@ class Manhattan:
                    self.positive_betas["neg_log_p_value"],
                    c=self.positive_betas["color"],
                    marker="^",
-                   alpha=1)
+                   alpha=.6)
         ax.scatter(self.negative_betas["phecode_index"].to_numpy(),
                    self.negative_betas["neg_log_p_value"],
                    c=self.negative_betas["color"],
