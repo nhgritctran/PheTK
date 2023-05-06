@@ -43,6 +43,8 @@ class Manhattan:
             pl.col("phecode_category").map_dict(self.color_dict).alias("color")
         )
 
+        self.ratio = None
+
     @staticmethod
     def _filter_by_phecode_categories(df, phecode_categories=None):
         """
@@ -84,8 +86,7 @@ class Manhattan:
         self.negative_betas = df.filter(pl.col("beta_ind") < 0)
         return self.positive_betas, self.negative_betas
 
-    @staticmethod
-    def _x_ticks(plot_df, selected_color_dict):
+    def _x_ticks(self, plot_df, selected_color_dict):
         """
         generate x tick labels and colors
         :param plot_df: plot data
@@ -99,7 +100,7 @@ class Manhattan:
                               rotation=45,
                               ha="right",
                               weight="normal",
-                              size=10)
+                              size=10*self.ratio)
         tick_labels = adjustText.plt.gca().get_xticklabels()
         sorted_labels = sorted(tick_labels, key=lambda label: label.get_text())
         for tick_label, tick_color in zip(sorted_labels, selected_color_dict.values()):
@@ -217,8 +218,8 @@ class Manhattan:
             n_categories = len(self.phewas_result.columns)
 
         # create plot
-        ratio = (n_categories/len(self.phewas_result.columns))
-        fig, ax = adjustText.plt.subplots(figsize=(15*ratio, 8), dpi=150)
+        self.ratio = (n_categories/len(self.phewas_result.columns))
+        fig, ax = adjustText.plt.subplots(figsize=(15*self.ratio, 8), dpi=150)
 
         # plot title
         if title is not None:
@@ -229,7 +230,7 @@ class Manhattan:
             ax.set_ylim(-0.2, y_limit)
 
         # y axis label
-        ax.set_ylabel(r"$-\log_{10}$(p-value)", size=10)
+        ax.set_ylabel(r"$-\log_{10}$(p-value)", size=10*self.ratio)
 
         # create plot_df containing only necessary data for plotting
         plot_df = self._create_phecode_index(
