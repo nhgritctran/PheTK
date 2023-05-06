@@ -224,7 +224,7 @@ class Manhattan:
         # create plot
         self.ratio = (n_categories/len(self.phewas_result.columns))
         if phecode_categories:
-            dpi = 110
+            dpi = None
         else:
             dpi = 150
         fig, ax = adjustText.plt.subplots(figsize=(12*self.ratio, 7), dpi=dpi)
@@ -277,4 +277,4 @@ class Manhattan:
                                           markerfacecolor="b", markersize=legend_marker_size),
                                    Line2D([0], [0], marker="v", label="Decreased Risk Effect",
                                           markerfacecolor="b", markersize=legend_marker_size), ]
-            ax.legend(handles=legend_elements, handlelength=2, loc="center left", bbox_to_anchor=(1, 0.5))
+            ax.legend(handles=legend_elements, handlelength=2, loc="center left", bbox_to_anchor=(1, 0.5), size=6)
