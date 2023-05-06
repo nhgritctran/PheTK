@@ -266,9 +266,9 @@ class Manhattan:
                                Line2D([0], [0], color="g", lw=2, label="Bonferroni Correction"),
                                Line2D([0], [0], color="r", lw=2, label="Nominal Significance Level"),
                                Line2D([0], [0], marker="^", label="Increased Risk Effect",
-                                      color="b", markerfacecolor="b", markersize=legend_marker_size),
+                                      color="b", markerfacecolor="b", alpha=.6, markersize=legend_marker_size),
                                Line2D([0], [0], marker="v", label="Decreased Risk Effect",
-                                      color="b", markerfacecolor="b", markersize=legend_marker_size), ]
+                                      color="b", markerfacecolor="b", alpha=.3, markersize=legend_marker_size), ]
             ax.legend(handles=legend_elements,
                       handlelength=2,
                       loc="center left",
