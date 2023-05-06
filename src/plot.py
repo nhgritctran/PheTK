@@ -140,13 +140,13 @@ class Manhattan:
                   0 - self.offset,
                   plot_df["phecode_index"].max() + self.offset,
                   colors="r",
-                  label="0.05")
+                  lw=1)
         # bonferroni
         ax.hlines(self.bonferroni,
                   0 - self.offset,
                   plot_df["phecode_index"].max() + self.offset,
                   colors="g",
-                  label="Bonferroni threshold")
+                  lw=1)
 
     @staticmethod
     def _split_long_text(s, threshold=40):
