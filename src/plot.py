@@ -99,7 +99,7 @@ class Manhattan:
                               rotation=45,
                               ha="right",
                               weight="normal",
-                              size=12)
+                              size=10)
         tick_labels = adjustText.plt.gca().get_xticklabels()
         sorted_labels = sorted(tick_labels, key=lambda label: label.get_text())
         for tick_label, tick_color in zip(sorted_labels, selected_color_dict.values()):
@@ -218,7 +218,7 @@ class Manhattan:
 
         # create plot
         ratio = (n_categories/len(self.phewas_result.columns))
-        fig, ax = adjustText.plt.subplots(figsize=(12*ratio, 8), dpi=150*1.5*ratio)
+        fig, ax = adjustText.plt.subplots(figsize=(15*ratio, 8), dpi=150)
 
         # plot title
         if title is not None:
