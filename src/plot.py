@@ -86,7 +86,8 @@ class Manhattan:
         self.negative_betas = df.filter(pl.col("beta_ind") < 0)
         return self.positive_betas, self.negative_betas
 
-    def _x_ticks(self, plot_df, selected_color_dict):
+    @staticmethod
+    def _x_ticks(plot_df, selected_color_dict):
         """
         generate x tick labels and colors
         :param plot_df: plot data
@@ -100,7 +101,7 @@ class Manhattan:
                               rotation=45,
                               ha="right",
                               weight="normal",
-                              size=10*self.ratio)
+                              size=10)
         tick_labels = adjustText.plt.gca().get_xticklabels()
         sorted_labels = sorted(tick_labels, key=lambda label: label.get_text())
         for tick_label, tick_color in zip(sorted_labels, selected_color_dict.values()):
@@ -219,7 +220,7 @@ class Manhattan:
 
         # create plot
         self.ratio = (n_categories/len(self.phewas_result.columns))
-        fig, ax = adjustText.plt.subplots(figsize=(15*self.ratio, 8), dpi=150)
+        fig, ax = adjustText.plt.subplots(figsize=(15*self.ratio, 8), dpi=max(150*self.ratio, 100))
 
         # plot title
         if title is not None:
