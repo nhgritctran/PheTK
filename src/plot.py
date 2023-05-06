@@ -1,6 +1,5 @@
 from matplotlib.lines import Line2D
 import adjustText
-import colorsys
 import matplotlib.colors as mc
 import numpy as np
 import polars as pl
@@ -118,6 +117,7 @@ class Manhattan:
     def _scatter(self, ax, plot_df):
         """
         generate scatter data points
+        :param ax: plot object
         :param plot_df: dataframe containing data required for plotting
         :return: scatter plot of selected data
         """
@@ -135,6 +135,12 @@ class Manhattan:
                    alpha=self.negative_alpha)
 
     def _lines(self, ax, plot_df):
+        """
+        generate bonferroni, nominal significance and infinity lines
+        :param ax: plot object
+        :param plot_df:
+        :return:
+        """
         # nominal significance line
         ax.hlines(-adjustText.np.log10(.05),
                   0 - self.offset,
@@ -164,11 +170,10 @@ class Manhattan:
             return s
 
     def _label_data(self,
-                    xcol,
-                    ycol,
-                    dcol,
-                    ccol,
-                    label_size=10,
+                    x_col,
+                    y_col,
+                    label_col,
+                    label_size=8,
                     label_weight="normal"):
         """
         method to label data
@@ -194,9 +199,9 @@ class Manhattan:
                 color = self.phewas_result[ccol].iloc[i]
 
             # create texts variable
-            texts.append(adjustText.plt.text(float(self.phewas_result[xcol].iloc[i]),
-                                             self.phewas_result[ycol].iloc[i],
-                                             self._split_long_text(self.phewas_result[dcol].iloc[i]),
+            texts.append(adjustText.plt.text(float(self.phewas_result[x_col].iloc[i]),
+                                             self.phewas_result[y_col].iloc[i],
+                                             self._split_text(self.phewas_result[label_col].iloc[i]),
                                              color=color,
                                              size=label_size,
                                              weight=label_weight))
@@ -212,9 +217,9 @@ class Manhattan:
              legend_marker_size=6,
              title_text_size=10):
 
-        #################
-        # MISC SETTINGS #
-        #################
+        ############
+        # SETTINGS #
+        ############
 
         # setup some variables based on phecode_categories
         if phecode_categories:
@@ -272,6 +277,7 @@ class Manhattan:
         ##########
         # LEGEND #
         ##########
+
         if show_legend:
             legend_elements = [Line2D([0], [0], color="b", lw=1, linestyle="dashdot", label="Infinity"),
                                Line2D([0], [0], color="g", lw=1, label="Bonferroni\nCorrection"),
