@@ -147,7 +147,7 @@ class Manhattan:
                   colors="g")
 
     @staticmethod
-    def _split_long_text(s, threshold=40):
+    def _split_text(s, threshold=40):
         """
         split long text label
         :param s: text string
@@ -270,11 +270,11 @@ class Manhattan:
         ##########
         if show_legend:
             legend_elements = [Line2D([0], [0], color="b", lw=1, linestyle="dashdot", label="Infinity"),
-                               Line2D([0], [0], color="g", lw=1, label="Bonferroni Correction"),
-                               Line2D([0], [0], color="r", lw=1, label="Nominal Significance Level"),
-                               Line2D([0], [0], marker="^", label="Increased Risk Effect", color="b",
+                               Line2D([0], [0], color="g", lw=1, label="Bonferroni\nCorrection"),
+                               Line2D([0], [0], color="r", lw=1, label="Nominal\nSignificance"),
+                               Line2D([0], [0], marker="^", label="Increased\nRisk Effect", color="b",
                                       markerfacecolor="b", alpha=self.positive_alpha, markersize=legend_marker_size),
-                               Line2D([0], [0], marker="v", label="Decreased Risk Effect", color="b",
+                               Line2D([0], [0], marker="v", label="Decreased\nRisk Effect", color="b",
                                       markerfacecolor="b", alpha=self.negative_alpha, markersize=legend_marker_size), ]
             ax.legend(handles=legend_elements,
                       handlelength=2,
