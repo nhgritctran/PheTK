@@ -50,6 +50,9 @@ class Manhattan:
         self.positive_alpha = 0.7
         self.negative_alpha = 0.3
 
+        # offset
+        self.offset = 9
+
     @staticmethod
     def _filter_by_phecode_categories(df, phecode_categories=None):
         """
@@ -130,6 +133,20 @@ class Manhattan:
                    c=self.negative_betas["color"],
                    marker="v",
                    alpha=self.negative_alpha)
+
+    def _lines(self, ax, plot_df):
+        # nominal significance line
+        ax.hlines(-adjustText.np.log10(.05),
+                  0 - self.offset,
+                  plot_df["phecode_index"].max() + self.offset,
+                  colors="r",
+                  label="0.05")
+        # bonferroni
+        ax.hlines(self.bonferroni,
+                  0 - self.offset,
+                  plot_df["phecode_index"].max() + self.offset,
+                  colors="g",
+                  label="Bonferroni threshold")
 
     @staticmethod
     def _split_long_text(s, threshold=40):
@@ -246,6 +263,9 @@ class Manhattan:
 
         # scatter
         self._scatter(ax, plot_df)
+
+        # lines
+        self._lines(ax, plot_df)
 
         ##########
         # LEGEND #
