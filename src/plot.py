@@ -204,7 +204,7 @@ class Manhattan:
              show_legend=True,
              y_limit=None,
              axis_text_size=8,
-             legend_marker_size=4,
+             legend_marker_size=6,
              title_text_size=10):
 
         #################
@@ -223,7 +223,11 @@ class Manhattan:
 
         # create plot
         self.ratio = (n_categories/len(self.phewas_result.columns))
-        fig, ax = adjustText.plt.subplots(figsize=(12*self.ratio, 7), dpi=None)
+        if phecode_categories:
+            dpi = None
+        else:
+            dpi = 150
+        fig, ax = adjustText.plt.subplots(figsize=(12*self.ratio, 7), dpi=dpi)
 
         # plot title
         if title is not None:
