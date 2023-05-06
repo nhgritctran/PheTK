@@ -218,18 +218,18 @@ class Manhattan:
 
         # create plot
         ratio = (n_categories/len(self.phewas_result.columns))
-        fig, ax = adjustText.plt.subplots(figsize=(10*ratio, 5), dpi=150)
+        fig, ax = adjustText.plt.subplots(figsize=(12*ratio, 8), dpi=150)
 
         # plot title
         if title is not None:
-            adjustText.plt.title(title, weight="bold", size=16)
+            adjustText.plt.title(title, weight="bold", size=12)
 
         # set limit for display on y axes
         if y_limit is not None:
             ax.set_ylim(-0.2, y_limit)
 
         # y axis label
-        ax.set_ylabel(r"$-\log_{10}$(p-value)", size=12)
+        ax.set_ylabel(r"$-\log_{10}$(p-value)", size=10)
 
         # create plot_df containing only necessary data for plotting
         plot_df = self._create_phecode_index(
@@ -257,15 +257,15 @@ class Manhattan:
                                    Line2D([0], [0], color="g", lw=2, label="Bonferroni Correction"),
                                    Line2D([0], [0], color="r", lw=2, label="Nominal Significance Level"),
                                    Line2D([0], [0], marker="^", label="Increased Risk Effect",
-                                          color="b", markerfacecolor="b", markersize=12),
+                                          color="b", markerfacecolor="b", markersize=10),
                                    Line2D([0], [0], marker="v", label="Decreased Risk Effect",
-                                          color="b", markerfacecolor="b", markersize=12), ]
+                                          color="b", markerfacecolor="b", markersize=10), ]
             else:
                 legend_elements = [Line2D([0], [0], color="b", lw=2, linestyle="dashdot", label="Infinity"),
                                    Line2D([0], [0], color="g", lw=2, label="Bonferroni Correction"),
                                    Line2D([0], [0], color="r", lw=2, label="Nominal Significance Level"),
                                    Line2D([0], [0], marker="^", label="Increased Risk Effect",
-                                          markerfacecolor="b", markersize=12),
+                                          markerfacecolor="b", markersize=10),
                                    Line2D([0], [0], marker="v", label="Decreased Risk Effect",
-                                          markerfacecolor="b", markersize=12), ]
+                                          markerfacecolor="b", markersize=10), ]
             ax.legend(handles=legend_elements, handlelength=2, loc="center left", bbox_to_anchor=(1, 0.5))
