@@ -47,8 +47,8 @@ class Manhattan:
         self.ratio = 1
 
         # color lightness
-        self.positive_alpha = 0.8
-        self.negative_alpha = 0.2
+        self.positive_alpha = 0.7
+        self.negative_alpha = 0.3
 
     @staticmethod
     def _filter_by_phecode_categories(df, phecode_categories=None):
