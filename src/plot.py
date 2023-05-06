@@ -139,14 +139,12 @@ class Manhattan:
         ax.hlines(-adjustText.np.log10(.05),
                   0 - self.offset,
                   plot_df["phecode_index"].max() + self.offset,
-                  colors="r",
-                  lw=1)
+                  colors="r")
         # bonferroni
         ax.hlines(self.bonferroni,
                   0 - self.offset,
                   plot_df["phecode_index"].max() + self.offset,
-                  colors="g",
-                  lw=1)
+                  colors="g")
 
     @staticmethod
     def _split_long_text(s, threshold=40):
