@@ -276,7 +276,7 @@ class Manhattan:
 
     def plot(self,
              label_values="positive_beta",
-             label_value_threshold=None,
+             label_value_threshold=0,
              label_count=10,
              label_column="phecode_string",
              label_color="label_color",
