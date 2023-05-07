@@ -205,11 +205,10 @@ class Manhattan:
             elif item == "negative_beta":
                 self.data_to_label = pl.concat([self.data_to_label, self.negative_betas[:label_count]])
             elif item == "p_value":
-                self.data_to_label = pl.concat([self.data_to_label,
-                                                self.data_to_label.sort(by="p_value")[:label_count]])
+                self.data_to_label = pl.concat([self.data_to_label, plot_df.sort(by="p_value")[:label_count]])
             else:
                 self.data_to_label = pl.concat([self.data_to_label,
-                                                self.data_to_label.filter(pl.col("phecode").is_in(label_values))])
+                                                plot_df.filter(pl.col("phecode") == item)])
 
         texts = []
         for i in range(len(self.data_to_label)):
