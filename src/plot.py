@@ -180,7 +180,7 @@ class Manhattan:
                label_count,
                y_col="neg_log_p_value",
                x_col="phecode_index",
-               color="label_color",
+               label_color="label_color",
                label_size=8,
                label_weight="normal"):
         """
@@ -212,11 +212,11 @@ class Manhattan:
 
         texts = []
         for i in range(len(self.data_to_label)):
-            if mc.is_color_like(color):
-                color = pl.Series(values=[color]*len(self.data_to_label))
+            if mc.is_color_like(label_color):
+                color = pl.Series(values=[label_color]*len(self.data_to_label))
             else:
                 # noinspection PyTypeChecker
-                color = self.data_to_label[color]
+                color = self.data_to_label[label_color]
             # noinspection PyTypeChecker
             texts.append(adjustText.plt.text(float(self.data_to_label[x_col][i]),
                                              float(self.data_to_label[y_col][i]),
