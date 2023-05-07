@@ -224,6 +224,7 @@ class Manhattan:
             above_threshold_phecodes = self.phewas_result.filter(
                 pl.col(label_above_threshold_column) >= label_above_threshold
             )["phecode"].unique().to_list()
+            display(above_threshold_phecodes)
             self.data_to_label = self.data_to_label.filter(pl.col("phecode").is_in(above_threshold_phecodes))
 
         display(self.data_to_label)
