@@ -24,7 +24,10 @@ class Manhattan:
         # assign a proxy value for infinity neg_log_p_value
         max_non_inf_neg_log = self.phewas_result.filter(pl.col("p_value") != 0)\
             .sort(by="p_value")["neg_log_p_value"][0]
-        self.inf_proxy = max_non_inf_neg_log * 1.2
+        if max_non_inf_neg_log:
+            self.inf_proxy = max_non_inf_neg_log * 1.2
+        else:
+            self.inf_proxy = None
         self.phewas_result = self.phewas_result.with_columns(pl.when(pl.col("p_value") == 0)
                                                              .then(self.inf_proxy)
                                                              .otherwise(pl.col("neg_log_p_value"))
@@ -187,11 +190,12 @@ class Manhattan:
                   colors="g")
 
         # infinity
-        ax.hlines(self.inf_proxy * 0.98,
-                  0 - self.offset,
-                  plot_df["phecode_index"].max() + self.offset + 1,
-                  colors="b",
-                  linestyle="dashdot")
+        if self.inf_proxy:
+            ax.hlines(self.inf_proxy * 0.98,
+                      0 - self.offset,
+                      plot_df["phecode_index"].max() + self.offset + 1,
+                      colors="b",
+                      linestyle="dashdot")
 
     @staticmethod
     def _split_text(s, threshold=30):
