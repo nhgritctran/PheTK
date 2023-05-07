@@ -157,7 +157,7 @@ class Manhattan:
                   colors="g")
 
     @staticmethod
-    def _split_text(s, threshold=40):
+    def _split_text(s, threshold=30):
         """
         split long text label
         :param s: text string
@@ -183,7 +183,7 @@ class Manhattan:
                label_values,
                label_col,
                label_count,
-               label_split_threshold=40,
+               label_split_threshold=30,
                y_col="neg_log_p_value",
                x_col="phecode_index",
                label_color="label_color",
