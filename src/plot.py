@@ -161,19 +161,20 @@ class Manhattan:
         """
         split long text label
         :param s: text string
+        :param threshold: approximate number of characters per line
         :return: split text if longer than 40 chars
         """
+        words = s.split(" ")
         new_s = ""
-        element_count = len(s)//threshold+1
-        if element_count > 1:
-            for i in range(element_count):
-                element = s[i*threshold: (i+1)*threshold]
-                if i == element_count-1 or element[-1] == " ":
-                    new_s += element + "\n"
-                else:
-                    new_s += element + "-" + "\n"
-        else:
-            new_s = s
+        line_length = 0
+        for word in words:
+            new_s += word
+            line_length += len(word)
+            if line_length >= threshold:
+                new_s += "\n"
+                line_length = 0
+            else:
+                new_s += " "
 
         return new_s
 
