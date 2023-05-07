@@ -1,4 +1,3 @@
-from IPython.display import display
 from matplotlib.lines import Line2D
 import adjustText
 import matplotlib.colors as mc
@@ -184,6 +183,7 @@ class Manhattan:
                label_values,
                label_col,
                label_count,
+               label_value_threshold=0,
                label_split_threshold=30,
                label_color="label_color",
                label_size=8,
@@ -210,11 +210,29 @@ class Manhattan:
         self.data_to_label = pl.DataFrame(schema=plot_df.schema)
         for item in label_values:
             if item == "positive_beta":
-                self.data_to_label = pl.concat([self.data_to_label, self.positive_betas[:label_count]])
+                self.data_to_label = pl.concat(
+                    [
+                        self.data_to_label,
+                        self.positive_betas.filter(pl.col("beta_ind") >= label_value_threshold)[:label_count]
+                    ]
+                )
             elif item == "negative_beta":
-                self.data_to_label = pl.concat([self.data_to_label, self.negative_betas[:label_count]])
+                self.data_to_label = pl.concat(
+                    [
+                        self.data_to_label,
+                        self.negative_betas.filter(pl.col("beta_ind") <= label_value_threshold)[:label_count]
+                    ]
+                )
+                if label_value_threshold:
+                    self.data_to_label = self.data_to_label.filter(pl.col("beta_ind") <= label_value_threshold)
             elif item == "p_value":
-                self.data_to_label = pl.concat([self.data_to_label, plot_df.sort(by="p_value")[:label_count]])
+                self.data_to_label = pl.concat(
+                    [
+                        self.data_to_label,
+                        plot_df.sort(by="p_value")
+                               .filter(pl.col("neg_log_p_value") >= label_value_threshold)[:label_count]
+                    ]
+                )
             else:
                 self.data_to_label = pl.concat([self.data_to_label,
                                                 plot_df.filter(pl.col("phecode") == item)])
@@ -258,6 +276,7 @@ class Manhattan:
 
     def plot(self,
              label_values="positive_beta",
+             label_value_threshold=None,
              label_count=10,
              label_column="phecode_string",
              label_color="label_color",
@@ -332,6 +351,7 @@ class Manhattan:
         # labeling
         self._label(plot_df,
                     label_values=label_values,
+                    label_value_threshold=label_value_threshold,
                     label_count=label_count,
                     label_col=label_column,
                     label_color=label_color,
