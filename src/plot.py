@@ -116,7 +116,6 @@ class Manhattan:
                               size=size)
         tick_labels = adjustText.plt.gca().get_xticklabels()
         sorted_labels = sorted(tick_labels, key=lambda label: label.get_text())
-        display(sorted_labels, selected_color_dict)
         for tick_label, tick_color in zip(sorted_labels, selected_color_dict.values()):
             tick_label.set_color(tick_color)
 
