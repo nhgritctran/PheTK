@@ -24,14 +24,14 @@ class Manhattan:
         # assign a proxy value for infinity neg_log_p_value
         max_non_inf_neg_log = self.phewas_result.filter(pl.col("p_value") != 0)\
             .sort(by="p_value")["neg_log_p_value"][0]
-        if max_non_inf_neg_log:
+        if max_non_inf_neg_log < self.phewas_result["neg_log_p_value"].max():
             self.inf_proxy = max_non_inf_neg_log * 1.2
+            self.phewas_result = self.phewas_result.with_columns(pl.when(pl.col("p_value") == 0)
+                                                                 .then(self.inf_proxy)
+                                                                 .otherwise(pl.col("neg_log_p_value"))
+                                                                 .alias("neg_log_p_value"))
         else:
             self.inf_proxy = None
-        self.phewas_result = self.phewas_result.with_columns(pl.when(pl.col("p_value") == 0)
-                                                             .then(self.inf_proxy)
-                                                             .otherwise(pl.col("neg_log_p_value"))
-                                                             .alias("neg_log_p_value"))
 
         # bonferroni
         if not bonferroni:
@@ -47,6 +47,9 @@ class Manhattan:
             self.phecode_version = phecode_version
         else:
             self.phecode_version = "X"
+
+        # phecode categories
+        self.phecode_categories = None
 
         # color mapping
         if color_palette:
@@ -190,7 +193,10 @@ class Manhattan:
                   colors="g")
 
         # infinity
-        if self.inf_proxy:
+        max_neg_log_p_value = plot_df.filter(
+            pl.col("phecode_category").is_in(self.phecode_categories)
+        )["neg_log_p_value"].max()
+        if self.inf_proxy and self.inf_proxy > max_neg_log_p_value:
             ax.hlines(self.inf_proxy * 0.98,
                       0 - self.offset,
                       plot_df["phecode_index"].max() + self.offset + 1,
@@ -347,6 +353,7 @@ class Manhattan:
         if phecode_categories:
             if isinstance(phecode_categories, str):
                 phecode_categories = [phecode_categories]
+            self.phecode_categories = phecode_categories
             selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
             n_categories = len(phecode_categories)
         else:
