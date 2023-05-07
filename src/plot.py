@@ -277,7 +277,7 @@ class Manhattan:
                 self.phewas_result, phecode_categories
             )
         )
-        plot_df = plot_df.with_columns(pl.col("phecode_category").map_dict(self.color_dict).alias("color"))
+        plot_df = plot_df.with_columns(pl.col("phecode_category").map_dict(selected_color_dict).alias("color"))
 
         self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
 
