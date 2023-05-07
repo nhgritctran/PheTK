@@ -300,7 +300,11 @@ class Manhattan:
         self._lines(ax, plot_df)
 
         # labeling
-        self._label(plot_df, label_values=label_values, label_count=label_count, label_col=label_column)
+        self._label(plot_df,
+                    label_values=label_values,
+                    label_count=label_count,
+                    label_col=label_column,
+                    label_color=label_color)
 
         ##########
         # LEGEND #
