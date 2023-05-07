@@ -74,7 +74,7 @@ class Manhattan:
         if not isinstance(df, pl.DataFrame):
             return pl.from_pandas(df)
         else:
-            pass
+            return df
 
     @staticmethod
     def _filter_by_phecode_categories(df, phecode_categories=None):
