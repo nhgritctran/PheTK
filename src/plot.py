@@ -253,7 +253,8 @@ class Manhattan:
                                              weight=label_weight,
                                              alpha=1))
 
-        return adjustText.adjust_text(texts, arrowprops=dict(arrowstyle="-", color="gray", lw=0.5))
+        if len(texts) > 0:
+            return adjustText.adjust_text(texts, arrowprops=dict(arrowstyle="-", color="gray", lw=0.5))
 
     def _legend(self, ax, legend_marker_size):
         """
