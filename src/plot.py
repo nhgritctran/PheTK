@@ -185,7 +185,7 @@ class Manhattan:
                plot_df,
                label_values,
                label_count,
-               label_col="phecode_string",
+               label_text_column="phecode_string",
                label_value_threshold=0,
                label_split_threshold=30,
                label_color="label_color",
@@ -201,7 +201,7 @@ class Manhattan:
                                       if label_values is "positive_beta", keep beta values >= cutoff
                                       if label_values is "negative_beta", keep beta values <= cutoff
                                       if label_values is "p_value", keep neg_log_p_value >= cutoff
-        :param label_col: defaults to "phecode_string"; name of column contain text for labels
+        :param label_text_column: defaults to "phecode_string"; name of column contain text for labels
         :param label_count: number of items to label, only needed if label_by input is data type
         :param label_split_threshold: number of characters to consider splitting long labels
         :param label_color: string type; takes either a color or name of column contains color for plot data
@@ -255,7 +255,8 @@ class Manhattan:
             # noinspection PyTypeChecker
             texts.append(adjustText.plt.text(float(self.data_to_label[x_col][i]),
                                              float(self.data_to_label[y_col][i]),
-                                             self._split_text(self.data_to_label[label_col][i], label_split_threshold),
+                                             self._split_text(self.data_to_label[label_text_column][i],
+                                                              label_split_threshold),
                                              color=color[i],
                                              size=label_size,
                                              weight=label_weight,
@@ -287,7 +288,7 @@ class Manhattan:
              label_values="positive_beta",
              label_value_threshold=0,
              label_count=10,
-             label_column="phecode_string",
+             label_text_column="phecode_string",
              label_color="label_color",
              label_split_threshold=30,
              phecode_categories=None,
@@ -358,13 +359,9 @@ class Manhattan:
         self._lines(ax, plot_df)
 
         # labeling
-        self._label(plot_df,
-                    label_values=label_values,
-                    label_value_threshold=label_value_threshold,
-                    label_count=label_count,
-                    label_col=label_column,
-                    label_color=label_color,
-                    label_split_threshold=label_split_threshold)
+        self._label(plot_df, label_values=label_values, label_count=label_count, label_text_column=label_text_column,
+                    label_value_threshold=label_value_threshold, label_split_threshold=label_split_threshold,
+                    label_color=label_color)
 
         # legend
         if show_legend:
