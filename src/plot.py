@@ -180,6 +180,7 @@ class Manhattan:
                label_count,
                y_col="neg_log_p_value",
                x_col="phecode_index",
+               color="color",
                label_size=8,
                label_weight="normal"):
         """
@@ -211,11 +212,15 @@ class Manhattan:
 
         texts = []
         for i in range(len(self.data_to_label)):
+            if mc.is_color_like(color):
+                color = color
+            else:
+                color = plot_df[color][i]
             # noinspection PyTypeChecker
             texts.append(adjustText.plt.text(float(self.data_to_label[x_col][i]),
                                              float(self.data_to_label[y_col][i]),
                                              self._split_text(plot_df[label_col][i]),
-                                             # color=color,
+                                             color=color,
                                              size=label_size,
                                              weight=label_weight))
 
@@ -272,6 +277,7 @@ class Manhattan:
                 self.phewas_result, phecode_categories
             )
         )
+        plot_df = plot_df.with_columns(pl.col("phecode_category").map_dict(self.color_dict).alias("color"))
 
         self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
 
