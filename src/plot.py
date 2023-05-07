@@ -210,7 +210,7 @@ class Manhattan:
                                                plot_df.filter(pl.col("phecode").is_in(label_values)))
 
         texts = []
-        for i in range(len(self.phewas_result)):
+        for i in range(len(self.data_to_label)):
             # noinspection PyTypeChecker
             texts.append(adjustText.plt.text(float(self.data_to_label[x_col][i]),
                                              float(self.data_to_label[y_col][i]),
