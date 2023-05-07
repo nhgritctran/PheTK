@@ -170,38 +170,26 @@ class Manhattan:
             return s
 
     def _label_data(self,
+                    plot_df,
+                    label_col,
                     x_col,
                     y_col,
-                    label_col,
                     label_size=8,
                     label_weight="normal"):
         """
-        method to label data
-        ---
-        input
-            df: dataframe contains data points for labeling
-            xcol: column contains x values
-            ycol: column contains y values
-            dcol: column contains values for labeling
-            label_size: label size
-            label_weight: label weight
-        ---
-        output
-            labels in plot via adjust_text function
+        :param plot_df: plot data
+        :param label_col: column contains values for labeling
+        :param x_col: column contains x values
+        :param y_col: column contains y values
+        :param label_size: defaults to 8
+        :param label_weight: takes standard plt weight inputs, e.g., "normal", "bold", etc.
+        :return: adjustText object
         """
-
         texts = []
         for i in range(len(self.phewas_result)):
-            # # set value for color variable
-            # if mc.is_color_like(ccol):
-            #     color = ccol
-            # else:
-            #     color = self.phewas_result[ccol].iloc[i]
-
-            # create texts variable
-            texts.append(adjustText.plt.text(float(self.phewas_result[x_col].iloc[i]),
-                                             self.phewas_result[y_col].iloc[i],
-                                             self._split_text(self.phewas_result[label_col].iloc[i]),
+            texts.append(adjustText.plt.text(float(plot_df[x_col][i]),
+                                             plot_df[y_col][i],
+                                             self._split_text(plot_df[label_col][i]),
                                              # color=color,
                                              size=label_size,
                                              weight=label_weight))
@@ -273,6 +261,9 @@ class Manhattan:
 
         # lines
         self._lines(ax, plot_df)
+
+        # labeling
+        self._label_data(plot_df, label_col="phecode_string", x_col="phecode_index", y_col="neg_log_p_value")
 
         ##########
         # LEGEND #
