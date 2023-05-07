@@ -1,3 +1,4 @@
+from IPython.display import display
 from matplotlib.lines import Line2D
 import adjustText
 import matplotlib.colors as mc
@@ -224,7 +225,7 @@ class Manhattan:
                 pl.col(label_above_threshold_column) >= label_above_threshold
             )
 
-        print(self.data_to_label)
+        display(self.data_to_label)
 
         texts = []
         for i in range(len(self.data_to_label)):
