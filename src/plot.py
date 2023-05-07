@@ -38,9 +38,8 @@ class Manhattan:
         self.phecode_categories.sort()
         self.color_dict = {self.phecode_categories[i]: self.color_palette[i % len(self.color_palette)]
                            for i in range(len(self.phecode_categories))}
-        # noinspection PyTypeChecker
         self.phewas_result = self.phewas_result.with_columns(
-            pl.col("phecode_category").map_dict(self.color_dict).alias("color")
+            pl.col("phecode_category").map_dict(self.color_dict).alias("label_color")
         )
         self.positive_betas = None
         self.negative_betas = None
@@ -130,12 +129,12 @@ class Manhattan:
 
         ax.scatter(self.positive_betas["phecode_index"].to_numpy(),
                    self.positive_betas["neg_log_p_value"],
-                   c=self.positive_betas["color"],
+                   c=self.positive_betas["label_color"],
                    marker="^",
                    alpha=self.positive_alpha)
         ax.scatter(self.negative_betas["phecode_index"].to_numpy(),
                    self.negative_betas["neg_log_p_value"],
-                   c=self.negative_betas["color"],
+                   c=self.negative_betas["label_color"],
                    marker="v",
                    alpha=self.negative_alpha)
 
@@ -181,7 +180,7 @@ class Manhattan:
                label_count,
                y_col="neg_log_p_value",
                x_col="phecode_index",
-               color="color",
+               color="label_color",
                label_size=8,
                label_weight="normal"):
         """
