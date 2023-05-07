@@ -213,14 +213,15 @@ class Manhattan:
         texts = []
         for i in range(len(self.data_to_label)):
             if mc.is_color_like(color):
-                color = color
+                color = pl.Series(values=[color]*len(self.data_to_label))
             else:
-                color = self.data_to_label[color][i]
+                # noinspection PyTypeChecker
+                color = self.data_to_label[color]
             # noinspection PyTypeChecker
             texts.append(adjustText.plt.text(float(self.data_to_label[x_col][i]),
                                              float(self.data_to_label[y_col][i]),
                                              self._split_text(self.data_to_label[label_col][i]),
-                                             color=color,
+                                             color=color[i],
                                              size=label_size,
                                              weight=label_weight))
 
