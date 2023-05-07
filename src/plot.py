@@ -187,7 +187,7 @@ class Manhattan:
                   colors="g")
 
         # infinity
-        ax.hlines(self.inf_proxy * 0.9,
+        ax.hlines(self.inf_proxy * 0.98,
                   0 - self.offset,
                   plot_df["phecode_index"].max() + self.offset + 1,
                   colors="b")
