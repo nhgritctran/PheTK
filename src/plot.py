@@ -219,7 +219,7 @@ class Manhattan:
             # noinspection PyTypeChecker
             texts.append(adjustText.plt.text(float(self.data_to_label[x_col][i]),
                                              float(self.data_to_label[y_col][i]),
-                                             self._split_text(plot_df[label_col][i]),
+                                             self._split_text(self.data_to_label[label_col][i]),
                                              color=color,
                                              size=label_size,
                                              weight=label_weight))
