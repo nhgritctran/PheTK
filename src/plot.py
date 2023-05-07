@@ -21,6 +21,9 @@ class Manhattan:
         else:
             self.bonferroni = bonferroni
 
+        # nominal significance
+        self.nominal_significance = -np.log10(0.05)
+
         # phecode_version
         if phecode_version:
             self.phecode_version = phecode_version
