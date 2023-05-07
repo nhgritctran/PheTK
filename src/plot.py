@@ -180,7 +180,7 @@ class Manhattan:
                label_count,
                y_col="neg_log_p_value",
                x_col="phecode_index",
-               color="label_color",
+               color="color",
                label_size=8,
                label_weight="normal"):
         """
