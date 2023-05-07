@@ -224,7 +224,7 @@ class Manhattan:
                                              color=color[i],
                                              size=label_size,
                                              weight=label_weight,
-                                             alpha=self.positive_alpha+0.4))
+                                             alpha=1))
 
         return adjustText.adjust_text(texts, arrowprops=dict(arrowstyle="-", color="gray", lw=0.5))
 
