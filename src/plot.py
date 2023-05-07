@@ -41,6 +41,9 @@ class Manhattan:
         self.phewas_result = self.phewas_result.with_columns(
             pl.col("phecode_category").map_dict(self.color_dict).alias("color")
         )
+        self.positive_betas = None
+        self.negative_betas = None
+        self.data_to_label = None
 
         # plot element scaling ratio
         self.ratio = 1
@@ -83,15 +86,16 @@ class Manhattan:
 
         return df
 
-    def _split_by_beta(self, df):
+    @staticmethod
+    def _split_by_beta(df):
         """
         :param df: data of interest, e.g., full phewas result or result of a phecode_category
         :return: positive and negative beta polars dataframes
         """
         # split to positive and negative beta data
-        self.positive_betas = df.filter(pl.col("beta_ind") >= 0)
-        self.negative_betas = df.filter(pl.col("beta_ind") < 0)
-        return self.positive_betas, self.negative_betas
+        positive_betas = df.filter(pl.col("beta_ind") >= 0).sort(by="beta_ind", descending=True)
+        negative_betas = df.filter(pl.col("beta_ind") < 0)
+        return positive_betas, negative_betas
 
     @staticmethod
     def _x_ticks(plot_df, selected_color_dict, size=8):
@@ -169,26 +173,47 @@ class Manhattan:
         else:
             return s
 
-    def _label_data(self,
-                    plot_df,
-                    label_col,
-                    x_col,
-                    y_col,
-                    label_size=8,
-                    label_weight="normal"):
+    def _label(self,
+               plot_df,
+               label_values,
+               label_col,
+               label_count,
+               x_col,
+               y_col,
+               label_size=8,
+               label_weight="normal"):
         """
         :param plot_df: plot data
-        :param label_col: column contains values for labeling
+        :param label_values: can take a single phecode, a list of phecodes,
+                             or preset values "positive_betas", "negative_betas", "p_value"
+        :param label_count: number of items to label, only needed if label_by input is data type
         :param x_col: column contains x values
         :param y_col: column contains y values
         :param label_size: defaults to 8
         :param label_weight: takes standard plt weight inputs, e.g., "normal", "bold", etc.
         :return: adjustText object
         """
+
+        if isinstance(label_values, str):
+            label_values = [label_values]
+
+        self.data_to_label = pl.DataFrame(schema=plot_df.schema)
+        for item in label_values:
+            if item == "positive_beta":
+                self.data_to_label = pl.concat([self.data_to_label, self.positive_betas[:label_count]])
+            elif item == "negative_beta":
+                self.data_to_label = pl.concat([self.data_to_label, self.negative_betas[:label_count]])
+            elif item == "p_value":
+                self.data_to_label = pl.concat(self.data_to_label, plot_df.sort(by="p_value")[:label_count])
+            else:
+                self.data_to_label = pl.concat(self.data_to_label,
+                                               plot_df.filter(pl.col("phecode").is_in(label_values)))
+
         texts = []
         for i in range(len(self.phewas_result)):
-            texts.append(adjustText.plt.text(float(plot_df[x_col][i]),
-                                             plot_df[y_col][i],
+            # noinspection PyTypeChecker
+            texts.append(adjustText.plt.text(float(self.data_to_label[x_col][i]),
+                                             float(self.data_to_label[y_col][i]),
                                              self._split_text(plot_df[label_col][i]),
                                              # color=color,
                                              size=label_size,
@@ -197,6 +222,8 @@ class Manhattan:
         return adjustText.adjust_text(texts, arrowprops=dict(arrowstyle="-", color="gray", lw=0.5))
 
     def plot(self,
+             label_values=None,
+             label_count=None,
              phecode_categories=None,
              title=None,
              show_legend=True,
@@ -245,6 +272,8 @@ class Manhattan:
             )
         )
 
+        self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
+
         ############
         # PLOTTING #
         ############
@@ -263,7 +292,8 @@ class Manhattan:
         self._lines(ax, plot_df)
 
         # labeling
-        self._label_data(plot_df, label_col="phecode_string", x_col="phecode_index", y_col="neg_log_p_value")
+        self._label(plot_df, label_values=label_values, label_count=label_count, x_col="phecode_index",
+                    y_col="neg_log_p_value", label_col="phecode_string")
 
         ##########
         # LEGEND #
