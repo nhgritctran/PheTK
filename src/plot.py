@@ -183,6 +183,7 @@ class Manhattan:
                label_values,
                label_col,
                label_count,
+               label_split_threshold=40,
                y_col="neg_log_p_value",
                x_col="phecode_index",
                label_color="label_color",
@@ -225,7 +226,7 @@ class Manhattan:
             # noinspection PyTypeChecker
             texts.append(adjustText.plt.text(float(self.data_to_label[x_col][i]),
                                              float(self.data_to_label[y_col][i]),
-                                             self._split_text(self.data_to_label[label_col][i]),
+                                             self._split_text(self.data_to_label[label_col][i], label_split_threshold),
                                              color=color[i],
                                              size=label_size,
                                              weight=label_weight,
@@ -252,6 +253,7 @@ class Manhattan:
              label_count=10,
              label_column="phecode_string",
              label_color="label_color",
+             label_split_threshold = 40,
              phecode_categories=None,
              title=None,
              show_legend=True,
@@ -324,7 +326,8 @@ class Manhattan:
                     label_values=label_values,
                     label_count=label_count,
                     label_col=label_column,
-                    label_color=label_color)
+                    label_color=label_color,
+                    label_split_threshold=label_split_threshold)
 
         # legend
         if show_legend:
