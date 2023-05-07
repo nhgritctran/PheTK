@@ -266,7 +266,7 @@ class Manhattan:
              label_count=10,
              label_column="phecode_string",
              label_color="label_color",
-             label_split_threshold=40,
+             label_split_threshold=30,
              label_above_threshold=None,
              label_above_threshold_column=None,
              phecode_categories=None,
