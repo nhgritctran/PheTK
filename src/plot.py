@@ -183,21 +183,25 @@ class Manhattan:
                label_values,
                label_col,
                label_count,
+               label_above_threshold=None,
+               label_above_threshold_column=None,
                label_split_threshold=30,
-               y_col="neg_log_p_value",
-               x_col="phecode_index",
                label_color="label_color",
                label_size=8,
-               label_weight="normal"):
+               label_weight="normal",
+               y_col="neg_log_p_value",
+               x_col="phecode_index"):
         """
         :param plot_df: plot data
         :param label_values: can take a single phecode, a list of phecodes,
                              or preset values "positive_betas", "negative_betas", "p_value"
         :param label_count: number of items to label, only needed if label_by input is data type
-        :param x_col: column contains x values
-        :param y_col: column contains y values
+        :param label_split_threshold: number of characters to consider splitting long labels
+        :param label_color: string type; takes either a color or name of column contains color for plot data
         :param label_size: defaults to 8
         :param label_weight: takes standard plt weight inputs, e.g., "normal", "bold", etc.
+        :param x_col: column contains x values
+        :param y_col: column contains y values
         :return: adjustText object
         """
 
@@ -215,6 +219,10 @@ class Manhattan:
             else:
                 self.data_to_label = pl.concat([self.data_to_label,
                                                 plot_df.filter(pl.col("phecode") == item)])
+        if label_above_threshold:
+            self.data_to_label = self.data_to_label.filter(
+                pl.col(label_above_threshold_column) >= label_above_threshold
+            )
 
         texts = []
         for i in range(len(self.data_to_label)):
@@ -235,6 +243,11 @@ class Manhattan:
         return adjustText.adjust_text(texts, arrowprops=dict(arrowstyle="-", color="gray", lw=0.5))
 
     def _legend(self, ax, legend_marker_size):
+        """
+        :param ax: plot object
+        :param legend_marker_size: size of markers
+        :return: legend element
+        """
         legend_elements = [Line2D([0], [0], color="b", lw=1, linestyle="dashdot", label="Infinity"),
                            Line2D([0], [0], color="g", lw=1, label="Bonferroni\nCorrection"),
                            Line2D([0], [0], color="r", lw=1, label="Nominal\nSignificance"),
@@ -253,14 +266,16 @@ class Manhattan:
              label_count=10,
              label_column="phecode_string",
              label_color="label_color",
-             label_split_threshold = 40,
+             label_split_threshold=40,
+             label_above_threshold=None,
+             label_above_threshold_column=None,
              phecode_categories=None,
              title=None,
-             show_legend=True,
+             title_text_size=10,
              y_limit=None,
              axis_text_size=8,
-             legend_marker_size=6,
-             title_text_size=10):
+             show_legend=True,
+             legend_marker_size=6):
 
         ############
         # SETTINGS #
@@ -327,7 +342,9 @@ class Manhattan:
                     label_count=label_count,
                     label_col=label_column,
                     label_color=label_color,
-                    label_split_threshold=label_split_threshold)
+                    label_split_threshold=label_split_threshold,
+                    label_above_threshold=label_above_threshold,
+                    label_above_threshold_column=label_above_threshold_column)
 
         # legend
         if show_legend:
