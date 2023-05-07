@@ -178,8 +178,8 @@ class Manhattan:
                label_values,
                label_col,
                label_count,
-               x_col,
-               y_col,
+               y_col="neg_log_p_value",
+               x_col="phecode_index",
                label_size=8,
                label_weight="normal"):
         """
@@ -222,8 +222,9 @@ class Manhattan:
         return adjustText.adjust_text(texts, arrowprops=dict(arrowstyle="-", color="gray", lw=0.5))
 
     def plot(self,
-             label_values=None,
-             label_count=None,
+             label_values="positive_beta",
+             label_count=10,
+             label_col="phecode_string",
              phecode_categories=None,
              title=None,
              show_legend=True,
@@ -292,8 +293,7 @@ class Manhattan:
         self._lines(ax, plot_df)
 
         # labeling
-        self._label(plot_df, label_values=label_values, label_count=label_count, x_col="phecode_index",
-                    y_col="neg_log_p_value", label_col="phecode_string")
+        self._label(plot_df, label_values=label_values, label_count=label_count, label_col=label_col)
 
         ##########
         # LEGEND #
