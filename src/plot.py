@@ -163,15 +163,19 @@ class Manhattan:
         :param s: text string
         :return: split text if longer than 40 chars
         """
-        if len(s) > threshold:
-            words = s.split(" ")
-            mid = len(words) // 2
-            first_half = " ".join(words[:mid])
-            second_half = " ".join(words[mid:])
-            full_text = first_half + "\n" + second_half
-            return full_text
+        new_s = ""
+        element_count = len(s)//threshold+1
+        if element_count > 1:
+            for i in range(element_count):
+                element = s[i*threshold: (i+1)*threshold]
+                if i == element_count-1 or element[-1] == " ":
+                    new_s += element + "\n"
+                else:
+                    new_s += element + "-" + "\n"
         else:
-            return s
+            new_s = s
+
+        return new_s
 
     def _label(self,
                plot_df,
