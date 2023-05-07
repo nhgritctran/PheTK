@@ -230,7 +230,8 @@ class Manhattan:
     def plot(self,
              label_values="positive_beta",
              label_count=10,
-             label_col="phecode_string",
+             label_column="phecode_string",
+             label_color="label_color",
              phecode_categories=None,
              title=None,
              show_legend=True,
@@ -299,7 +300,7 @@ class Manhattan:
         self._lines(ax, plot_df)
 
         # labeling
-        self._label(plot_df, label_values=label_values, label_count=label_count, label_col=label_col)
+        self._label(plot_df, label_values=label_values, label_count=label_count, label_col=label_column)
 
         ##########
         # LEGEND #
