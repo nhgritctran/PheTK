@@ -11,9 +11,15 @@ class Manhattan:
                  bonferroni=None,
                  phecode_version=None,
                  color_palette=None):
+        """
+        :param phewas_result: phewas result data; this will be converted to polars dataframe if not already is
+        :param bonferroni: defaults to None; if None, calculate base on number of phecode tested
+        :param phecode_version: defaults to None; if None, use phecode X; else phecode 1.2
+        :param color_palette: defaults to None; if None, use internal color palette
+        """
 
         # sort and add index column for phecode order
-        self.phewas_result = phewas_result
+        self.phewas_result = self._to_polars(phewas_result)
 
         # bonferroni
         if not bonferroni:
@@ -57,6 +63,18 @@ class Manhattan:
 
         # offset
         self.offset = 9
+
+    @staticmethod
+    def _to_polars(df):
+        """
+        check and convert pandas dataframe object to polars dataframe, if applicable
+        :param df: dataframe object
+        :return: polars dataframe
+        """
+        if not isinstance(df, pl.DataFrame):
+            return pl.from_pandas(df)
+        else:
+            pass
 
     @staticmethod
     def _filter_by_phecode_categories(df, phecode_categories=None):
@@ -263,7 +281,7 @@ class Manhattan:
                                              alpha=1))
 
         if len(texts) > 0:
-            return adjustText.adjust_text(texts, arrowprops=dict(arrowstyle="-", color="gray", lw=0.5))
+            return adjustText.adjust_text(texts, arrowprops=dict(arrowstyle="fancy", color="gray", lw=0.5))
 
     def _legend(self, ax, legend_marker_size):
         """
@@ -290,6 +308,7 @@ class Manhattan:
              label_count=10,
              label_text_column="phecode_string",
              label_color="label_color",
+             label_weight="normal",
              label_split_threshold=30,
              phecode_categories=None,
              title=None,
@@ -361,7 +380,7 @@ class Manhattan:
         # labeling
         self._label(plot_df, label_values=label_values, label_count=label_count, label_text_column=label_text_column,
                     label_value_threshold=label_value_threshold, label_split_threshold=label_split_threshold,
-                    label_color=label_color)
+                    label_color=label_color, label_weight=label_weight)
 
         # legend
         if show_legend:
