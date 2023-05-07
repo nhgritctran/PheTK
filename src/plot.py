@@ -221,9 +221,10 @@ class Manhattan:
                 self.data_to_label = pl.concat([self.data_to_label,
                                                 plot_df.filter(pl.col("phecode") == item)])
         if label_above_threshold:
-            self.data_to_label = self.data_to_label.filter(
+            above_threshold_phecodes = self.phewas_result.filter(
                 pl.col(label_above_threshold_column) >= label_above_threshold
-            )
+            )["phecode"].unique().to_list()
+            self.data_to_label = self.data_to_label.filter(pl.col("phecode").is_in(above_threshold_phecodes))
 
         display(self.data_to_label)
 
