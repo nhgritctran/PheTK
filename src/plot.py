@@ -184,8 +184,8 @@ class Manhattan:
     def _label(self,
                plot_df,
                label_values,
-               label_col,
                label_count,
+               label_col="phecode_string",
                label_value_threshold=0,
                label_split_threshold=30,
                label_color="label_color",
@@ -197,6 +197,11 @@ class Manhattan:
         :param plot_df: plot data
         :param label_values: can take a single phecode, a list of phecodes,
                              or preset values "positive_betas", "negative_betas", "p_value"
+        :param label_value_threshold: cutoff value for label values;
+                                      if label_values is "positive_beta", keep beta values >= cutoff
+                                      if label_values is "negative_beta", keep beta values <= cutoff
+                                      if label_values is "p_value", keep neg_log_p_value >= cutoff
+        :param label_col: defaults to "phecode_string"; name of column contain text for labels
         :param label_count: number of items to label, only needed if label_by input is data type
         :param label_split_threshold: number of characters to consider splitting long labels
         :param label_color: string type; takes either a color or name of column contains color for plot data
