@@ -196,7 +196,7 @@ class Manhattan:
         max_neg_log_p_value = plot_df.filter(
             pl.col("phecode_category").is_in(self.phecode_categories)
         )["neg_log_p_value"].max()
-        if self.inf_proxy > max_neg_log_p_value:
+        if self.inf_proxy < max_neg_log_p_value:
             ax.hlines(self.inf_proxy * 0.98,
                       0 - self.offset,
                       plot_df["phecode_index"].max() + self.offset + 1,
