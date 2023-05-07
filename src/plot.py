@@ -282,7 +282,7 @@ class Manhattan:
 
         if len(texts) > 0:
             return adjustText.adjust_text(texts,
-                                          arrowprops=dict(arrowstyle="simple", color="gray", lw=0.5, mutation_sclare=2))
+                                          arrowprops=dict(arrowstyle="simple", color="gray", lw=0.5, mutation_scale=2))
 
     def _legend(self, ax, legend_marker_size):
         """
