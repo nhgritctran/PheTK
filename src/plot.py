@@ -224,6 +224,8 @@ class Manhattan:
                 pl.col(label_above_threshold_column) >= label_above_threshold
             )
 
+        print(self.data_to_label)
+
         texts = []
         for i in range(len(self.data_to_label)):
             if mc.is_color_like(label_color):
