@@ -38,6 +38,7 @@ class Manhattan:
         self.phecode_categories.sort()
         self.color_dict = {self.phecode_categories[i]: self.color_palette[i % len(self.color_palette)]
                            for i in range(len(self.phecode_categories))}
+        # noinspection PyTypeChecker
         self.phewas_result = self.phewas_result.with_columns(
             pl.col("phecode_category").map_dict(self.color_dict).alias("color")
         )
