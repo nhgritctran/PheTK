@@ -215,7 +215,7 @@ class Manhattan:
             if mc.is_color_like(color):
                 color = color
             else:
-                color = plot_df[color][i]
+                color = self.data_to_label[color][i]
             # noinspection PyTypeChecker
             texts.append(adjustText.plt.text(float(self.data_to_label[x_col][i]),
                                              float(self.data_to_label[y_col][i]),
