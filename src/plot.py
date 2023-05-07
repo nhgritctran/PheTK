@@ -184,8 +184,6 @@ class Manhattan:
                label_values,
                label_col,
                label_count,
-               label_above_threshold=None,
-               label_above_threshold_column=None,
                label_split_threshold=30,
                label_color="label_color",
                label_size=8,
@@ -220,13 +218,6 @@ class Manhattan:
             else:
                 self.data_to_label = pl.concat([self.data_to_label,
                                                 plot_df.filter(pl.col("phecode") == item)])
-        if label_above_threshold:
-            above_threshold_df = plot_df.filter(
-                pl.col(label_above_threshold_column) >= label_above_threshold
-            )
-            self.data_to_label = pl.concat([self.data_to_label, above_threshold_df]).unique()
-
-        display(self.data_to_label)
 
         texts = []
         for i in range(len(self.data_to_label)):
@@ -271,8 +262,6 @@ class Manhattan:
              label_column="phecode_string",
              label_color="label_color",
              label_split_threshold=30,
-             label_above_threshold=None,
-             label_above_threshold_column=None,
              phecode_categories=None,
              title=None,
              title_text_size=10,
@@ -346,9 +335,7 @@ class Manhattan:
                     label_count=label_count,
                     label_col=label_column,
                     label_color=label_color,
-                    label_split_threshold=label_split_threshold,
-                    label_above_threshold=label_above_threshold,
-                    label_above_threshold_column=label_above_threshold_column)
+                    label_split_threshold=label_split_threshold)
 
         # legend
         if show_legend:
