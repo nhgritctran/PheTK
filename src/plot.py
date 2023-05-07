@@ -180,7 +180,7 @@ class Manhattan:
                label_count,
                y_col="neg_log_p_value",
                x_col="phecode_index",
-               color="color",
+               color="label_color",
                label_size=8,
                label_weight="normal"):
         """
@@ -277,7 +277,7 @@ class Manhattan:
                 self.phewas_result, phecode_categories
             )
         )
-        plot_df = plot_df.with_columns(pl.col("phecode_category").map_dict(selected_color_dict).alias("color"))
+        plot_df = plot_df.with_columns(pl.col("phecode_category").map_dict(selected_color_dict).alias("label_color"))
 
         self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
 
