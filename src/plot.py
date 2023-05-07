@@ -223,9 +223,24 @@ class Manhattan:
                                              self._split_text(self.data_to_label[label_col][i]),
                                              color=color[i],
                                              size=label_size,
-                                             weight=label_weight))
+                                             weight=label_weight,
+                                             alpha=1))
 
         return adjustText.adjust_text(texts, arrowprops=dict(arrowstyle="-", color="gray", lw=0.5))
+
+    def _legend(self, ax, legend_marker_size):
+        legend_elements = [Line2D([0], [0], color="b", lw=1, linestyle="dashdot", label="Infinity"),
+                           Line2D([0], [0], color="g", lw=1, label="Bonferroni\nCorrection"),
+                           Line2D([0], [0], color="r", lw=1, label="Nominal\nSignificance"),
+                           Line2D([0], [0], marker="^", label="Increased\nRisk Effect", color="b",
+                                  markerfacecolor="b", alpha=self.positive_alpha, markersize=legend_marker_size),
+                           Line2D([0], [0], marker="v", label="Decreased\nRisk Effect", color="b",
+                                  markerfacecolor="b", alpha=self.negative_alpha, markersize=legend_marker_size), ]
+        ax.legend(handles=legend_elements,
+                  handlelength=2,
+                  loc="center left",
+                  bbox_to_anchor=(1, 0.5),
+                  fontsize=legend_marker_size)
 
     def plot(self,
              label_values="positive_beta",
@@ -306,20 +321,6 @@ class Manhattan:
                     label_col=label_column,
                     label_color=label_color)
 
-        ##########
-        # LEGEND #
-        ##########
-
+        # legend
         if show_legend:
-            legend_elements = [Line2D([0], [0], color="b", lw=1, linestyle="dashdot", label="Infinity"),
-                               Line2D([0], [0], color="g", lw=1, label="Bonferroni\nCorrection"),
-                               Line2D([0], [0], color="r", lw=1, label="Nominal\nSignificance"),
-                               Line2D([0], [0], marker="^", label="Increased\nRisk Effect", color="b",
-                                      markerfacecolor="b", alpha=self.positive_alpha, markersize=legend_marker_size),
-                               Line2D([0], [0], marker="v", label="Decreased\nRisk Effect", color="b",
-                                      markerfacecolor="b", alpha=self.negative_alpha, markersize=legend_marker_size), ]
-            ax.legend(handles=legend_elements,
-                      handlelength=2,
-                      loc="center left",
-                      bbox_to_anchor=(1, 0.5),
-                      fontsize=legend_marker_size)
+            self._legend(ax, legend_marker_size)
