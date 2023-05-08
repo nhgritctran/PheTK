@@ -18,7 +18,7 @@ class PheWAS:
                  gender_col,
                  covariate_cols,
                  independent_var_col,
-                 phecode_to_process=None,
+                 phecode_to_process="all",
                  min_cases=50,
                  min_phecode_count=2,
                  use_exclusion=True,
@@ -32,7 +32,7 @@ class PheWAS:
         :param gender_col: gender/sex column of interest; either "male" or "female" column can be used
         :param covariate_cols: name of covariate columns; excluding independent var of interest
         :param independent_var_col: binary "case" column to specify participants with/without variant of interest
-        :param phecode_to_process: defaults to None, i.e. all phecodes; otherwise, a list of phecodes must be provided
+        :param phecode_to_process: defaults to "all"; otherwise, a list of phecodes must be provided
         :param min_cases: defaults to 50; minimum number of cases for each phecode to be considered for PheWAS
         :param min_phecode_count: defaults to 2; minimum number of phecode count to qualify as case for PheWAS
         :param use_exclusion: defaults to True; whether to use additional exclusion range in control for PheWAS
@@ -67,12 +67,12 @@ class PheWAS:
         # update phecode_counts to only participants of interest
         self.cohort_ids = self.covariate_df["person_id"].unique().to_list()
         self.phecode_counts = self.phecode_counts.filter(pl.col("person_id").is_in(self.cohort_ids))
-        if phecode_to_process:
+        if phecode_to_process == "all":
+            self.phecode_list = self.phecode_counts["phecode"].unique().to_list()
+        else:
             if isinstance(phecode_to_process, str):
                 phecode_to_process = [phecode_to_process]
             self.phecode_list = phecode_to_process
-        else:
-            self.phecode_list = self.phecode_counts["phecode"].unique().to_list()
 
         # attributes for reporting PheWAS results
         self.result = None
