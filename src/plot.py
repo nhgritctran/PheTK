@@ -356,6 +356,7 @@ class Manhattan:
         if phecode_categories:
             if isinstance(phecode_categories, str):
                 phecode_categories = [phecode_categories]
+            phecode_categories.sorted()
             self.phecode_categories = phecode_categories
             selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
             n_categories = len(phecode_categories)
