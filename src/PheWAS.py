@@ -46,7 +46,7 @@ class PheWAS:
         # basic attributes from instantiation
         self.phecode_df = phecode_df
         self.phecode_counts = self._to_polars(phecode_counts).lazy()
-        self.covariate_df = self._to_polars(covariate_df).lazy()
+        self.covariate_df = self._to_polars(covariate_df)
         self.gender_col = gender_col
         self.covariate_cols = covariate_cols
         self.independent_var_col = independent_var_col
@@ -65,7 +65,7 @@ class PheWAS:
         self.cohort_ids = self.covariate_df["person_id"].unique().to_list()
         self.phecode_counts = self.phecode_counts.filter(pl.col("person_id").is_in(self.cohort_ids))
         if phecode_to_process == "all":
-            self.phecode_list = self.phecode_counts["phecode"].unique().to_list()
+            self.phecode_list = self.phecode_counts.collect()["phecode"].unique().to_list()
         else:
             self.phecode_list = phecode_to_process
 
@@ -152,7 +152,7 @@ class PheWAS:
         # case participants with at least <min_phecode_count> phecodes
         case_ids = self.phecode_counts.filter(
             (pl.col("phecode") == phecode) & (pl.col("count") >= self.min_phecode_count)
-        )["person_id"].unique().to_list()
+        ).collect()["person_id"].unique().to_list()
         cases = self.covariate_df.filter(pl.col("person_id").is_in(case_ids))
 
         # select data based on phecode "sex", e.g., male/female only or both
@@ -187,7 +187,7 @@ class PheWAS:
         # get participants ids to exclude and filter covariate df
         exclude_ids = self.phecode_counts.filter(
             pl.col("phecode").is_in(exclude_range)
-        )["person_id"].unique().to_list()
+        ).collect()["person_id"].unique().to_list()
         base_controls = self.covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
 
         if sex_restriction == "Male":
