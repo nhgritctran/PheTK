@@ -167,8 +167,8 @@ class PheWAS:
 
         # drop duplicates and keep analysis covariate cols only
         duplicate_check_cols = ["person_id"] + analysis_var_cols
-        cases = cases[self.var_cols]
         cases = cases.unique(subset=duplicate_check_cols)[analysis_var_cols]
+        cases = cases[self.var_cols]
 
         return cases
 
@@ -203,8 +203,8 @@ class PheWAS:
 
         # drop duplicates and keep analysis covariate cols only
         duplicate_check_cols = ["person_id"] + analysis_covariate_cols
-        controls = controls[self.var_cols]
         controls = controls.unique(subset=duplicate_check_cols)[analysis_covariate_cols]
+        controls = controls[self.var_cols]
 
         return controls
 
