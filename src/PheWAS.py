@@ -10,7 +10,7 @@ import warnings
 
 
 class PheWAS:
-
+    # test checkout
     def __init__(self,
                  phecode_df,
                  phecode_counts,
