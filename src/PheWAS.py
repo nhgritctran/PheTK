@@ -59,7 +59,6 @@ class PheWAS:
         # additional attributes
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
         self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
-        self.job_count = 1
 
         # keep only relevant columns in covariate_df
         self.covariate_df = self.covariate_df[["person_id"] + self.var_cols]
