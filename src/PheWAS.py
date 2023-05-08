@@ -152,8 +152,9 @@ class PheWAS:
         """
 
         # case participants with at least <min_phecode_count> phecodes
-        case_id = self.phecode_counts.filter((pl.col("phecode") == phecode) &
-                                             (pl.col("count") >= self.min_phecode_count))
+        case_id = self.phecode_counts.filter(
+            (pl.col("phecode") == phecode) & (pl.col("count") >= self.min_phecode_count)
+        )["person_id"].unique().to_list()
         cases = self.covariate_df.filter(pl.col("person_id").is_in(case_id))
 
         # # old code, not efficient; do not use merged_df
@@ -316,7 +317,6 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        print(self.phecode_list)
         if parallelization == "multithreading":
             with ThreadPoolExecutor(n_threads) as executor:
                 jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
