@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import statsmodels.api as sm
+import time
 import warnings
 
 
@@ -247,7 +248,11 @@ class PheWAS:
         """
 
         sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
+        start = time.time()
         cases = self._case_prep(phecode)
+        end = time.time()
+        if self.verbose:
+            print(end-start)
 
         # only run regression if number of cases > min_cases
         if len(cases) >= self.min_cases:
