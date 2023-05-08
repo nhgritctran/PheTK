@@ -70,6 +70,8 @@ class PheWAS:
         if phecode_to_process == "all":
             self.phecode_list = self.phecode_counts["phecode"].unique().to_list()
         else:
+            if isinstance(phecode_to_process, str):
+                phecode_to_process = [phecode_to_process]
             self.phecode_list = phecode_to_process
 
         # attributes for reporting PheWAS results
