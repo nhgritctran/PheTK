@@ -294,18 +294,20 @@ class PheWAS:
 
                 # choose to see results on the fly
                 if self.verbose:
-                    print(f"Phecode {phecode}: {result_dict}")
-                    print()
+                    print(f"Phecode {phecode}: {result_dict}\n")
 
                 # clean up used data from memory
                 del cases, controls, regressors
 
                 return result_dict
 
+            else:
+                # clean up used data from memory
+                del cases, controls, regressors
+
         else:
             if self.verbose:
-                print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.")
-                print()
+                print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.\n")
 
             # clean up used data from memory
             del cases
@@ -329,7 +331,7 @@ class PheWAS:
             with ThreadPoolExecutor(n_threads) as executor:
                 jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
                 # result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
-                result_dicts = [job.result() for job in jobs]
+                result_dicts = [job.result() for job in as_completed(jobs)]
         elif parallelization == "multiprocessing":
             with multiprocessing.Pool(min(n_cores, multiprocessing.cpu_count()-1)) as p:
                 # result_dicts = list(tqdm(p.imap(self._logistic_regression, self.phecode_list),
