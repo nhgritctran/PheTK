@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm.notebook import tqdm
+import gc
 import multiprocessing
 import numpy as np
 import pandas as pd
@@ -275,8 +276,13 @@ class PheWAS:
                 return result_dict
 
         else:
+            controls = None
+            regressors = None
             if self.verbose:
                 print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.")
+
+        del(cases, controls, regressors)
+        gc.collect()
 
     def run(self,
             parallelization="multithreading",
