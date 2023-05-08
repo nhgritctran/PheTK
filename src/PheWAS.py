@@ -246,7 +246,6 @@ class PheWAS:
         cases = self._case_prep(phecode)
         end = time.time()
         if self.verbose:
-            print(f"Job #{self.job_count}")
             print(f"{phecode} cases created in {end - start} seconds")
 
         # only run regression if number of cases > min_cases
@@ -297,20 +296,20 @@ class PheWAS:
                 # choose to see results on the fly
                 if self.verbose:
                     print(f"Phecode {phecode}: {result_dict}")
+                    print()
+
+                # clean up used data from memory
+                del cases, controls, regressors
 
                 return result_dict
 
         else:
-            controls = None
-            regressors = None
             if self.verbose:
                 print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.")
+                print()
 
-        del(cases, controls, regressors)
-
-        self.job_count += 1
-
-        print()
+            # clean up used data from memory
+            del cases
 
     def run(self,
             parallelization="multithreading",
