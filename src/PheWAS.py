@@ -168,7 +168,7 @@ class PheWAS:
         # drop duplicates and keep analysis covariate cols only
         duplicate_check_cols = ["person_id"] + analysis_var_cols
         cases = cases.unique(subset=duplicate_check_cols)[analysis_var_cols]
-        cases = cases[self.var_cols]
+        cases = cases[analysis_var_cols]
 
         return cases
 
@@ -186,7 +186,7 @@ class PheWAS:
             exclude_range = [phecode]
 
         # select control data based on
-        sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
+        sex_restriction, analysis_var_cols = self._sex_restriction(phecode)
 
         # get participants ids to exclude and filter covariate df
         exclude_ids = self.phecode_counts.filter(
@@ -202,9 +202,9 @@ class PheWAS:
             controls = base_controls
 
         # drop duplicates and keep analysis covariate cols only
-        duplicate_check_cols = ["person_id"] + analysis_covariate_cols
-        controls = controls.unique(subset=duplicate_check_cols)[analysis_covariate_cols]
-        controls = controls[self.var_cols]
+        duplicate_check_cols = ["person_id"] + analysis_var_cols
+        controls = controls.unique(subset=duplicate_check_cols)[analysis_var_cols]
+        controls = controls[analysis_var_cols]
 
         return controls
 
