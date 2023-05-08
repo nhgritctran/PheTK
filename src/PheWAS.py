@@ -61,7 +61,7 @@ class PheWAS:
         self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
 
         # keep only relevant columns in covariate_df
-        self.covariate_df = self.covariate_df[["person_id"] + self.var_cols]
+        self.covariate_df = self.covariate_df[["person_id", "male", "female"] + self.var_cols]
         self.cohort_size = self.covariate_df.n_unique()
 
         # update phecode_counts to only participants of interest
@@ -167,6 +167,7 @@ class PheWAS:
 
         # drop duplicates and keep analysis covariate cols only
         duplicate_check_cols = ["person_id"] + analysis_var_cols
+        cases = cases[self.var_cols]
         cases = cases.unique(subset=duplicate_check_cols)[analysis_var_cols]
 
         return cases
@@ -202,6 +203,7 @@ class PheWAS:
 
         # drop duplicates and keep analysis covariate cols only
         duplicate_check_cols = ["person_id"] + analysis_covariate_cols
+        controls = controls[self.var_cols]
         controls = controls.unique(subset=duplicate_check_cols)[analysis_covariate_cols]
 
         return controls
