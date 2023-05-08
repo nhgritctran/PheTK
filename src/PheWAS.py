@@ -44,8 +44,8 @@ class PheWAS:
 
         # basic attributes from instantiation
         self.phecode_df = phecode_df
-        self.phecode_counts = self._to_polars(phecode_counts).lazy()
-        self.covariate_df = self._to_polars(covariate_df).lazy()
+        self.phecode_counts = pl.LazyFrame(self._to_polars(phecode_counts))
+        self.covariate_df = pl.LazyFrame(self._to_polars(covariate_df))
         self.gender_col = gender_col
         self.covariate_cols = covariate_cols
         self.independent_var_col = independent_var_col
