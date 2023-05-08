@@ -267,45 +267,45 @@ class PheWAS:
             # get index of independent_var_col
             var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col)
 
-            # logistic regression
-            if self.suppress_warnings:
-                warnings.simplefilter("ignore")
-            y = regressors["y"].to_numpy()
-            regressors = regressors[analysis_covariate_cols].to_numpy()
-            regressors = sm.tools.add_constant(regressors, prepend=False)
-            logit = sm.Logit(y, regressors, missing="drop")
-
-            # catch Singular matrix error
-            try:
-                result = logit.fit(disp=False)
-            except np.linalg.linalg.LinAlgError as err:
-                if "Singular matrix" in str(err):
-                    pass
-                else:
-                    raise
-                result = None
-
-            if result:
-                # process result
-                base_dict = {"phecode": phecode,
-                             "cases": len(cases),
-                             "controls": len(controls)}
-                stats_dict = self._result_prep(result=result, var_of_interest_index=var_index)
-                result_dict = {**base_dict, **stats_dict}  # python 3.5 or later
-                # result_dict = base_dict | stats_dict  # python 3.9 or later
-
-                # choose to see results on the fly
-                if self.verbose:
-                    print(f"Phecode {phecode}: {result_dict}\n")
-
-                # clean up used data from memory
-                del cases, controls, regressors
-
-                return result_dict
-
-            else:
-                # clean up used data from memory
-                del cases, controls, regressors
+            # # logistic regression
+            # if self.suppress_warnings:
+            #     warnings.simplefilter("ignore")
+            # y = regressors["y"].to_numpy()
+            # regressors = regressors[analysis_covariate_cols].to_numpy()
+            # regressors = sm.tools.add_constant(regressors, prepend=False)
+            # logit = sm.Logit(y, regressors, missing="drop")
+            #
+            # # catch Singular matrix error
+            # try:
+            #     result = logit.fit(disp=False)
+            # except np.linalg.linalg.LinAlgError as err:
+            #     if "Singular matrix" in str(err):
+            #         pass
+            #     else:
+            #         raise
+            #     result = None
+            #
+            # if result:
+            #     # process result
+            #     base_dict = {"phecode": phecode,
+            #                  "cases": len(cases),
+            #                  "controls": len(controls)}
+            #     stats_dict = self._result_prep(result=result, var_of_interest_index=var_index)
+            #     result_dict = {**base_dict, **stats_dict}  # python 3.5 or later
+            #     # result_dict = base_dict | stats_dict  # python 3.9 or later
+            #
+            #     # choose to see results on the fly
+            #     if self.verbose:
+            #         print(f"Phecode {phecode}: {result_dict}\n")
+            #
+            #     # clean up used data from memory
+            #     del cases, controls, regressors
+            #
+            #     return result_dict
+            #
+            # else:
+            #     # clean up used data from memory
+            #     del cases, controls, regressors
 
         else:
             if self.verbose:
