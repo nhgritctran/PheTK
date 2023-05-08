@@ -61,7 +61,7 @@ class PheWAS:
         self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
 
         # keep only relevant columns in covariate_df
-        self.covariate_df = self.covariate_df[self.var_cols]
+        self.covariate_df = self.covariate_df[["person_id"] + self.var_cols]
         self.cohort_size = self.covariate_df.n_unique()
 
         # update phecode_counts to only participants of interest
