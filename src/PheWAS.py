@@ -278,22 +278,27 @@ class PheWAS:
             if self.verbose:
                 print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.")
 
-    def run(self, parallelization="multithreading"):
+    def run(self,
+            parallelization="multithreading",
+            n_threads=None,
+            n_cores=multiprocessing.cpu_count()-1):
         """
         run parallel logistic regressions
         :param parallelization: defaults to "multithreading", utilizing concurrent.futures.ThreadPoolExecutor();
                                 if "multiprocessing": use multiprocessing.Pool()
+        :param n_threads: number of threads in multithreading
+        :param n_cores: number of cores in multiprocessing
         :return: PheWAS summary statistics Polars dataframe
         """
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         if parallelization == "multithreading":
-            with ThreadPoolExecutor() as executor:
+            with ThreadPoolExecutor(n_threads) as executor:
                 jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
                 result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
         elif parallelization == "multiprocessing":
-            with multiprocessing.Pool(multiprocessing.cpu_count()-1) as p:
+            with multiprocessing.Pool(min(n_cores, multiprocessing.cpu_count()-1)) as p:
                 result_dicts = list(tqdm(p.imap(self._logistic_regression, self.phecode_list),
                                          total=len(self.phecode_list)))
         else:
