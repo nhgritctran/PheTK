@@ -58,10 +58,16 @@ class PheWAS:
         # additional attributes
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
         self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
-        self.merged_df = covariate_df.join(phecode_counts, how="inner", on="person_id")
-        self.cohort_size = covariate_df.n_unique()
+        self.cohort_size = self.covariate_df.n_unique()
+
+        # # old code, not efficient; should not create merged_df
+        # self.merged_df = covariate_df.join(phecode_counts, how="inner", on="person_id")
+
+        # update phecode_counts to only participants of interest
+        self.cohort_ids = self.covariate_df["person_id"].unique().to_list()
+        self.phecode_counts = self.phecode_counts.filter(pl.col("person_id").is_in(self.cohort_ids))
         if phecode_to_process == "all":
-            self.phecode_list = self.merged_df["phecode"].unique().to_list()
+            self.phecode_list = self.phecode_counts["phecode"].unique().to_list()
         else:
             self.phecode_list = phecode_to_process
 
@@ -81,9 +87,10 @@ class PheWAS:
         :return: polars dataframe
         """
         if isinstance(df, pd.DataFrame):
-            return pl.from_pandas(df)
+            polars_df = pl.from_pandas(df)
         else:
-            pass
+            polars_df = df
+        return polars_df
 
     def _sex_restriction(self, phecode):
         """
@@ -145,8 +152,13 @@ class PheWAS:
         """
 
         # case participants with at least <min_phecode_count> phecodes
-        cases = self.merged_df.filter((pl.col("phecode") == phecode) &
-                                      (pl.col("count") >= self.min_phecode_count))
+        case_id = self.phecode_counts.filter((pl.col("phecode") == phecode) &
+                                             (pl.col("count") >= self.min_phecode_count))
+        cases = self.covariate_df.filter(pl.col("person_id").is_in(case_id))
+
+        # # old code, not efficient; do not use merged_df
+        # cases = self.merged_df.filter((pl.col("phecode") == phecode) &
+        #                               (pl.col("count") >= self.min_phecode_count))
 
         # select data based on phecode "sex", e.g., male/female only or both
         sex_restriction, analysis_var_cols = self._sex_restriction(phecode)
@@ -176,7 +188,14 @@ class PheWAS:
 
         # select control data based on
         sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
-        base_controls = self.merged_df.filter(~(pl.col("phecode").is_in(exclude_range)))
+
+        # # old code, not efficient; do not use merged_df
+        # base_controls = self.merged_df.filter(~(pl.col("phecode").is_in(exclude_range)))
+
+        # get participants ids to exclude and filter covariate df
+        exclude_ids = self.phecode_counts.filter(pl.col("phecode").is_in(exclude_range))["person_id"].unique().to_list()
+        base_controls = self.covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
+
         if sex_restriction == "Male":
             controls = base_controls.filter(pl.col("male") == 1)
         elif sex_restriction == "Female":
