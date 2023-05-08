@@ -59,6 +59,7 @@ class PheWAS:
         # additional attributes
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
         self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
+        self.job_count = 1
 
         # keep only relevant columns in covariate_df
         self.covariate_df = self.covariate_df[["person_id"] + self.var_cols]
@@ -245,6 +246,7 @@ class PheWAS:
         cases = self._case_prep(phecode)
         end = time.time()
         if self.verbose:
+            print(f"Job #{self.job_count}")
             print(f"{phecode} cases created in {end - start} seconds")
 
         # only run regression if number of cases > min_cases
@@ -306,6 +308,10 @@ class PheWAS:
 
         del(cases, controls, regressors)
 
+        self.job_count += 1
+
+        print()
+
     def run(self,
             parallelization="multithreading",
             n_threads=None,
@@ -324,11 +330,13 @@ class PheWAS:
         if parallelization == "multithreading":
             with ThreadPoolExecutor(n_threads) as executor:
                 jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
-                result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
+                # result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
+                result_dicts = [job.result() for job in as_completed(jobs)]
         elif parallelization == "multiprocessing":
             with multiprocessing.Pool(min(n_cores, multiprocessing.cpu_count()-1)) as p:
-                result_dicts = list(tqdm(p.imap(self._logistic_regression, self.phecode_list),
-                                         total=len(self.phecode_list)))
+                # result_dicts = list(tqdm(p.imap(self._logistic_regression, self.phecode_list),
+                #                          total=len(self.phecode_list)))
+                result_dicts = list(p.imap(self._logistic_regression, self.phecode_list))
         else:
             return "Invalid parallelization method! Use either \"multithreading\" or \"multiprocessing\""
         result_dicts = [result for result in result_dicts if result]
