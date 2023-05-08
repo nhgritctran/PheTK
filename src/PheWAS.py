@@ -245,19 +245,19 @@ class PheWAS:
         """
 
         sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
-        start = time.time()
+        case_start_time = time.time()
         cases = self._case_prep(phecode)
-        end = time.time()
+        case_end_time = time.time()
         if self.verbose:
-            print(f"{phecode} cases created in {end - start} seconds\n")
+            print(f"{phecode} cases created in {case_end_time - case_start_time} seconds\n")
 
         # only run regression if number of cases > min_cases
         if len(cases) >= self.min_cases:
-            start = time.time()
+            control_start_time = time.time()
             controls = self._control_prep(phecode)
-            end = time.time()
+            control_end_time = time.time()
             if self.verbose:
-                print(f"{phecode} controls created in {end - start} seconds\n")
+                print(f"{phecode} controls created in {control_end_time - control_start_time} seconds\n")
 
             # add case/control values
             cases = cases.with_columns(pl.Series([1] * len(cases)).alias("y"))
