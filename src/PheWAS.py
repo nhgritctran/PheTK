@@ -298,21 +298,21 @@ class PheWAS:
                 if self.verbose:
                     print(f"Phecode {phecode}: {result_dict}\n")
 
-                # # clean up used data from memory
-                # del cases, controls, regressors
+                # clean up used data from memory
+                del cases, controls, regressors
 
                 return result_dict
-            #
-            # else:
-            #     # clean up used data from memory
-            #     del cases, controls, regressors
+
+            else:
+                # clean up used data from memory
+                del cases, controls, regressors
 
         else:
             if self.verbose:
                 print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.\n")
-            #
-            # # clean up used data from memory
-            # del cases
+
+            # clean up used data from memory
+            del cases
 
     def run(self,
             parallelization="multithreading",
