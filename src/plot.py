@@ -186,6 +186,7 @@ class Manhattan:
                   0 - self.offset,
                   plot_df["phecode_index"].max() + self.offset + 1,
                   colors="r")
+
         # bonferroni
         ax.hlines(self.bonferroni,
                   0 - self.offset,
@@ -197,6 +198,8 @@ class Manhattan:
             pl.col("phecode_category").is_in(self.phecode_categories)
         )["neg_log_p_value"].max()
         if self.inf_proxy and self.inf_proxy == max_neg_log_p_value:
+            y_ticks = ax.yaxis.get_major_ticks()
+
             ax.hlines(self.inf_proxy * 0.98,
                       0 - self.offset,
                       plot_df["phecode_index"].max() + self.offset + 1,
