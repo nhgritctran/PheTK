@@ -1,3 +1,4 @@
+import copy
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm.notebook import tqdm
 import multiprocessing
@@ -95,39 +96,50 @@ class PheWAS:
             polars_df = df
         return polars_df
 
-    def _sex_restriction(self, phecode):
+    def _sex_restriction(self, phecode, phecode_df=None, var_cols=None, gender_specific_var_cols=None):
         """
         :param phecode: phecode of interest
         :return: sex restriction and respective analysis covariates
         """
 
-        filtered_df = self.phecode_df.filter(pl.col("phecode") == phecode)
+        if phecode_df is None:
+            phecode_df = self.phecode_df.clone()
+        if var_cols is None:
+            var_cols = copy.deepcopy(self.var_cols)
+        if gender_specific_var_cols is None:
+            gender_specific_var_cols = copy.deepcopy(self.gender_specific_var_cols)
+
+        filtered_df = phecode_df.filter(pl.col("phecode") == phecode)
         sex_restriction = filtered_df["sex"].unique().to_list()[0]
 
         if sex_restriction == "Both":
-            analysis_var_cols = self.var_cols
+            analysis_var_cols = var_cols
         else:
-            analysis_var_cols = self.gender_specific_var_cols
+            analysis_var_cols = gender_specific_var_cols
 
         return sex_restriction, analysis_var_cols
 
-    def _exclude_range(self, phecode):
+    def _exclude_range(self, phecode, phecode_df=None):
         """
         process text data in exclude_range column; exclusively for phecodeX
         :param phecode: phecode of interest
         :return: processed exclude_range, either None or a valid list of phecode(s)
         """
+
+        if phecode_df is None:
+            phecode_df = self.phecode_df.clone()
+
         # not all phecode has exclude_range
         # exclude_range can be single code (e.g., "777"), single range (e.g., "777-780"),
         # or multiple ranges/codes (e.g., "750-777,586.2")
-        phecodes_without_exclude_range = self.phecode_df.filter(
+        phecodes_without_exclude_range = phecode_df.filter(
             pl.col("exclude_range").is_null()
         )["phecode"].unique().to_list()
         if phecode in phecodes_without_exclude_range:
             exclude_range = []
         else:
             # get exclude_range value of phecode
-            ex_val = self.phecode_df.filter(pl.col("phecode") == phecode)["exclude_range"].unique().to_list()[0]
+            ex_val = phecode_df.filter(pl.col("phecode") == phecode)["exclude_range"].unique().to_list()[0]
 
             # split multiple codes/ranges
             comma_split = ex_val.split(",")
@@ -183,8 +195,9 @@ class PheWAS:
         return cases
 
     def _control_prep(self, phecode,
-                      phecode_counts=None, covariate_df=None,
-                      sex_restriction=None, analysis_var_cols=None):
+                      phecode_counts=None, covariate_df=None, phecode_df=None,
+                      sex_restriction=None, analysis_var_cols=None,
+                      var_cols=None, gender_specific_var_cols=None):
         """
         prepare PheWAS control data
         :param phecode: phecode of interest
@@ -195,12 +208,23 @@ class PheWAS:
             phecode_counts = self.phecode_counts.clone()
         if covariate_df is None:
             covariate_df = self.covariate_df.clone()
+        if phecode_df is None:
+            phecode_df = self.phecode_df.clone()
+        if var_cols is None:
+            var_cols = copy.deepcopy(self.var_cols)
+        if gender_specific_var_cols is None:
+            gender_specific_var_cols = copy.deepcopy(self.gender_specific_var_cols)
         if sex_restriction is None or analysis_var_cols is None:
-            sex_restriction, analysis_var_cols = self._sex_restriction(phecode)
+            sex_restriction, analysis_var_cols = self._sex_restriction(
+                phecode=phecode,
+                phecode_df=phecode_df,
+                var_cols=var_cols,
+                gender_specific_var_cols=gender_specific_var_cols
+            )
 
         # phecode exclusions
         if self.use_exclusion:
-            exclude_range = [phecode] + self._exclude_range(phecode)
+            exclude_range = [phecode] + self._exclude_range(phecode, phecode_df=phecode_df)
         else:
             exclude_range = [phecode]
 
@@ -251,7 +275,9 @@ class PheWAS:
                 "conf_int_2": conf_int_2,
                 "converged": converged}
 
-    def _logistic_regression(self, phecode, phecode_counts=None, covariate_df=None):
+    def _logistic_regression(self, phecode,
+                             phecode_counts=None, covariate_df=None, phecode_df=None,
+                             var_cols=None, gender_specific_var_cols=None):
         """
         logistic regression of single phecode
         :param phecode:  of interest
@@ -261,8 +287,17 @@ class PheWAS:
             phecode_counts = self.phecode_counts.clone()
         if covariate_df is None:
             covariate_df = self.covariate_df.clone()
+        if phecode_df is None:
+            phecode_df = self.phecode_df.clone()
+        if var_cols is None:
+            var_cols = copy.deepcopy(self.var_cols)
+        if gender_specific_var_cols is None:
+            gender_specific_var_cols = copy.deepcopy(self.gender_specific_var_cols)
 
-        sex_restriction, analysis_var_cols = self._sex_restriction(phecode)
+        sex_restriction, analysis_var_cols = self._sex_restriction(phecode=phecode,
+                                                                   phecode_df=phecode_df,
+                                                                   var_cols=var_cols,
+                                                                   gender_specific_var_cols=gender_specific_var_cols)
         case_start_time = time.time()
         cases = self._case_prep(phecode,
                                 phecode_counts=phecode_counts,
@@ -279,6 +314,7 @@ class PheWAS:
             controls = self._control_prep(phecode,
                                           phecode_counts=phecode_counts,
                                           covariate_df=covariate_df,
+                                          phecode_df=phecode_df,
                                           sex_restriction=sex_restriction,
                                           analysis_var_cols=analysis_var_cols)
             control_end_time = time.time()
