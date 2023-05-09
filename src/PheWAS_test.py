@@ -360,7 +360,7 @@ class PheWAS:
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         if parallelization == "multithreading":
-            with ThreadPoolExecutor(n_threads) as executor:
+            with ThreadPoolExecutor(max_workers=n_threads) as executor:
                 jobs = [
                     executor.submit(
                         self._logistic_regression,
