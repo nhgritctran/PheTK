@@ -1,6 +1,6 @@
-import copy
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm.notebook import tqdm
+import copy
 import multiprocessing
 import numpy as np
 import pandas as pd
