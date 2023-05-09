@@ -237,84 +237,74 @@ class PheWAS:
                 "conf_int_2": conf_int_2,
                 "converged": converged}
 
-    def _logistic_regression(self, phecode, lock):
+    def _logistic_regression(self, phecode):
         """
         logistic regression of single phecode
         :param phecode:  of interest
         :return: logistic regression result object
         """
-        with lock:
-            sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
-            case_start_time = time.time()
-            cases = self._case_prep(phecode)
-            case_end_time = time.time()
+
+        sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
+        case_start_time = time.time()
+        cases = self._case_prep(phecode)
+        case_end_time = time.time()
+        if self.verbose:
+            print(f"Phecode {phecode} cases created in {case_end_time - case_start_time} seconds\n")
+
+        # only run regression if number of cases > min_cases
+        if len(cases) >= self.min_cases:
+            control_start_time = time.time()
+            controls = self._control_prep(phecode)
+            control_end_time = time.time()
             if self.verbose:
-                print(f"Phecode {phecode} cases created in {case_end_time - case_start_time} seconds\n")
+                print(f"Phecode {phecode} controls created in {control_end_time - control_start_time} seconds\n")
 
-            # only run regression if number of cases > min_cases
-            if len(cases) >= self.min_cases:
-                control_start_time = time.time()
-                controls = self._control_prep(phecode)
-                control_end_time = time.time()
-                if self.verbose:
-                    print(f"Phecode {phecode} controls created in {control_end_time - control_start_time} seconds\n")
+            # add case/control values
+            cases = cases.with_columns(pl.Series([1] * len(cases)).alias("y"))
+            controls = controls.with_columns(pl.Series([0] * len(controls)).alias("y"))
 
-                # add case/control values
-                cases = cases.with_columns(pl.Series([1] * len(cases)).alias("y"))
-                controls = controls.with_columns(pl.Series([0] * len(controls)).alias("y"))
+            # merge cases & controls
+            regressors = cases.vstack(controls)
 
-                # merge cases & controls
-                regressors = cases.vstack(controls)
+            # get index of independent_var_col
+            var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col)
 
-                # get index of independent_var_col
-                var_index = regressors[analysis_covariate_cols].columns.index(self.independent_var_col)
+            # logistic regression
+            if self.suppress_warnings:
+                warnings.simplefilter("ignore")
+            y = regressors["y"].to_numpy()
+            regressors = regressors[analysis_covariate_cols].to_numpy()
+            regressors = sm.tools.add_constant(regressors, prepend=False)
+            logit = sm.Logit(y, regressors, missing="drop")
 
-                # logistic regression
-                if self.suppress_warnings:
-                    warnings.simplefilter("ignore")
-                y = regressors["y"].to_numpy()
-                regressors = regressors[analysis_covariate_cols].to_numpy()
-                regressors = sm.tools.add_constant(regressors, prepend=False)
-                logit = sm.Logit(y, regressors, missing="drop")
-
-                # catch Singular matrix error
-                try:
-                    result = logit.fit(disp=False)
-                except np.linalg.linalg.LinAlgError as err:
-                    if "Singular matrix" in str(err):
-                        pass
-                    else:
-                        raise
-                    result = None
-
-                if result:
-                    # process result
-                    base_dict = {"phecode": phecode,
-                                 "cases": len(cases),
-                                 "controls": len(controls)}
-                    stats_dict = self._result_prep(result=result, var_of_interest_index=var_index)
-                    result_dict = {**base_dict, **stats_dict}  # python 3.5 or later
-                    # result_dict = base_dict | stats_dict  # python 3.9 or later
-
-                    # choose to see results on the fly
-                    if self.verbose:
-                        print(f"Phecode {phecode}: {result_dict}\n")
-
-                    # clean up used data from memory
-                    del cases, controls, regressors
-
-                    return result_dict
-
+            # catch Singular matrix error
+            try:
+                result = logit.fit(disp=False)
+            except np.linalg.linalg.LinAlgError as err:
+                if "Singular matrix" in str(err):
+                    pass
                 else:
-                    # clean up used data from memory
-                    del cases, controls, regressors
+                    raise
+                result = None
 
-            else:
+            if result:
+                # process result
+                base_dict = {"phecode": phecode,
+                             "cases": len(cases),
+                             "controls": len(controls)}
+                stats_dict = self._result_prep(result=result, var_of_interest_index=var_index)
+                result_dict = {**base_dict, **stats_dict}  # python 3.5 or later
+                # result_dict = base_dict | stats_dict  # python 3.9 or later
+
+                # choose to see results on the fly
                 if self.verbose:
-                    print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.\n")
+                    print(f"Phecode {phecode}: {result_dict}\n")
 
-                # clean up used data from memory
-                del cases
+                return result_dict
+
+        else:
+            if self.verbose:
+                print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.\n")
 
     def run(self,
             parallelization="multithreading",
@@ -331,8 +321,6 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        m = multiprocessing.Manager()
-        lock = m.Lock()
         if parallelization == "multithreading":
             with ThreadPoolExecutor(n_threads) as executor:
                 jobs = [executor.submit(self._logistic_regression, phecode, lock) for phecode in self.phecode_list]
