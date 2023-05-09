@@ -249,7 +249,7 @@ class PheWAS:
         cases = self._case_prep(phecode)
         case_end_time = time.time()
         if self.verbose:
-            print(f"{phecode} cases created in {case_end_time - case_start_time} seconds\n")
+            print(f"Phecode {phecode} cases created in {case_end_time - case_start_time} seconds\n")
 
         # only run regression if number of cases > min_cases
         if len(cases) >= self.min_cases:
@@ -257,7 +257,7 @@ class PheWAS:
             controls = self._control_prep(phecode)
             control_end_time = time.time()
             if self.verbose:
-                print(f"{phecode} controls created in {control_end_time - control_start_time} seconds\n")
+                print(f"Phecode {phecode} controls created in {control_end_time - control_start_time} seconds\n")
 
             # add case/control values
             cases = cases.with_columns(pl.Series([1] * len(cases)).alias("y"))
@@ -331,9 +331,11 @@ class PheWAS:
 
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
+        m = multiprocessing.Manager()
+        lock = m.Lock()
         if parallelization == "multithreading":
             with ThreadPoolExecutor(n_threads) as executor:
-                jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
+                jobs = [executor.submit(self._logistic_regression, phecode, lock) for phecode in self.phecode_list]
                 result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
                 # result_dicts = [job.result() for job in as_completed(jobs)]
         elif parallelization == "multiprocessing":
