@@ -59,10 +59,10 @@ class PheWAS:
         # additional attributes
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
         self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
-        self.cohort_size = self.covariate_df.n_unique()
 
-        # # old code, not efficient; should not create merged_df
-        # self.merged_df = covariate_df.join(phecode_counts, how="inner", on="person_id")
+        # keep only relevant columns in covariate_df
+        self.covariate_df = self.covariate_df[["person_id", "male", "female"] + self.var_cols]
+        self.cohort_size = self.covariate_df.n_unique()
 
         # update phecode_counts to only participants of interest
         self.cohort_ids = self.covariate_df["person_id"].unique().to_list()
@@ -70,6 +70,8 @@ class PheWAS:
         if phecode_to_process == "all":
             self.phecode_list = self.phecode_counts["phecode"].unique().to_list()
         else:
+            if isinstance(phecode_to_process, str):
+                phecode_to_process = [phecode_to_process]
             self.phecode_list = phecode_to_process
 
         # attributes for reporting PheWAS results
@@ -152,10 +154,6 @@ class PheWAS:
         :return: polars dataframe of case data
         """
 
-        # # old code, not efficient; do not use merged_df
-        # cases = self.merged_df.filter((pl.col("phecode") == phecode) &
-        #                               (pl.col("count") >= self.min_phecode_count))
-
         # case participants with at least <min_phecode_count> phecodes
         case_ids = self.phecode_counts.filter(
             (pl.col("phecode") == phecode) & (pl.col("count") >= self.min_phecode_count)
@@ -172,6 +170,7 @@ class PheWAS:
         # drop duplicates and keep analysis covariate cols only
         duplicate_check_cols = ["person_id"] + analysis_var_cols
         cases = cases.unique(subset=duplicate_check_cols)[analysis_var_cols]
+        cases = cases[analysis_var_cols]
 
         return cases
 
@@ -189,10 +188,7 @@ class PheWAS:
             exclude_range = [phecode]
 
         # select control data based on
-        sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
-
-        # # old code, not efficient; do not use merged_df
-        # base_controls = self.merged_df.filter(~(pl.col("phecode").is_in(exclude_range)))
+        sex_restriction, analysis_var_cols = self._sex_restriction(phecode)
 
         # get participants ids to exclude and filter covariate df
         exclude_ids = self.phecode_counts.filter(
@@ -208,8 +204,9 @@ class PheWAS:
             controls = base_controls
 
         # drop duplicates and keep analysis covariate cols only
-        duplicate_check_cols = ["person_id"] + analysis_covariate_cols
-        controls = controls.unique(subset=duplicate_check_cols)[analysis_covariate_cols]
+        duplicate_check_cols = ["person_id"] + analysis_var_cols
+        controls = controls.unique(subset=duplicate_check_cols)[analysis_var_cols]
+        controls = controls[analysis_var_cols]
 
         return controls
 
@@ -248,19 +245,19 @@ class PheWAS:
         """
 
         sex_restriction, analysis_covariate_cols = self._sex_restriction(phecode)
-        start = time.time()
+        case_start_time = time.time()
         cases = self._case_prep(phecode)
-        end = time.time()
+        case_end_time = time.time()
         if self.verbose:
-            print(f"{phecode} cases created in {end - start} seconds")
+            print(f"Phecode {phecode} cases created in {case_end_time - case_start_time} seconds\n")
 
         # only run regression if number of cases > min_cases
         if len(cases) >= self.min_cases:
-            start = time.time()
+            control_start_time = time.time()
             controls = self._control_prep(phecode)
-            end = time.time()
+            control_end_time = time.time()
             if self.verbose:
-                print(f"{phecode} controls created in {end - start} seconds")
+                print(f"Phecode {phecode} controls created in {control_end_time - control_start_time} seconds\n")
 
             # add case/control values
             cases = cases.with_columns(pl.Series([1] * len(cases)).alias("y"))
@@ -301,17 +298,13 @@ class PheWAS:
 
                 # choose to see results on the fly
                 if self.verbose:
-                    print(f"Phecode {phecode}: {result_dict}")
+                    print(f"Phecode {phecode}: {result_dict}\n")
 
                 return result_dict
 
         else:
-            controls = None
-            regressors = None
             if self.verbose:
-                print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.")
-
-        del(cases, controls, regressors)
+                print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.\n")
 
     def run(self,
             parallelization="multithreading",
