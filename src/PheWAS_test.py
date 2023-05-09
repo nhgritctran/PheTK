@@ -160,8 +160,9 @@ class PheWAS:
         return exclude_range
 
     def _case_prep(self, phecode,
-                   phecode_counts=None, covariate_df=None,
-                   sex_restriction=None, analysis_var_cols=None):
+                   phecode_counts=None, covariate_df=None, phecode_df=None,
+                      sex_restriction=None, analysis_var_cols=None,
+                      var_cols=None, gender_specific_var_cols=None):
         """
         prepare PheWAS case data
         :param phecode: phecode of interest
@@ -172,8 +173,19 @@ class PheWAS:
             phecode_counts = self.phecode_counts.clone()
         if covariate_df is None:
             covariate_df = self.covariate_df.clone()
+        if phecode_df is None:
+            phecode_df = self.phecode_df.clone()
+        if var_cols is None:
+            var_cols = copy.deepcopy(self.var_cols)
+        if gender_specific_var_cols is None:
+            gender_specific_var_cols = copy.deepcopy(self.gender_specific_var_cols)
         if sex_restriction is None or analysis_var_cols is None:
-            sex_restriction, analysis_var_cols = self._sex_restriction(phecode)
+            sex_restriction, analysis_var_cols = self._sex_restriction(
+                phecode=phecode,
+                phecode_df=phecode_df,
+                var_cols=var_cols,
+                gender_specific_var_cols=gender_specific_var_cols
+            )
 
         # case participants with at least <min_phecode_count> phecodes
         case_ids = phecode_counts.filter(
@@ -303,7 +315,9 @@ class PheWAS:
                                 phecode_counts=phecode_counts,
                                 covariate_df=covariate_df,
                                 sex_restriction=sex_restriction,
-                                analysis_var_cols=analysis_var_cols)
+                                analysis_var_cols=analysis_var_cols,
+                                var_cols=var_cols,
+                                gender_specific_var_cols=gender_specific_var_cols)
         case_end_time = time.time()
         if self.verbose:
             print(f"Phecode {phecode} cases created in {case_end_time - case_start_time} seconds\n")
@@ -316,7 +330,9 @@ class PheWAS:
                                           covariate_df=covariate_df,
                                           phecode_df=phecode_df,
                                           sex_restriction=sex_restriction,
-                                          analysis_var_cols=analysis_var_cols)
+                                          analysis_var_cols=analysis_var_cols,
+                                          var_cols=var_cols,
+                                          gender_specific_var_cols=gender_specific_var_cols)
             control_end_time = time.time()
             if self.verbose:
                 print(f"Phecode {phecode} controls created in {control_end_time - control_start_time} seconds\n")
