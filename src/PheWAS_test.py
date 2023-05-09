@@ -159,10 +159,10 @@ class PheWAS:
 
         return exclude_range
 
-    def _case_prep(self, phecode,
-                   phecode_counts=None, covariate_df=None, phecode_df=None,
-                      sex_restriction=None, analysis_var_cols=None,
-                      var_cols=None, gender_specific_var_cols=None):
+    def _case_control_prep(self, phecode,
+                           phecode_counts=None, covariate_df=None, phecode_df=None,
+                           sex_restriction=None, analysis_var_cols=None,
+                           var_cols=None, gender_specific_var_cols=None):
         """
         prepare PheWAS case data
         :param phecode: phecode of interest
@@ -186,8 +186,8 @@ class PheWAS:
                 var_cols=var_cols,
                 gender_specific_var_cols=gender_specific_var_cols
             )
-
-        # case participants with at least <min_phecode_count> phecodes
+        # CASE
+        # participants with at least <min_phecode_count> phecodes
         case_ids = phecode_counts.filter(
             (pl.col("phecode") == phecode) & (pl.col("count") >= self.min_phecode_count)
         )["person_id"].unique().to_list()
@@ -199,41 +199,7 @@ class PheWAS:
         elif sex_restriction == "Female":
             cases = cases.filter(pl.col("female") == 1)
 
-        # drop duplicates and keep analysis covariate cols only
-        duplicate_check_cols = ["person_id"] + analysis_var_cols
-        cases = cases.unique(subset=duplicate_check_cols)[analysis_var_cols]
-        cases = cases[analysis_var_cols]
-
-        return cases
-
-    def _control_prep(self, phecode,
-                      phecode_counts=None, covariate_df=None, phecode_df=None,
-                      sex_restriction=None, analysis_var_cols=None,
-                      var_cols=None, gender_specific_var_cols=None):
-        """
-        prepare PheWAS control data
-        :param phecode: phecode of interest
-        :return: polars dataframe of control data
-        """
-
-        if phecode_counts is None:
-            phecode_counts = self.phecode_counts.clone()
-        if covariate_df is None:
-            covariate_df = self.covariate_df.clone()
-        if phecode_df is None:
-            phecode_df = self.phecode_df.clone()
-        if var_cols is None:
-            var_cols = copy.deepcopy(self.var_cols)
-        if gender_specific_var_cols is None:
-            gender_specific_var_cols = copy.deepcopy(self.gender_specific_var_cols)
-        if sex_restriction is None or analysis_var_cols is None:
-            sex_restriction, analysis_var_cols = self._sex_restriction(
-                phecode=phecode,
-                phecode_df=phecode_df,
-                var_cols=var_cols,
-                gender_specific_var_cols=gender_specific_var_cols
-            )
-
+        # CONTROLS
         # phecode exclusions
         if self.use_exclusion:
             exclude_range = [phecode] + self._exclude_range(phecode, phecode_df=phecode_df)
@@ -253,12 +219,17 @@ class PheWAS:
         else:
             controls = base_controls
 
+        # DUPLICATE CHECK
         # drop duplicates and keep analysis covariate cols only
         duplicate_check_cols = ["person_id"] + analysis_var_cols
+        cases = cases.unique(subset=duplicate_check_cols)[analysis_var_cols]
         controls = controls.unique(subset=duplicate_check_cols)[analysis_var_cols]
+
+        # KEEP MINIMUM REQUIRED COLUMNS
+        cases = cases[analysis_var_cols]
         controls = controls[analysis_var_cols]
 
-        return controls
+        return cases, controls
 
     @staticmethod
     def _result_prep(result, var_of_interest_index):
@@ -311,31 +282,19 @@ class PheWAS:
                                                                    var_cols=var_cols,
                                                                    gender_specific_var_cols=gender_specific_var_cols)
         case_start_time = time.time()
-        cases = self._case_prep(phecode,
-                                phecode_counts=phecode_counts,
-                                covariate_df=covariate_df,
-                                sex_restriction=sex_restriction,
-                                analysis_var_cols=analysis_var_cols,
-                                var_cols=var_cols,
-                                gender_specific_var_cols=gender_specific_var_cols)
+        cases, controls = self._case_control_prep(phecode,
+                                                  phecode_counts=phecode_counts,
+                                                  covariate_df=covariate_df,
+                                                  sex_restriction=sex_restriction,
+                                                  analysis_var_cols=analysis_var_cols,
+                                                  var_cols=var_cols,
+                                                  gender_specific_var_cols=gender_specific_var_cols)
         case_end_time = time.time()
         if self.verbose:
-            print(f"Phecode {phecode} cases created in {case_end_time - case_start_time} seconds\n")
+            print(f"Phecode {phecode} cases & controls created in {case_end_time - case_start_time} seconds\n")
 
         # only run regression if number of cases > min_cases
         if len(cases) >= self.min_cases:
-            control_start_time = time.time()
-            controls = self._control_prep(phecode,
-                                          phecode_counts=phecode_counts,
-                                          covariate_df=covariate_df,
-                                          phecode_df=phecode_df,
-                                          sex_restriction=sex_restriction,
-                                          analysis_var_cols=analysis_var_cols,
-                                          var_cols=var_cols,
-                                          gender_specific_var_cols=gender_specific_var_cols)
-            control_end_time = time.time()
-            if self.verbose:
-                print(f"Phecode {phecode} controls created in {control_end_time - control_start_time} seconds\n")
 
             # add case/control values
             cases = cases.with_columns(pl.Series([1] * len(cases)).alias("y"))
