@@ -96,29 +96,6 @@ class PheWAS:
             polars_df = df
         return polars_df
 
-    def _sex_restriction(self, phecode, phecode_df=None, var_cols=None, gender_specific_var_cols=None):
-        """
-        :param phecode: phecode of interest
-        :return: sex restriction and respective analysis covariates
-        """
-
-        if phecode_df is None:
-            phecode_df = self.phecode_df.clone()
-        if var_cols is None:
-            var_cols = copy.deepcopy(self.var_cols)
-        if gender_specific_var_cols is None:
-            gender_specific_var_cols = copy.deepcopy(self.gender_specific_var_cols)
-
-        filtered_df = phecode_df.filter(pl.col("phecode") == phecode)
-        sex_restriction = filtered_df["sex"].unique().to_list()[0]
-
-        if sex_restriction == "Both":
-            analysis_var_cols = var_cols
-        else:
-            analysis_var_cols = gender_specific_var_cols
-
-        return sex_restriction, analysis_var_cols
-
     def _exclude_range(self, phecode, phecode_df=None):
         """
         process text data in exclude_range column; exclusively for phecodeX
@@ -161,12 +138,15 @@ class PheWAS:
 
     def _case_control_prep(self, phecode,
                            phecode_counts=None, covariate_df=None, phecode_df=None,
-                           sex_restriction=None, analysis_var_cols=None,
                            var_cols=None, gender_specific_var_cols=None):
         """
-        prepare PheWAS case data
         :param phecode: phecode of interest
-        :return: polars dataframe of case data
+        :param phecode_counts: phecode counts table for cohort
+        :param covariate_df: covariate table for cohort
+        :param phecode_df: phecode mapping table
+        :param var_cols: variable columns in general case
+        :param gender_specific_var_cols: variable columns in gender-specific case
+        :return: cases, controls and analysis_var_cols
         """
 
         if phecode_counts is None:
@@ -179,13 +159,16 @@ class PheWAS:
             var_cols = copy.deepcopy(self.var_cols)
         if gender_specific_var_cols is None:
             gender_specific_var_cols = copy.deepcopy(self.gender_specific_var_cols)
-        if sex_restriction is None or analysis_var_cols is None:
-            sex_restriction, analysis_var_cols = self._sex_restriction(
-                phecode=phecode,
-                phecode_df=phecode_df,
-                var_cols=var_cols,
-                gender_specific_var_cols=gender_specific_var_cols
-            )
+
+        # SEX RESTRICTION
+        filtered_df = phecode_df.filter(pl.col("phecode") == phecode)
+        sex_restriction = filtered_df["sex"].unique().to_list()[0]
+
+        # ANALYSIS VAR COLS
+        if sex_restriction == "Both":
+            analysis_var_cols = var_cols
+        else:
+            analysis_var_cols = gender_specific_var_cols
 
         # CASE
         # participants with at least <min_phecode_count> phecodes
@@ -193,7 +176,6 @@ class PheWAS:
             (pl.col("phecode") == phecode) & (pl.col("count") >= self.min_phecode_count)
         )["person_id"].unique().to_list()
         cases = covariate_df.filter(pl.col("person_id").is_in(case_ids))
-
         # select data based on phecode "sex", e.g., male/female only or both
         if sex_restriction == "Male":
             cases = cases.filter(pl.col("male") == 1)
@@ -206,13 +188,11 @@ class PheWAS:
             exclude_range = [phecode] + self._exclude_range(phecode, phecode_df=phecode_df)
         else:
             exclude_range = [phecode]
-
         # get participants ids to exclude and filter covariate df
         exclude_ids = phecode_counts.filter(
             pl.col("phecode").is_in(exclude_range)
         )["person_id"].unique().to_list()
         base_controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
-
         if sex_restriction == "Male":
             controls = base_controls.filter(pl.col("male") == 1)
         elif sex_restriction == "Female":
@@ -230,7 +210,7 @@ class PheWAS:
         cases = cases[analysis_var_cols]
         controls = controls[analysis_var_cols]
 
-        return cases, controls
+        return cases, controls, analysis_var_cols
 
     @staticmethod
     def _result_prep(result, var_of_interest_index):
@@ -260,36 +240,33 @@ class PheWAS:
                 "converged": converged}
 
     def _logistic_regression(self, phecode,
-                             phecode_counts=None, covariate_df=None, phecode_df=None,
+                             phecode_counts=None, covariate_df=None,
                              var_cols=None, gender_specific_var_cols=None):
         """
         logistic regression of single phecode
-        :param phecode:  of interest
-        :return: logistic regression result object
+        :param phecode: phecode of interest
+        :param phecode_counts: phecode counts table for cohort
+        :param covariate_df: covariate table for cohort
+        :param var_cols: variable columns in general case
+        :param gender_specific_var_cols: variable columns in gender-specific case
+        :return: result_dict object
         """
+
         if phecode_counts is None:
             phecode_counts = self.phecode_counts.clone()
         if covariate_df is None:
             covariate_df = self.covariate_df.clone()
-        if phecode_df is None:
-            phecode_df = self.phecode_df.clone()
         if var_cols is None:
             var_cols = copy.deepcopy(self.var_cols)
         if gender_specific_var_cols is None:
             gender_specific_var_cols = copy.deepcopy(self.gender_specific_var_cols)
 
-        sex_restriction, analysis_var_cols = self._sex_restriction(phecode=phecode,
-                                                                   phecode_df=phecode_df,
-                                                                   var_cols=var_cols,
-                                                                   gender_specific_var_cols=gender_specific_var_cols)
         case_start_time = time.time()
-        cases, controls = self._case_control_prep(phecode,
-                                                  phecode_counts=phecode_counts,
-                                                  covariate_df=covariate_df,
-                                                  sex_restriction=sex_restriction,
-                                                  analysis_var_cols=analysis_var_cols,
-                                                  var_cols=var_cols,
-                                                  gender_specific_var_cols=gender_specific_var_cols)
+        cases, controls, analysis_var_cols = self._case_control_prep(phecode,
+                                                                     phecode_counts=phecode_counts,
+                                                                     covariate_df=covariate_df,
+                                                                     var_cols=var_cols,
+                                                                     gender_specific_var_cols=gender_specific_var_cols)
         case_end_time = time.time()
         if self.verbose:
             print(f"Phecode {phecode} cases & controls created in {case_end_time - case_start_time} seconds\n")
@@ -367,7 +344,6 @@ class PheWAS:
                         phecode,
                         self.phecode_counts.clone(),
                         self.covariate_df.clone(),
-                        self.phecode_df.clone(),
                         copy.deepcopy(self.var_cols),
                         copy.deepcopy(self.gender_specific_var_cols)
                     ) for phecode in self.phecode_list
@@ -375,8 +351,18 @@ class PheWAS:
                 result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
         elif parallelization == "multiprocessing":
             with multiprocessing.Pool(min(n_cores, multiprocessing.cpu_count()-1)) as p:
-                result_dicts = list(tqdm(p.imap(self._logistic_regression, self.phecode_list),
-                                         total=len(self.phecode_list)))
+                result_dicts = list(tqdm(p.starmap(
+                    self._logistic_regression,
+                    [
+                        (
+                            phecode,
+                            self.phecode_counts.clone(),
+                            self.covariate_df.clone(),
+                            copy.deepcopy(self.var_cols),
+                            copy.deepcopy(self.gender_specific_var_cols)
+                        ) for phecode in self.phecode_list
+                    ]
+                ), total=len(self.phecode_list)))
         else:
             return "Invalid parallelization method! Use either \"multithreading\" or \"multiprocessing\""
         result_dicts = [result for result in result_dicts if result]
