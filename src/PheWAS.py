@@ -323,7 +323,7 @@ class PheWAS:
 
         if parallelization == "multithreading":
             with ThreadPoolExecutor(n_threads) as executor:
-                jobs = [executor.submit(self._logistic_regression, phecode, lock) for phecode in self.phecode_list]
+                jobs = [executor.submit(self._logistic_regression, phecode) for phecode in self.phecode_list]
                 result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
                 # result_dicts = [job.result() for job in as_completed(jobs)]
         elif parallelization == "multiprocessing":
