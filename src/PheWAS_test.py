@@ -156,11 +156,11 @@ class PheWAS:
         :return: polars dataframe of case data
         """
 
-        if not phecode_counts:
+        if phecode_counts is not None:
             phecode_counts = self.phecode_counts.clone()
-        if not covariate_df:
+        if covariate_df is not None:
             covariate_df = self.covariate_df.clone()
-        if not sex_restriction:
+        if sex_restriction is not None or analysis_var_cols is not None:
             sex_restriction, analysis_var_cols = self._sex_restriction(phecode)
 
         # case participants with at least <min_phecode_count> phecodes
@@ -191,11 +191,11 @@ class PheWAS:
         :return: polars dataframe of control data
         """
 
-        if not phecode_counts:
+        if phecode_counts is not None:
             phecode_counts = self.phecode_counts.clone()
-        if not covariate_df:
+        if covariate_df is not None:
             covariate_df = self.covariate_df.clone()
-        if not sex_restriction:
+        if sex_restriction is not None or analysis_var_cols is not None:
             sex_restriction, analysis_var_cols = self._sex_restriction(phecode)
 
         # phecode exclusions
@@ -257,9 +257,9 @@ class PheWAS:
         :param phecode:  of interest
         :return: logistic regression result object
         """
-        if not phecode_counts:
+        if phecode_counts is not None:
             phecode_counts = self.phecode_counts.clone()
-        if not covariate_df:
+        if covariate_df is not None:
             covariate_df = self.covariate_df.clone()
 
         sex_restriction, analysis_var_cols = self._sex_restriction(phecode)
