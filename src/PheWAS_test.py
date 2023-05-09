@@ -390,7 +390,10 @@ class PheWAS:
                         self._logistic_regression,
                         phecode,
                         self.phecode_counts.clone(),
-                        self.covariate_df.clone()
+                        self.covariate_df.clone(),
+                        self.phecode_df.clone(),
+                        copy.deepcopy(self.var_cols),
+                        copy.deepcopy(self.gender_specific_var_cols)
                     ) for phecode in self.phecode_list
                 ]
                 result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
