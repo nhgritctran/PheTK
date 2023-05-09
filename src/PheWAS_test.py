@@ -186,6 +186,7 @@ class PheWAS:
                 var_cols=var_cols,
                 gender_specific_var_cols=gender_specific_var_cols
             )
+
         # CASE
         # participants with at least <min_phecode_count> phecodes
         case_ids = phecode_counts.filter(
