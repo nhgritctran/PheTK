@@ -351,7 +351,7 @@ class PheWAS:
                 result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
         elif parallelization == "multiprocessing":
             with multiprocessing.Pool(min(n_cores, multiprocessing.cpu_count()-1)) as p:
-                result_dicts = list(tqdm(p.starmap(
+                results = p.starmap_async(
                     self._logistic_regression,
                     [
                         (
@@ -362,7 +362,22 @@ class PheWAS:
                             copy.deepcopy(self.gender_specific_var_cols)
                         ) for phecode in self.phecode_list
                     ]
-                ), total=len(self.phecode_list)))
+                )
+                result_dicts = [result for result in tqdm(results.get(), total=len(self.phecode_list))]
+        # elif parallelization == "multiprocessing":
+        #     with multiprocessing.Pool(min(n_cores, multiprocessing.cpu_count()-1)) as p:
+        #         result_dicts = list(tqdm(p.starmap(
+        #             self._logistic_regression,
+        #             [
+        #                 (
+        #                     phecode,
+        #                     self.phecode_counts.clone(),
+        #                     self.covariate_df.clone(),
+        #                     copy.deepcopy(self.var_cols),
+        #                     copy.deepcopy(self.gender_specific_var_cols)
+        #                 ) for phecode in self.phecode_list
+        #             ]
+        #         ), total=len(self.phecode_list)))
         else:
             return "Invalid parallelization method! Use either \"multithreading\" or \"multiprocessing\""
         result_dicts = [result for result in result_dicts if result]
