@@ -381,23 +381,25 @@ class PheWAS:
         else:
             return "Invalid parallelization method! Use either \"multithreading\" or \"multiprocessing\""
         result_dicts = [result for result in result_dicts if result]
-        print(result_dicts)
-        result_df = pl.from_dicts(result_dicts)
-        self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
-                                     how="left",
-                                     on="phecode")
+        if result_dicts:
+            result_df = pl.from_dicts(result_dicts)
+            self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
+                                         how="left",
+                                         on="phecode")
 
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        self.tested_count = len(self.result)
-        self.not_tested_count = len(self.phecode_list) - self.tested_count
-        self.bonferroni = -np.log10(0.05 / self.tested_count)
-        self.phecodes_above_bonferroni = self.result.filter(pl.col("neg_log_p_value") > self.bonferroni)
-        self.above_bonferroni_count = len(self.phecodes_above_bonferroni)
+            self.tested_count = len(self.result)
+            self.not_tested_count = len(self.phecode_list) - self.tested_count
+            self.bonferroni = -np.log10(0.05 / self.tested_count)
+            self.phecodes_above_bonferroni = self.result.filter(pl.col("neg_log_p_value") > self.bonferroni)
+            self.above_bonferroni_count = len(self.phecodes_above_bonferroni)
 
-        print("Number of participants in cohort:", self.cohort_size)
-        print("Number of phecodes in cohort:", len(self.phecode_list))
-        print(f"Number of phecodes having less than {self.min_cases} cases:", self.not_tested_count)
-        print("Number of phecodes tested:", self.tested_count)
-        print(u"Suggested Bonferroni correction (-log\u2081\u2080 scale):", self.bonferroni)
-        print("Number of phecodes above Bonferroni correction:", self.above_bonferroni_count)
+            print("Number of participants in cohort:", self.cohort_size)
+            print("Number of phecodes in cohort:", len(self.phecode_list))
+            print(f"Number of phecodes having less than {self.min_cases} cases:", self.not_tested_count)
+            print("Number of phecodes tested:", self.tested_count)
+            print(u"Suggested Bonferroni correction (-log\u2081\u2080 scale):", self.bonferroni)
+            print("Number of phecodes above Bonferroni correction:", self.above_bonferroni_count)
+        else:
+            print("No analysis done.")
