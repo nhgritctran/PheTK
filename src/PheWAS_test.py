@@ -380,7 +380,7 @@ class PheWAS:
         #         ), total=len(self.phecode_list)))
         else:
             return "Invalid parallelization method! Use either \"multithreading\" or \"multiprocessing\""
-        result_dicts = [result for result in result_dicts if result]
+        result_dicts = [result for result in result_dicts if result and len(result)>0]
         result_df = pl.from_dicts(result_dicts)
         self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
                                      how="left",
