@@ -1,4 +1,4 @@
-# pyPheWAS
+# PyPheWAS
 Development repository for Python PheWAS package
 
 ## Description
