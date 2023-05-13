@@ -21,7 +21,7 @@ def count_phecode(db="aou", phecode_version="X"):
     """
     extract phecode counts for a biobank database
     :param db: defaults to "aou"; currently only option
-    :param phecode_version: defaults to "X"; currently only option
+    :param phecode_version: defaults to "X"; other option is "1.2"
     :return: phecode counts polars dataframe
     """
 
