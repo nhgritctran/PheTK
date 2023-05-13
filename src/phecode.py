@@ -107,7 +107,9 @@ def count_phecode(db="aou", phecode_version="X"):
                 )
             )
         """
+        print("Start querying ICD codes...")
         icd_events = _polars_gbq(icd_query)
+        print("Mapping ICD codes to phecodes...")
         if phecode_version == "X":
             phecode_counts = icd_events.join(phecode_df[["phecode", "ICD"]], how="inner", on="ICD")
         elif phecode_version == "1.2":
@@ -115,13 +117,13 @@ def count_phecode(db="aou", phecode_version="X"):
             phecode_counts = phecode_counts.rename({"phecode_unrolled": "phecode"})
         else:
             phecode_counts = None
-        if phecode_counts:
+        if not phecode_counts.is_empty() or phecode_counts is not None:
             phecode_counts = phecode_counts.drop("date").groupby(["person_id", "phecode"]).count()
     else:
         phecode_counts = None
 
     # report result
-    if phecode_counts:
+    if not phecode_counts.is_empty() or phecode_counts is not None:
         if db == "aou":
             db_val = "All of Us"
         else:
