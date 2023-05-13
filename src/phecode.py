@@ -128,7 +128,7 @@ def count_phecode(db="aou", phecode_version="X"):
             db_val = "All of Us"
         else:
             db_val = None
-        print(f"Successfully generated phecode {phecode_version} counts for {db_val}.")
+        print(f"Successfully generated phecode {phecode_version} counts for {db_val} participants.")
         return phecode_counts
     else:
         print("No phecode count generated.")
