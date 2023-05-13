@@ -29,9 +29,14 @@ def count_phecode(db="aou", phecode_version="X"):
     if db == "aou":
         # load phecode mapping file by version
         if phecode_version == "X":
-            phecode_df = pl.read_csv("PyPheWAS/phecode/phecodeX.csv")
+            phecode_df = pl.read_csv("PyPheWAS/phecode/phecodeX.csv",
+                                     dtypes={"phecode": str,
+                                             "ICD": str})
         elif phecode_version == "1.2":
-            phecode_df = pl.read_csv("PyPheWAS/phecode/phecode12.csv")
+            phecode_df = pl.read_csv("PyPheWAS/phecode/phecode12.csv",
+                                     dtypes={"phecode": str,
+                                             "ICD": str,
+                                             "phecode_unrolled": str})
         else:
             return "Invalid phecode version. Please choose either \"1.2\" or \"X\"."
 
