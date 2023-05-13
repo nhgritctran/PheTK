@@ -30,8 +30,10 @@ def phecode_count(db="aou", phecode_version="X"):
         # load phecode mapping file by version
         if phecode_version == "X":
             phecode_df = pl.read_csv("../phecode/phecodeX.csv")
+        elif phecode_version == "1.2":
+            phecode_df = pl.read_csv("../phecode/phecode12.csv")
         else:
-            phecode_df = None
+            return "Invalid phecode version. Please choose either \"1.2\" or \"X\"."
 
         cdr = os.getenv("WORKSPACE_CDR")
         icd_query = f"""
@@ -101,8 +103,15 @@ def phecode_count(db="aou", phecode_version="X"):
             )
         """
         icd_events = _polars_gbq(icd_query)
-        phecode_counts = icd_events.join(phecode_df[["phecode", "ICD"]], how="inner", on="ICD")
-        phecode_counts = phecode_counts.drop("date").groupby(["person_id", "phecode"]).count()
+        if phecode_version == "X":
+            phecode_counts = icd_events.join(phecode_df[["phecode", "ICD"]], how="inner", on="ICD")
+        elif phecode_version == "1.2":
+            phecode_counts = icd_events.join(phecode_df[["phecode_unrolled", "ICD"]], how="inner", on="ICD")
+            phecode_counts = phecode_counts.rename({"phecode_unrolled": "phecode"})
+        else:
+            phecode_counts = None
+        if phecode_counts:
+            phecode_counts = phecode_counts.drop("date").groupby(["person_id", "phecode"]).count()
     else:
         phecode_counts = None
 
