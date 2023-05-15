@@ -44,23 +44,24 @@ def build_variant_cohort(mt_path,
     if not mt:
         return f"Locus {locus} not found!"
     else:
+        print()
         print(f"Locus {locus} found!")
         mt.row.show()
-        print()
 
     # split if multi-allelic site
-    allele_count = _spark_to_polars(mt.entries().select("info").to_spark())
-    allele_count = len(allele_count["info.AF"][0])
-    if allele_count > 1:
+    multi_mt = mt.filter_rows(hl.len(mt["info"]["AF"]) > 1)
+    # allele_count = _spark_to_polars(mt.entries().select("info").to_spark())
+    # allele_count = len(allele_count["info.AF"][0])
+    if multi_mt.count[0] > 1:
         mt = hl.split_multi(mt)
+        print()
         print("Matrix table after multi-allelic split:")
         mt.row.show()
-        print()
 
     # keep variant of interest
-    if mt.alleles == variant["alleles"]:
-        mt = mt.filter_rows((mt.locus == variant["locus"]) & \
-                            (mt.alleles == variant["alleles"]))
+    mt = mt.filter_rows((mt.locus == variant["locus"]) & \
+                        (mt.alleles == variant["alleles"]))
+    if mt:
         print(f"Variant {variant} found!")
         mt.row.show()
         print()
@@ -68,7 +69,7 @@ def build_variant_cohort(mt_path,
         return f"Variant {variant} not found!"
 
     spark_df = mt.entries().select("GT").to_spark()
-    polars_df = pl.from_arrow(pa.Table.from_batches(spark_df._collect_as_arrow()))
+    polars_df = _spark_to_polars(spark_df)
 
     polars_df = polars_df.filter(pl.col("GT").is_in(gt_list))
     polars_df = polars_df.with_columns(pl.when(pl.col("GT") == case_gt)
