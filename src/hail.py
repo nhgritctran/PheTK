@@ -3,6 +3,13 @@ import polars as pl
 import pyarrow as pa
 
 
+def _spark_to_polars(spark_df):
+
+    polars_df = pl.from_arrow(pa.Table.from_batches(spark_df._collect_as_arrow()))
+
+    return polars_df
+
+
 def build_variant_cohort(mt_path,
                          chromosome_number,
                          genomic_position,
@@ -35,18 +42,28 @@ def build_variant_cohort(mt_path,
     mt = hl.read_matrix_table(mt_path)
     mt = mt.filter_rows(mt.locus == hl.Locus.parse(locus))
     if not mt:
-        return f"Variant {variant} not found!"
+        return f"Locus {locus} not found!"
+    else:
+        print("Locus {locus} found!")
+        mt.row.show()
+        print()
 
     # split if multi-allelic site
-    if hl.eval(hl.if_else(hl.len(mt["info"]["AF"]) > 1, True, False)):
+    allele_count = _spark_to_polars(mt.entries().select("info").to_spark())
+    allele_count = len(allele_count["info.AF"][0])
+    if allele_count > 1:
         mt = hl.split_multi(mt)
-    print("Filtered matrix table:")
-    mt.row.show()
+        print("Matrix table after multi-allelic split:")
+        mt.row.show()
+        print()
 
     # keep variant of interest
     if mt.alleles == variant["alleles"]:
         mt = mt.filter_rows((mt.locus == variant["locus"]) & \
                             (mt.alleles == variant["alleles"]))
+        print(f"Variant {variant} found!")
+        mt.row.show()
+        print()
     else:
         return f"Variant {variant} not found!"
 
