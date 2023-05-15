@@ -70,7 +70,7 @@ def build_variant_cohort(mt_path,
         print()
         return f"Variant {variant_string} not found!"
 
-    spark_df = mt.entries().select("GT").to_spark()
+    spark_df = mt.entries()["GT"].to_spark()
     polars_df = _spark_to_polars(spark_df)
 
     polars_df = polars_df.filter(pl.col("GT").is_in(gt_list))
