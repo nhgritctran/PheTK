@@ -29,14 +29,14 @@ def build_variant_cohort(mt_path,
         locus = base_locus
     else:
         return "Invalid reference version. Allowed inputs are \"GRCh37\" or \"GRCh38\"."
-    variant = locus + alleles
+    variant_string = locus + ":" + alleles
 
     # initialize Hail
     if db == "aou":
         hl.init(default_reference=reference_genome)
 
     # hail variant struct
-    variant = hl.parse_variant(variant, reference_genome=reference_genome)
+    variant = hl.parse_variant(variant_string, reference_genome=reference_genome)
 
     # load and filter matrix table
     mt = hl.read_matrix_table(mt_path)
@@ -63,11 +63,11 @@ def build_variant_cohort(mt_path,
                         (mt.alleles == variant["alleles"]))
     if mt:
         print()
-        print(f"Variant {variant} found!")
+        print(f"Variant {variant_string} found!")
         mt.row.show()
         print()
     else:
-        return f"Variant {variant} not found!"
+        return f"Variant {variant_string} not found!"
 
     spark_df = mt.entries().select("GT").to_spark()
     polars_df = _spark_to_polars(spark_df)
