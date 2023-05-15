@@ -52,7 +52,7 @@ def build_variant_cohort(mt_path,
     multi_mt = mt.filter_rows(hl.len(mt["info"]["AF"]) > 1)
     # allele_count = _spark_to_polars(mt.entries().select("info").to_spark())
     # allele_count = len(allele_count["info.AF"][0])
-    if hl.eval(multi_mt.count())[0] > 1:
+    if multi_mt.count()[0] > 1:
         mt = hl.split_multi(mt)
         print()
         print("Matrix table after multi-allelic split:")
