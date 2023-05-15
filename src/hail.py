@@ -36,7 +36,7 @@ def build_variant_cohort(mt_path,
     mt = mt.filter_rows(mt.locus == hl.Locus.parse(locus))
 
     # split if multi-allelic site
-    if hl.len(mt["info"]["AF"]) > 1:
+    if len(mt["info"]["AF"]) > 1:
         mt = hl.split_multi(mt)
 
     # keep variant of interest
