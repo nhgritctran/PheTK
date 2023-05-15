@@ -26,7 +26,7 @@ def build_variant_cohort(mt_path,
 
     # initialize Hail
     if db == "aou":
-        hl.init(reference_genome=reference_genome)
+        hl.init(default_reference=reference_genome)
 
     # hail variant struct
     variant = hl.parse_variant(variant, reference_genome=reference_genome)
