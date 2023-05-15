@@ -33,7 +33,7 @@ def build_variant_cohort(mt_path,
 
     # load and filter matrix table
     mt = hl.read_matrix_table(mt_path)
-    mt = mf.filter_rows(mt.locus == hl.Locus.parse(locus))
+    mt = mt.filter_rows(mt.locus == hl.Locus.parse(locus))
 
     # split if multi-allelic site
     if hl.len(mt["info"]["AF"]) > 1:
