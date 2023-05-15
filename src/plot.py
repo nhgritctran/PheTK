@@ -185,13 +185,15 @@ class Manhattan:
         ax.hlines(-adjustText.np.log10(.05),
                   0 - self.offset,
                   plot_df["phecode_index"].max() + self.offset + 1,
-                  colors="r")
+                  colors="red",
+                  lw=1)
 
         # bonferroni
         ax.hlines(self.bonferroni,
                   0 - self.offset,
                   plot_df["phecode_index"].max() + self.offset + 1,
-                  colors="g")
+                  colors="green",
+                  lw=1)
 
         # infinity
         max_neg_log_p_value = plot_df.filter(
@@ -202,8 +204,9 @@ class Manhattan:
             ax.hlines(self.inf_proxy * 0.98,
                       0 - self.offset,
                       plot_df["phecode_index"].max() + self.offset + 1,
-                      colors="b",
-                      linestyle="dashdot")
+                      colors="blue",
+                      linestyle="dashdot",
+                      lw=1)
 
     @staticmethod
     def _split_text(s, threshold=30):
@@ -318,13 +321,15 @@ class Manhattan:
         :param legend_marker_size: size of markers
         :return: legend element
         """
-        legend_elements = [Line2D([0], [0], color="b", lw=1, linestyle="dashdot", label="Infinity"),
-                           Line2D([0], [0], color="g", lw=1, label="Bonferroni\nCorrection"),
-                           Line2D([0], [0], color="r", lw=1, label="Nominal\nSignificance"),
-                           Line2D([0], [0], marker="^", label="Increased\nRisk Effect", color="b",
-                                  markerfacecolor="b", alpha=self.positive_alpha, markersize=legend_marker_size),
-                           Line2D([0], [0], marker="v", label="Decreased\nRisk Effect", color="b",
-                                  markerfacecolor="b", alpha=self.negative_alpha, markersize=legend_marker_size), ]
+        legend_elements = [
+            Line2D([0], [0], color="blue", lw=1, linestyle="dashdot", label="Infinity"),
+            Line2D([0], [0], color="green", lw=1, label="Bonferroni\nCorrection"),
+            Line2D([0], [0], color="red", lw=1, label="Nominal\nSignificance"),
+            Line2D([0], [0], marker="^", label="Increased\nRisk Effect", color="white",
+                   markerfacecolor="blue", alpha=self.positive_alpha, markersize=legend_marker_size),
+            Line2D([0], [0], marker="v", label="Decreased\nRisk Effect", color="white",
+                   markerfacecolor="blue", alpha=self.negative_alpha, markersize=legend_marker_size),
+        ]
         ax.legend(handles=legend_elements,
                   handlelength=2,
                   loc="center left",
