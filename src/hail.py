@@ -44,7 +44,7 @@ def build_variant_cohort(mt_path,
     if not mt:
         return f"Locus {locus} not found!"
     else:
-        print("Locus {locus} found!")
+        print(f"Locus {locus} found!")
         mt.row.show()
         print()
 
