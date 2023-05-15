@@ -22,11 +22,13 @@ class Manhattan:
         self.phewas_result = self._to_polars(phewas_result)
 
         # assign a proxy value for infinity neg_log_p_value
-        max_non_inf_neg_log = self.phewas_result.filter(pl.col("p_value") != 0)\
-            .sort(by="p_value")["neg_log_p_value"][0]
+        # max_non_inf_neg_log = self.phewas_result.filter(pl.col("p_value") != 0)\
+        #     .sort(by="p_value")["neg_log_p_value"][0]
+        max_non_inf_neg_log = self.phewas_result.filter(pl.col("neg_log_p_value") != np.inf) \
+            .sort(by="neg_log_p_value", descending=True)["neg_log_p_value"][0]
         if max_non_inf_neg_log < self.phewas_result["neg_log_p_value"].max():
             self.inf_proxy = max_non_inf_neg_log * 1.2
-            self.phewas_result = self.phewas_result.with_columns(pl.when(pl.col("p_value") == 0)
+            self.phewas_result = self.phewas_result.with_columns(pl.when(pl.col("neg_log_p_value") == np.inf)
                                                                  .then(self.inf_proxy)
                                                                  .otherwise(pl.col("neg_log_p_value"))
                                                                  .alias("neg_log_p_value"))
