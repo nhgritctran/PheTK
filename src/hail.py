@@ -42,6 +42,7 @@ def build_variant_cohort(mt_path,
     mt = hl.read_matrix_table(mt_path)
     mt = mt.filter_rows(mt.locus == hl.Locus.parse(locus))
     if not mt:
+        print()
         return f"Locus {locus} not found!"
     else:
         print()
@@ -49,7 +50,6 @@ def build_variant_cohort(mt_path,
         mt.row.show()
 
     # split if multi-allelic site
-    multi_mt = mt.filter_rows(hl.len(mt["info"]["AF"]) > 1)
     allele_count = _spark_to_polars(mt.entries().select("info").to_spark())
     allele_count = len(allele_count["info.AF"][0])
     if allele_count > 1:
@@ -65,8 +65,9 @@ def build_variant_cohort(mt_path,
         print()
         print(f"Variant {variant_string} found!")
         mt.row.show()
-        print()
+        mt.col.show()
     else:
+        print()
         return f"Variant {variant_string} not found!"
 
     spark_df = mt.entries().select("GT").to_spark()
