@@ -62,6 +62,7 @@ def build_variant_cohort(mt_path,
     mt = mt.filter_rows((mt.locus == variant["locus"]) & \
                         (mt.alleles == variant["alleles"]))
     if mt:
+        print()
         print(f"Variant {variant} found!")
         mt.row.show()
         print()
