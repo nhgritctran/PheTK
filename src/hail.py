@@ -65,7 +65,7 @@ def build_variant_cohort(mt_path,
         print()
         print(f"Variant {variant_string} found!")
         mt.row.show()
-        mt.col.show()
+        mt.entries()
     else:
         print()
         return f"Variant {variant_string} not found!"
