@@ -34,10 +34,14 @@ def build_variant_cohort(mt_path,
     # load and filter matrix table
     mt = hl.read_matrix_table(mt_path)
     mt = mt.filter_rows(mt.locus == hl.Locus.parse(locus))
+    if not mt:
+        return f"Variant {variant} not found!"
 
     # split if multi-allelic site
     if len(mt["info"]["AF"]) > 1:
         mt = hl.split_multi(mt)
+    print("Filtered matrix table:")
+    mt.row.show()
 
     # keep variant of interest
     if mt.alleles == variant["alleles"]:
@@ -54,5 +58,6 @@ def build_variant_cohort(mt_path,
                                        .then(1)
                                        .otherwise(0)
                                        .alias("case"))
+    print(polars_df["case"].sum(), "cases:", len(polars_df.filter(pl.col("case") == 0)), "controls")
 
     return polars_df
