@@ -38,7 +38,7 @@ def build_variant_cohort(mt_path,
         return f"Variant {variant} not found!"
 
     # split if multi-allelic site
-    if hl.if_else(hl.len(mt["info"]["AF"]) > 1, True, False):
+    if hl.eval(hl.if_else(hl.len(mt["info"]["AF"]) > 1, True, False)):
         mt = hl.split_multi(mt)
     print("Filtered matrix table:")
     mt.row.show()
