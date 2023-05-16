@@ -111,6 +111,7 @@ def build_variant_cohort(mt_path,
         print("\033[1mControls:", len(cohort.filter(pl.col("case") == 0)), "\033[0m")
         print(cohort.head())
         cohort.write_csv(output_file_name)
+        print(f"Cohort data saved as {output_file_name}.csv!")
         return cohort
 
     else:
