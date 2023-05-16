@@ -47,14 +47,16 @@ def build_variant_cohort(mt_path,
     else:
         print()
         print(f"Locus {locus} found!")
+        mt.row.show()
 
     # split if multi-allelic site
     allele_count = _spark_to_polars(mt.entries().select("info").to_spark())
     allele_count = len(allele_count["info.AF"][0])
     if allele_count > 1:
-        mt = hl.split_multi(mt)
         print()
-        print("Matrix table after multi-allelic split:")
+        print("Multi-allelic detected! Splitting...")
+        mt = hl.split_multi(mt)
+        mt.row.show()
 
     # keep variant of interest
     mt = mt.filter_rows((mt.locus == variant["locus"]) & \
@@ -62,6 +64,7 @@ def build_variant_cohort(mt_path,
     if mt:
         print()
         print(f"Variant {variant_string} found!")
+        mt.row.show()
 
         # export to polars
         spark_df = mt.entries().select("GT").to_spark()
@@ -81,7 +84,9 @@ def build_variant_cohort(mt_path,
         cohort = polars_df.rename({"s": "person_id"})[["person_id", "case"]]
         print()
         print("Cohort size:", len(cohort))
-        print(cohort["case"].sum(), "cases:", len(cohort.filter(pl.col("case") == 0)), "controls")
+        print("Cases:", cohort["case"].sum())
+        print("Controls:", len(cohort.filter(pl.col("case") == 0)))
+        print(cohort.head())
 
         return cohort
 
