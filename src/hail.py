@@ -42,8 +42,8 @@ def build_variant_cohort(mt_path,
     mt = hl.read_matrix_table(mt_path)
     mt = mt.filter_rows(mt.locus == hl.Locus.parse(locus))
     if not mt:
-        print("\033[1m")
-        return f"Locus {locus} not found!"
+        print()
+        return f"\033[1mLocus {locus} not found!"
     else:
         print()
         print(f"Locus {locus} found!")
