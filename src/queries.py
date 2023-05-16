@@ -1,4 +1,10 @@
-phecode_icd_query = f"""
+def phecode_icd_query(cdr):
+    """
+    this method is exclusively for All of Us platform
+    :param cdr: All of Us Curated Data Repository
+    :return: a SQL query that would generate a table contains participant IDs and their ICD codes from unique dates
+    """
+    query: str = f"""
         SELECT DISTINCT
             *
         FROM
@@ -65,7 +71,17 @@ phecode_icd_query = f"""
             )
         """
 
-ehr_code_query = f"""
+    return query
+
+
+def ehr_code_query(cdr):
+    """
+    this method is exclusively for All of Us platform
+    :param cdr: All of Us Curated Data Repository
+    :return: a SQL query that would generate a table
+             contains participant IDs and their ICD/SNOMED codes from unique dates
+    """
+    query: str = f"""
         SELECT DISTINCT
             *
         FROM
@@ -131,3 +147,5 @@ ehr_code_query = f"""
                 )
             )
         """
+
+    return query

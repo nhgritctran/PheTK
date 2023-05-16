@@ -42,7 +42,7 @@ def count_phecode(db="aou", phecode_version="X"):
             return "Invalid phecode version. Please choose either \"1.2\" or \"X\"."
 
         cdr = os.getenv("WORKSPACE_CDR")
-        icd_query = queries.phecode_icd_query
+        icd_query = queries.phecode_icd_query(cdr)
 
         print("Start querying ICD codes...")
         icd_events = _polars_gbq(icd_query)
