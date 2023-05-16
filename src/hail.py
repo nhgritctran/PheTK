@@ -85,7 +85,7 @@ def build_variant_cohort(mt_path,
         print()
         print("\033[1mCohort size:", len(cohort))
         print("\033[1mCases:", cohort["case"].sum())
-        print("\033[1mControls:", len(cohort.filter(pl.col("case") == 0), "\033[0m"))
+        print("\033[1mControls:", len(cohort.filter(pl.col("case") == 0)), "\033[0m")
         print(cohort.head())
 
         return cohort
