@@ -18,8 +18,27 @@ def build_variant_cohort(mt_path,
                          case_gt,
                          control_gt,
                          reference_genome="GRCh38",
-                         db="aou"):
+                         db="aou",
+                         output_file_name=None):
+    """
+    generate cohort based on genotype of variant of interest
+    :param mt_path: path to population level Hail variant matrix table
+    :param chromosome_number: chromosome number; int
+    :param genomic_position: genomic position; int
+    :param ref_allele: reference allele; str
+    :param alt_allele: alternative allele; str
+    :param case_gt: genotype(s) for case; str or list of str
+    :param control_gt: genotype(s) for control; str or list of str
+    :param reference_genome: defaults to "GRCh38"; accepts "GRCh37" or "GRCh38"
+    :param db: defaults to "aou"; accepts "aou" or "ukb"
+    :param output_file_name: name of csv file output
+    :return: polars data
+    """
     # basic data processing
+    if output_file_name:
+        output_file_name = f"output_file_name.csv"
+    else:
+        output_file_name = "cohort.csv"
     if isinstance(case_gt, str):
         case_gt = [case_gt]
     if isinstance(control_gt, str):
@@ -91,7 +110,7 @@ def build_variant_cohort(mt_path,
         print("\033[1mCases:", cohort["case"].sum())
         print("\033[1mControls:", len(cohort.filter(pl.col("case") == 0)), "\033[0m")
         print(cohort.head())
-
+        cohort.write_csv(output_file_name)
         return cohort
 
     else:
