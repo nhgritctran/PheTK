@@ -43,10 +43,10 @@ def build_variant_cohort(mt_path,
     mt = mt.filter_rows(mt.locus == hl.Locus.parse(locus))
     if not mt:
         print()
-        return f"Locus {locus} not found!"
+        return f"\033[1mLocus {locus} not found!"
     else:
         print()
-        print(f"Locus {locus} found!")
+        print(f"\033[1mLocus {locus} found!")
         mt.row.show()
 
     # split if multi-allelic site
@@ -54,7 +54,7 @@ def build_variant_cohort(mt_path,
     allele_count = len(allele_count["info.AF"][0])
     if allele_count > 1:
         print()
-        print("Multi-allelic detected! Splitting...")
+        print("\033[1mMulti-allelic detected! Splitting...")
         mt = hl.split_multi(mt)
         mt.row.show()
 
@@ -63,7 +63,7 @@ def build_variant_cohort(mt_path,
                         (mt.alleles == variant["alleles"]))
     if mt:
         print()
-        print(f"Variant {variant_string} found!")
+        print(f"\033[1mVariant {variant_string} found!")
         mt.row.show()
 
         # export to polars
@@ -83,9 +83,9 @@ def build_variant_cohort(mt_path,
                                            .alias("case"))
         cohort = polars_df.rename({"s": "person_id"})[["person_id", "case"]]
         print()
-        print("Cohort size:", len(cohort))
-        print("Cases:", cohort["case"].sum())
-        print("Controls:", len(cohort.filter(pl.col("case") == 0)))
+        print("\033[1mCohort size:", len(cohort))
+        print("\033[1mCases:", cohort["case"].sum())
+        print("\033[1mControls:", len(cohort.filter(pl.col("case") == 0)))
         print(cohort.head())
 
         return cohort
