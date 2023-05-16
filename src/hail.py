@@ -20,7 +20,11 @@ def build_variant_cohort(mt_path,
                          reference_genome="GRCh38",
                          db="aou"):
     # basic data processing
-    gt_list = [case_gt, control_gt]
+    if isinstance(case_gt, str):
+        case_gt = [case_gt]
+    if isinstance(control_gt, str):
+        control_gt = [control_gt]
+    gt_list = case_gt + control_gt
     alleles = f"{ref_allele}:{alt_allele}"
     base_locus = f"{chromosome_number}:{genomic_position}"
     if reference_genome == "GRCh38":
@@ -77,7 +81,7 @@ def build_variant_cohort(mt_path,
         )
         polars_df = polars_df.with_columns((pl.col("GT0") + "/" + pl.col("GT1")).alias("GT"))
         polars_df = polars_df.filter(pl.col("GT").is_in(gt_list))
-        polars_df = polars_df.with_columns(pl.when(pl.col("GT") == case_gt)
+        polars_df = polars_df.with_columns(pl.when(pl.col("GT").is_in(case_gt))
                                            .then(1)
                                            .otherwise(0)
                                            .alias("case"))
