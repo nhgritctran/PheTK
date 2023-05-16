@@ -36,7 +36,7 @@ def build_variant_cohort(mt_path,
     """
     # basic data processing
     if output_file_name:
-        output_file_name = f"output_file_name.csv"
+        output_file_name = f"{output_file_name}.csv"
     else:
         output_file_name = "cohort.csv"
     if isinstance(case_gt, str):
