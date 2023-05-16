@@ -54,7 +54,8 @@ def build_variant_cohort(mt_path,
     elif reference_genome == "GRCh37":
         locus = base_locus
     else:
-        return "Invalid reference version. Allowed inputs are \"GRCh37\" or \"GRCh38\"."
+        print("Invalid reference version. Allowed inputs are \"GRCh37\" or \"GRCh38\".")
+        return
     variant_string = locus + ":" + alleles
 
     # initialize Hail
@@ -69,7 +70,8 @@ def build_variant_cohort(mt_path,
     mt = mt.filter_rows(mt.locus == hl.Locus.parse(locus))
     if not mt:
         print()
-        return f"\033[1mLocus {locus} not found!"
+        print(f"\033[1mLocus {locus} not found!")
+        return
     else:
         print()
         print(f"\033[1mLocus {locus} found!")
@@ -119,4 +121,5 @@ def build_variant_cohort(mt_path,
 
     else:
         print()
-        return f"Variant {variant_string} not found!"
+        print(f"Variant {variant_string} not found!")
+        return
