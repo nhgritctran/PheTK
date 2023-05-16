@@ -1,21 +1,7 @@
-from google.cloud import bigquery
 import os
 import polars as pl
 import queries
-
-
-def _polars_gbq(query):
-    """
-    take a SQL query and return result as polars dataframe
-    :param query: BigQuery SQL query
-    :return: polars dataframe
-    """
-    client = bigquery.Client()
-    query_job = client.query(query)
-    rows = query_job.result()
-    df = pl.from_arrow(rows.to_arrow())
-
-    return df
+import utils
 
 
 def count_phecode(db="aou", phecode_version="X"):
@@ -41,11 +27,13 @@ def count_phecode(db="aou", phecode_version="X"):
         else:
             return "Invalid phecode version. Please choose either \"1.2\" or \"X\"."
 
+        # generate query
         cdr = os.getenv("WORKSPACE_CDR")
         icd_query = queries.phecode_icd_query(cdr)
 
+        # query data
         print("Start querying ICD codes...")
-        icd_events = _polars_gbq(icd_query)
+        icd_events = utils.polars_gbq(icd_query)
         print("Mapping ICD codes to phecodes...")
         if phecode_version == "X":
             phecode_counts = icd_events.join(phecode_df[["phecode", "ICD"]], how="inner", on="ICD")

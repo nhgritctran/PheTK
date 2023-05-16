@@ -1,16 +1,6 @@
 import hail as hl
 import polars as pl
-import pyarrow as pa
-
-
-def _spark_to_polars(spark_df):
-    """
-    convert spark df to polars df
-    :param spark_df: spark df
-    :return: polars df
-    """
-    polars_df = pl.from_arrow(pa.Table.from_batches(spark_df._collect_as_arrow()))
-    return polars_df
+import utils
 
 
 def build_variant_cohort(mt_path,
@@ -78,7 +68,7 @@ def build_variant_cohort(mt_path,
         mt.row.show()
 
     # split if multi-allelic site
-    allele_count = _spark_to_polars(mt.entries().select("info").to_spark())
+    allele_count = utils.spark_to_polars(mt.entries().select("info").to_spark())
     allele_count = len(allele_count["info.AF"][0])
     if allele_count > 1:
         print()
@@ -96,7 +86,7 @@ def build_variant_cohort(mt_path,
 
         # export to polars
         spark_df = mt.entries().select("GT").to_spark()
-        polars_df = _spark_to_polars(spark_df)
+        polars_df = utils.spark_to_polars(spark_df)
 
         # convert list of int to GT string, e.g., "0/0", "0/1", "1/1"
         polars_df = polars_df.with_columns(
