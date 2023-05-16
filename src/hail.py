@@ -47,7 +47,6 @@ def build_variant_cohort(mt_path,
     else:
         print()
         print(f"Locus {locus} found!")
-        mt.row.show()
 
     # split if multi-allelic site
     allele_count = _spark_to_polars(mt.entries().select("info").to_spark())
@@ -56,7 +55,6 @@ def build_variant_cohort(mt_path,
         mt = hl.split_multi(mt)
         print()
         print("Matrix table after multi-allelic split:")
-        mt.row.show()
 
     # keep variant of interest
     mt = mt.filter_rows((mt.locus == variant["locus"]) & \
@@ -64,28 +62,28 @@ def build_variant_cohort(mt_path,
     if mt:
         print()
         print(f"Variant {variant_string} found!")
-        mt.row.show()
-        mt.entries().show()
 
-        # process data
+        # export to polars
         spark_df = mt.entries().select("GT").to_spark()
         polars_df = _spark_to_polars(spark_df)
 
-        polars_df = polars_df.filter(pl.col("GT").is_in(gt_list))
+        # convert list of int to GT string, e.g., "0/0", "0/1", "1/1"
         polars_df = polars_df.with_columns(
             pl.col("GT.alleles").arr.get(0).cast(pl.Utf8).alias("GT0"),
             pl.col("GT.alleles").arr.get(1).cast(pl.Utf8).alias("GT1"),
         )
         polars_df = polars_df.with_columns((pl.col("GT0") + "/" + pl.col("GT1")).alias("GT"))
+        polars_df = polars_df.filter(pl.col("GT").is_in(gt_list))
         polars_df = polars_df.with_columns(pl.when(pl.col("GT") == case_gt)
                                            .then(1)
                                            .otherwise(0)
                                            .alias("case"))
-        polars_df = polars_df.rename({"s": "person_id"})[["person_id", "case"]]
+        cohort = polars_df.rename({"s": "person_id"})[["person_id", "case"]]
         print()
-        print(polars_df["case"].sum(), "cases:", len(polars_df.filter(pl.col("case") == 0)), "controls")
+        print("Cohort size:", len(cohort))
+        print(cohort["case"].sum(), "cases:", len(cohort.filter(pl.col("case") == 0)), "controls")
 
-        return polars_df
+        return cohort
 
     else:
         print()
