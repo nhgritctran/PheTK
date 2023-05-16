@@ -4,9 +4,12 @@ import pyarrow as pa
 
 
 def _spark_to_polars(spark_df):
-
+    """
+    convert spark df to polars df
+    :param spark_df: spark df
+    :return: polars df
+    """
     polars_df = pl.from_arrow(pa.Table.from_batches(spark_df._collect_as_arrow()))
-
     return polars_df
 
 
