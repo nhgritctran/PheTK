@@ -74,7 +74,7 @@ def phecode_icd_query(cdr):
     return query
 
 
-def ehr_code_query(cdr):
+def ehr_dx_code_query(cdr):
     """
     this method is exclusively for All of Us platform
     :param cdr: All of Us Curated Data Repository
@@ -149,3 +149,23 @@ def ehr_code_query(cdr):
         """
 
     return query
+
+
+def natural_age_query(cdr, participant_ids=None):
+    if participant_ids:
+        if isinstance(participant_ids, str):
+            participant_ids = (participant_ids, )
+        if isinstance(participant_ids, list):
+            participant_ids = tuple(participant_ids)
+
+        query: str = f"""
+        SELECT
+            person_id, 
+            DATETIME_DIFF(CURRENT_DATETIME(), DATETIME(birth_datetime), DAY)/365.2425 AS natural_age
+        FROM
+            {cdr}.person
+        WHERE
+            person_id IN {participant_ids}
+        """
+
+        return query
