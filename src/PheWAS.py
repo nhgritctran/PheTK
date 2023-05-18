@@ -290,7 +290,6 @@ class PheWAS:
                 warnings.simplefilter("ignore")
             y = regressors["y"].to_numpy()
             regressors = regressors[analysis_var_cols].to_numpy()
-            print(regressors)
             regressors = sm.tools.add_constant(regressors, prepend=False)
             logit = sm.Logit(y, regressors, missing="drop")
 
