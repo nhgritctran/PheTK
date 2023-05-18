@@ -90,7 +90,7 @@ def natural_age_query(cdr, participant_ids):
 
     query: str = f"""
         SELECT
-            person_id, 
+            CAST(person_id AS STRING) AS person_id, 
             DATETIME_DIFF(CURRENT_DATETIME(), DATETIME(birth_datetime), DAY)/365.2425 AS natural_age
         FROM
             {cdr}.person
@@ -219,7 +219,7 @@ def sex_at_birth(cdr, participant_ids):
             (
                 (
                 SELECT
-                    person_id,
+                    CAST(person_id AS STRING) AS person_id,
                     1 AS sex_at_birth
                 FROM
                     {cdr}.person
@@ -229,7 +229,7 @@ def sex_at_birth(cdr, participant_ids):
             UNION DISTINCT
                 (
                 SELECT
-                    person_id,
+                    CAST(person_id AS STRING) AS person_id,
                     0 AS sex_at_birth
                 FROM
                     {cdr}.person
@@ -239,7 +239,7 @@ def sex_at_birth(cdr, participant_ids):
             UNION DISTINCT
                 (
                 SELECT
-                    person_id,
+                    CAST(person_id AS STRING) AS person_id,
                     1 AS sex_at_birth
                 FROM
                     {cdr}.observation
@@ -249,7 +249,7 @@ def sex_at_birth(cdr, participant_ids):
             UNION DISTINCT
                 (
                 SELECT
-                    person_id,
+                    CAST(person_id AS STRING) AS person_id,
                     0 AS sex_at_birth
                 FROM
                     {cdr}.observation
