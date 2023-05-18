@@ -8,7 +8,7 @@ import polars as pl
 
 def _get_ancestry_preds(cdr_version, user_project):
     if cdr_version == 7:
-        ancestry_preds = pd.read_csv(paths.cdr7_ancestry_pred_path,
+        ancestry_preds = pd.read_csv(_paths.cdr7_ancestry_pred_path,
                                      sep="\t",
                                      storage_options={"requester_pays": True,
                                                       "user_project": user_project},
@@ -51,12 +51,12 @@ def _get_covariates(participant_ids,
         user_project = os.getenv("GOOGLE_PROJECT")
 
         if natural_age:
-            natural_age_df = utils.polars_gbq(queries.natural_age_query(cdr, participant_ids))
+            natural_age_df = _utils.polars_gbq(_queries.natural_age_query(cdr, participant_ids))
             df = df.join(natural_age_df, how="left", on="person_id")
             # print("Retrieved natural age...")
 
         if age_at_last_event or ehr_length or dx_code_count:
-            temp_df = utils.polars_gbq(queries.ehr_dx_code_query(cdr, participant_ids))
+            temp_df = _utils.polars_gbq(_queries.ehr_dx_code_query(cdr, participant_ids))
             cols_to_keep = ["person_id"]
             if age_at_last_event:
                 # print("Retrieved age at last event...")
@@ -70,7 +70,7 @@ def _get_covariates(participant_ids,
             df = df.join(temp_df[cols_to_keep], how="left", on="person_id")
 
         if sex_at_birth:
-            sex_df = utils.polars_gbq(queries.sex_at_birth(cdr, participant_ids))
+            sex_df = _utils.polars_gbq(_queries.sex_at_birth(cdr, participant_ids))
             df = df.join(sex_df, how="left", on="person_id")
 
         if genetic_ancestry or first_n_pcs > 0:
