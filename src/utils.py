@@ -1,4 +1,6 @@
 from google.cloud import bigquery
+import pandas as pd
+import paths
 import polars as pl
 import pyarrow as pa
 
@@ -26,3 +28,17 @@ def polars_gbq(query):
     df = pl.from_arrow(rows.to_arrow())
 
     return df
+
+
+def get_ancestry_preds(cdr_version):
+    if cdr_version == 7:
+        ancestry_preds = pd.read_csv(ancestry_pred_path,
+                                     sep="\t",
+                                     storage_options={"requester_pays": True,
+                                                      "user_projects": project},
+                                     dtype={"person_id": str})
+        ancestry_preds = pl.from_pandas(ancestry_preds)
+    else:
+        ancestry_preds = None
+
+    return ancestry_preds
