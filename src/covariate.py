@@ -100,8 +100,9 @@ def get_covariates(participant_ids,
                    dx_code_count=True,
                    genetic_ancestry=False,
                    first_n_pcs=0,
-                   cdr_version=7):
-    chunks = [list(participant_ids)[i*1000:(i+1)*1000] for i in range(len(participant_ids)//1000)]
+                   cdr_version=7,
+                   chunk_size = 10000):
+    chunks = [list(participant_ids)[i*chunk_size:(i+1)*chunk_size] for i in range(len(participant_ids)//chunk_size)]
     with ThreadPoolExecutor() as executor:
         jobs = [
             executor.submit(
