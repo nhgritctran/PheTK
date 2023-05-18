@@ -82,12 +82,6 @@ def natural_age_query(cdr, participant_ids):
     :return: a SQL query that would generate a table
             contains participant IDs and their natural age
     """
-
-    if isinstance(participant_ids, str):
-        participant_ids = (participant_ids, )
-    elif isinstance(participant_ids, list):
-        participant_ids = tuple(participant_ids)
-
     query: str = f"""
         SELECT
             CAST(person_id AS STRING) AS person_id, 
