@@ -65,7 +65,7 @@ class PheWAS:
         if pl.Utf8 in self.covariate_df[self.var_cols].schema.values():
             str_cols = [k for k, v in self.covariate_df.schema.items() if v is pl.Utf8]
             print(f"Column(s) {str_cols} contain(s) string type. Only numerical types are accepted.")
-            sys.exit(1)
+            exit()
 
         # keep only relevant columns in covariate_df
         cols_to_keep = list(set(["person_id", "male", "female"] + self.var_cols))
