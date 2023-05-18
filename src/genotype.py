@@ -104,7 +104,6 @@ def build_variant_cohort(mt_path,
         print("\033[1mCohort size:", len(cohort))
         print("\033[1mCases:", cohort["case"].sum())
         print("\033[1mControls:", len(cohort.filter(pl.col("case") == 0)), "\033[0m")
-        print(cohort.head())
         cohort.write_csv(output_file_name)
         print(f"\033[1mCohort data saved as {output_file_name}!\033[0m")
         return cohort
