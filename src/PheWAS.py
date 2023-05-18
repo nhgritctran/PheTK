@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import statsmodels.api as sm
+import sys
 import time
 import warnings
 
@@ -60,6 +61,10 @@ class PheWAS:
         # additional attributes
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
         self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
+
+        if pl.Utf8 in self.covariate_df[self.var_cols].schema.values():
+            str_cols = [k for k, v in self.covariate_df.schema if v is pl.Utf8]
+            sys.exit(f"Column(s) {str_cols} contain string type. Only numerical types are accepted.")
 
         # keep only relevant columns in covariate_df
         cols_to_keep = list(set(["person_id", "male", "female"] + self.var_cols))
