@@ -118,8 +118,11 @@ def get_covariates(participant_ids,
             ) for chunk in chunks
         ]
         result_list = [job.result() for job in tqdm(as_completed(jobs), total=len(chunks))]
-        df = result_list[0]
-        for i in range(1, len(chunks) + 1):
-            df = pl.concat([df, result_list[i]])
+
+    result_list = [result for result in result_list if result]
+    df = result_list[0]
+    for i in range(1, len(chunks) + 1):
+        df = pl.concat([df, result_list[i]])
+    df = df.unique()
 
     return df
