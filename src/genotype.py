@@ -103,9 +103,7 @@ def build_variant_cohort(chromosome_number,
                                            .then(1)
                                            .otherwise(0)
                                            .alias("case"))
-        cohort = polars_df\
-            .rename({"s": "person_id"})[["person_id", "case"]]\
-            .with_columns(pl.col("person_id").cast(int))
+        cohort = polars_df.rename({"s": "person_id"})[["person_id", "case"]]
         print()
         print("\033[1mCohort size:", len(cohort))
         print("\033[1mCases:", cohort["case"].sum())

@@ -42,13 +42,13 @@ def _get_covariates(participant_ids,
         participant_ids = (participant_ids, )
     elif isinstance(participant_ids, list):
         participant_ids = tuple(participant_ids)
-    participant_ids = tuple([int(i) for i in participant_ids])
     df = pl.DataFrame({"person_id": participant_ids})
 
     # All of Us CDR v7
     if cdr_version == 7:
         cdr = os.getenv("WORKSPACE_CDR")
         user_project = os.getenv("GOOGLE_PROJECT")
+        participant_ids = tuple([int(i) for i in participant_ids])
 
         if natural_age:
             natural_age_df = _utils.polars_gbq(_queries.natural_age_query(cdr, participant_ids))
