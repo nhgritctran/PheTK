@@ -11,8 +11,7 @@ def _get_ancestry_preds(cdr_version, user_project):
         ancestry_preds = pd.read_csv(_paths.cdr7_ancestry_pred_path,
                                      sep="\t",
                                      storage_options={"requester_pays": True,
-                                                      "user_project": user_project},
-                                     dtype={"research_id": str})
+                                                      "user_project": user_project})
         ancestry_preds = pl.from_pandas(ancestry_preds)
         ancestry_preds = ancestry_preds.with_columns(pl.col("pca_features").str.replace(r"\[", "")) \
             .with_columns(pl.col("pca_features").str.replace(r"\]", "")) \
