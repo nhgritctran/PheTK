@@ -1,4 +1,4 @@
-from . import paths, queries, utils
+from . import _paths, _queries, _utils
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm.notebook import tqdm
 import os
