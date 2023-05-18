@@ -48,6 +48,7 @@ def get_covariates(participant_ids,
         user_project = os.getenv("GOOGLE_PROJECT")
 
         if natural_age:
+            print("Retrieving natural age...")
             natural_age_df = utils.polars_gbq(queries.natural_age_query(cdr, participant_ids))
             df = df.join(natural_age_df, how="left", on="person_id")
 
@@ -55,10 +56,13 @@ def get_covariates(participant_ids,
             temp_df = utils.polars_gbq(queries.ehr_dx_code_query(cdr, participant_ids))
             cols_to_keep = ["person_id"]
             if age_at_last_event:
+                print("Retrieving age at last event...")
                 cols_to_keep.append("age_at_last_event")
             if ehr_length:
+                print("Retrieving ehr length...")
                 cols_to_keep.append("ehr_length")
             if dx_code_count:
+                print("Retrieving diagnosis code count...")
                 cols_to_keep.append("dx_code_count")
             df = df.join(temp_df[cols_to_keep], how="left", on="person_id")
 
@@ -70,6 +74,7 @@ def get_covariates(participant_ids,
             temp_df = _get_ancestry_preds(cdr_version=cdr_version, user_project=user_project)
             cols_to_keep = ["person_id"]
             if genetic_ancestry:
+                print("Retrieving genetic ancestry...")
                 cols_to_keep.append("genetic_ancestry")
             if first_n_pcs > 0:
                 cols_to_keep = cols_to_keep + [f"pc{i}" for i in range(first_n_pcs)]
