@@ -6,8 +6,8 @@ import pandas as pd
 import polars as pl
 
 
-def _get_ancestry_preds(cdr_version, user_project, participant_ids):
-    if cdr_version == 7:
+def _get_ancestry_preds(db_version, user_project, participant_ids):
+    if db_version == 7:
         ancestry_preds = pd.read_csv(_paths.cdr7_ancestry_pred_path,
                                      sep="\t",
                                      storage_options={"requester_pays": True,
@@ -35,7 +35,7 @@ def _get_covariates(participant_ids,
                     dx_code_count=True,
                     genetic_ancestry=False,
                     first_n_pcs=0,
-                    cdr_version=7):
+                    db_version=7):
 
     # initial data prep
     if isinstance(participant_ids, str) or isinstance(participant_ids, int):
@@ -45,7 +45,7 @@ def _get_covariates(participant_ids,
     df = pl.DataFrame({"person_id": participant_ids})
 
     # All of Us CDR v7
-    if cdr_version == 7:
+    if db_version == 7:
         cdr = os.getenv("WORKSPACE_CDR")
         user_project = os.getenv("GOOGLE_PROJECT")
         participant_ids = tuple([int(i) for i in participant_ids])
@@ -74,7 +74,7 @@ def _get_covariates(participant_ids,
             df = df.join(sex_df, how="left", on="person_id")
 
         if genetic_ancestry or first_n_pcs > 0:
-            temp_df = _get_ancestry_preds(cdr_version=cdr_version, user_project=user_project)
+            temp_df = _get_ancestry_preds(db_version, user_project, participant_ids)
             cols_to_keep = ["person_id"]
             if genetic_ancestry:
                 # print("Retrieved genetic ancestry...")
