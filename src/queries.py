@@ -11,7 +11,7 @@ def phecode_icd_query(cdr):
             (
                 (
                 SELECT DISTINCT
-                    CAST(co.person_id AS STRING) AS person_id,
+                    co.person_id,
                     co.condition_start_date AS date,
                     c.concept_code AS ICD
                 FROM
@@ -26,7 +26,7 @@ def phecode_icd_query(cdr):
             UNION DISTINCT
                 (
                 SELECT DISTINCT
-                    CAST(co.person_id AS STRING) AS person_id,
+                    co.person_id,
                     co.condition_start_date AS date,
                     c.concept_code AS ICD
                 FROM
@@ -41,7 +41,7 @@ def phecode_icd_query(cdr):
             UNION DISTINCT
                 (
                 SELECT DISTINCT
-                    CAST(o.person_id AS STRING) AS person_id,
+                    o.person_id,
                     o.observation_date AS date,
                     c.concept_code AS ICD
                 FROM
@@ -56,7 +56,7 @@ def phecode_icd_query(cdr):
             UNION DISTINCT
                 (
                 SELECT DISTINCT
-                    CAST(o.person_id AS STRING) AS person_id,
+                    o.person_id,
                     o.observation_date AS date,
                     c.concept_code AS ICD
                 FROM
@@ -84,7 +84,7 @@ def natural_age_query(cdr, participant_ids):
     """
     query: str = f"""
         SELECT
-            CAST(person_id AS STRING) AS person_id, 
+            person_id, 
             DATETIME_DIFF(CURRENT_DATETIME(), DATETIME(birth_datetime), DAY)/365.2425 AS natural_age
         FROM
             {cdr}.person
@@ -113,7 +113,7 @@ def ehr_dx_code_query(cdr, participant_ids):
             (
                 (
                 SELECT DISTINCT
-                    CAST(co.person_id AS STRING) AS person_id,
+                    co.person_id,
                     co.condition_start_date AS date,
                     c.concept_code AS code
                 FROM
@@ -130,7 +130,7 @@ def ehr_dx_code_query(cdr, participant_ids):
             UNION DISTINCT
                 (
                 SELECT DISTINCT
-                    CAST(co.person_id AS STRING) AS person_id,
+                    co.person_id,
                     co.condition_start_date AS date,
                     c.concept_code AS code
                 FROM
@@ -147,7 +147,7 @@ def ehr_dx_code_query(cdr, participant_ids):
             UNION DISTINCT
                 (
                 SELECT DISTINCT
-                    CAST(o.person_id AS STRING) AS person_id,
+                    o.person_id,
                     o.observation_date AS date,
                     c.concept_code AS code
                 FROM
@@ -164,7 +164,7 @@ def ehr_dx_code_query(cdr, participant_ids):
             UNION DISTINCT
                 (
                 SELECT DISTINCT
-                    CAST(o.person_id AS STRING) AS person_id,
+                    o.person_id,
                     o.observation_date AS date,
                     c.concept_code AS code
                 FROM
@@ -182,7 +182,7 @@ def ehr_dx_code_query(cdr, participant_ids):
         INNER JOIN
             (
                 SELECT
-                    CAST(person_id as STRING) AS person_id, 
+                    person_id, 
                     EXTRACT(DATE FROM DATETIME(birth_datetime)) AS birthday
                 FROM
                     {cdr}.person
@@ -213,7 +213,7 @@ def sex_at_birth(cdr, participant_ids):
             (
                 (
                 SELECT
-                    CAST(person_id AS STRING) AS person_id,
+                    person_id,
                     1 AS sex_at_birth
                 FROM
                     {cdr}.person
@@ -225,7 +225,7 @@ def sex_at_birth(cdr, participant_ids):
             UNION DISTINCT
                 (
                 SELECT
-                    CAST(person_id AS STRING) AS person_id,
+                    person_id,
                     0 AS sex_at_birth
                 FROM
                     {cdr}.person
@@ -237,7 +237,7 @@ def sex_at_birth(cdr, participant_ids):
             UNION DISTINCT
                 (
                 SELECT
-                    CAST(person_id AS STRING) AS person_id,
+                    person_id,
                     1 AS sex_at_birth
                 FROM
                     {cdr}.observation
@@ -249,7 +249,7 @@ def sex_at_birth(cdr, participant_ids):
             UNION DISTINCT
                 (
                 SELECT
-                    CAST(person_id AS STRING) AS person_id,
+                    person_id,
                     0 AS sex_at_birth
                 FROM
                     {cdr}.observation
