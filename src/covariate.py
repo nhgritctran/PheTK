@@ -46,7 +46,7 @@ def get_covariates(participant_ids,
     if cdr_version == 7:
         cdr = os.getenv("WORKSPACE_CDR")
         user_project = os.getenv("GOOGLE_PROJECT")
-        participant_ids = (int(i) for i in participant_ids)
+        # participant_ids = (int(i) for i in participant_ids)
 
         if natural_age:
             natural_age_df = utils.polars_gbq(queries.natural_age_query(cdr, participant_ids))
