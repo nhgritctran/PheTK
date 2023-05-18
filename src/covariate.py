@@ -53,7 +53,7 @@ def get_covariates(participant_ids,
 
         if age_at_last_event or ehr_length or dx_code_count:
             temp_df = utils.polars_gbq(queries.ehr_dx_code_query(cdr, participant_ids))
-            cols_to_keep = []
+            cols_to_keep = ["person_id"]
             if age_at_last_event:
                 cols_to_keep.append("age_at_last_event")
             if ehr_length:
@@ -68,7 +68,7 @@ def get_covariates(participant_ids,
 
         if genetic_ancestry or first_n_pcs > 0:
             temp_df = _get_ancestry_preds(cdr_version=cdr_version, user_project=user_project)
-            cols_to_keep = []
+            cols_to_keep = ["person_id"]
             if genetic_ancestry:
                 cols_to_keep.append("genetic_ancestry")
             if first_n_pcs > 0:
