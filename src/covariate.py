@@ -6,7 +6,7 @@ import pandas as pd
 import polars as pl
 
 
-def _get_ancestry_preds(cdr_version, user_project):
+def _get_ancestry_preds(cdr_version, user_project, participant_ids):
     if cdr_version == 7:
         ancestry_preds = pd.read_csv(_paths.cdr7_ancestry_pred_path,
                                      sep="\t",
@@ -19,7 +19,8 @@ def _get_ancestry_preds(cdr_version, user_project):
             .with_columns(pl.col(f"pc{i}").str.replace(" ", "").cast(float) for i in range(16)) \
             .drop(["probabilities", "pca_features", "ancestry_pred_other"]) \
             .rename({"research_id": "person_id",
-                     "ancestry_pred": "genetic_ancestry"})
+                     "ancestry_pred": "genetic_ancestry"})\
+            .filter(pl.col("person_id").is_in(participant_ids))
     else:
         ancestry_preds = None
 
