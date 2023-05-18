@@ -1,6 +1,4 @@
 from google.cloud import bigquery
-import pandas as pd
-import paths
 import polars as pl
 import pyarrow as pa
 
@@ -11,6 +9,7 @@ def spark_to_polars(spark_df):
     :param spark_df: spark df
     :return: polars df
     """
+    # noinspection PyProtectedMember,PyArgumentList
     polars_df = pl.from_arrow(pa.Table.from_batches(spark_df._collect_as_arrow()))
 
     return polars_df
@@ -28,17 +27,3 @@ def polars_gbq(query):
     df = pl.from_arrow(rows.to_arrow())
 
     return df
-
-
-def get_ancestry_preds(cdr_version):
-    if cdr_version == 7:
-        ancestry_preds = pd.read_csv(ancestry_pred_path,
-                                     sep="\t",
-                                     storage_options={"requester_pays": True,
-                                                      "user_projects": project},
-                                     dtype={"person_id": str})
-        ancestry_preds = pl.from_pandas(ancestry_preds)
-    else:
-        ancestry_preds = None
-
-    return ancestry_preds

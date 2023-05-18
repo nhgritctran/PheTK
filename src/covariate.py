@@ -1,9 +1,30 @@
 import os
-import paths
 import pandas as pd
+import paths
 import polars as pl
 import queries
 import utils
+
+
+def _get_ancestry_preds(cdr_version, user_project):
+    if cdr_version == 7:
+        ancestry_preds = pd.read_csv(paths.cdr7_ancestry_pred_path,
+                                     sep="\t",
+                                     storage_options={"requester_pays": True,
+                                                      "user_project": user_project},
+                                     dtype={"research_id": str})
+        ancestry_preds = pl.from_pandas(ancestry_preds)
+        ancestry_preds = ancestry_preds.with_columns(pl.col("pca_features").str.replace(r"\[", "")) \
+            .with_columns(pl.col("pca_features").str.replace(r"\]", "")) \
+            .with_columns(pl.col("pca_features").str.split(",").arr.get(i).alias(f"pc{i}") for i in range(16)) \
+            .with_columns(pl.col(f"pc{i}").str.replace(" ", "").cast(float) for i in range(16)) \
+            .drop(["probabilities", "pca_features", "ancestry_pred_other"]) \
+            .rename({"research_id": "person_id",
+                     "ancestry_pred": "genetic_ancestry"})
+    else:
+        ancestry_preds = None
+
+    return ancestry_preds
 
 
 def get_covariates(participant_ids,
@@ -13,7 +34,7 @@ def get_covariates(participant_ids,
                    ehr_length=True,
                    dx_code_count=True,
                    genetic_ancestry=False,
-                   pc_count=0,
+                   first_n_pcs=0,
                    cdr_version=7):
 
     # initial data prep
@@ -26,8 +47,7 @@ def get_covariates(participant_ids,
     # All of Us CDR v7
     if cdr_version == 7:
         cdr = os.getenv("WORKSPACE_CDR")
-        project = os.getenv("GOOGLE_PROJECT")
-        ancestry_pred_path = paths.cdr7_ancestry_pred_path
+        user_project = os.getenv("GOOGLE_PROJECT")
 
         if natural_age:
             natural_age_df = utils.polars_gbq(queries.natural_age_query(cdr, participant_ids))
@@ -48,12 +68,16 @@ def get_covariates(participant_ids,
             sex_df = utils.polars_gbq(queries.sex_at_birth(cdr, participant_ids))
             df = df.join(sex_df, how="left", on="person_id")
 
-        if genetic_ancestry or pc_count > 0:
-            ancestry_preds = pd.read_csv(ancestry_pred_path, sep="\t", storage_options={"requester_pays": True,
-                                                                                        "user_projects": project})
-            ancestry_preds = pl.from_pandas(ancestry_preds)
-            pass
+        if genetic_ancestry or first_n_pcs > 0:
+            temp_df = _get_ancestry_preds(cdr_version=cdr_version, user_project=user_project)
+            cols_to_keep = []
+            if genetic_ancestry:
+                cols_to_keep.append("genetic_ancestry")
+            if first_n_pcs > 0:
+                cols_to_keep = cols_to_keep + [f"pc{i}" for i in range(first_n_pcs)]
+            df = df.join(temp_df[cols_to_keep], how="left", on="person_id")
 
+        df.write_csv("covariates.csv")
         return df
 
     else:
