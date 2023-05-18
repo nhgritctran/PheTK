@@ -83,7 +83,6 @@ def _get_covariates(participant_ids,
                 cols_to_keep = cols_to_keep + [f"pc{i}" for i in range(first_n_pcs)]
             df = df.join(temp_df[cols_to_keep], how="left", on="person_id")
 
-        df = df.with_columns(pl.col("person_id").cast(str))
         df.write_csv("covariates.csv")
         return df
 
