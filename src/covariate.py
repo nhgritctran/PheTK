@@ -1,5 +1,5 @@
 from . import paths, queries, utils
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm.notebook import tqdm
 import os
 import pandas as pd
@@ -117,9 +117,9 @@ def get_covariates(participant_ids,
                 cdr_version
             ) for chunk in chunks
         ]
-        result_list = [job.result() for job in tqdm(jobs, total=len(chunks))]
+        result_list = [job.result() for job in tqdm(as_completed(jobs), total=len(chunks))]
         df = result_list[0]
         for i in range(1, len(chunks) + 1):
-            df = df.concat(result_list[i])
+            df = pl.concat([df, result_list[i]])
 
     return df
