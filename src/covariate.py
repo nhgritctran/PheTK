@@ -40,7 +40,7 @@ def get_covariates(participant_ids,
         participant_ids = (participant_ids, )
     elif isinstance(participant_ids, list):
         participant_ids = tuple(participant_ids)
-    df = pl.DataFrame(participant_ids, schema={"person_id": str})
+    df = pl.DataFrame({"person_id": participant_ids}).with_columns(pl.col("person_id").cast(str))
 
     # All of Us CDR v7
     if cdr_version == 7:
