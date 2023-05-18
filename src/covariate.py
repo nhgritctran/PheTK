@@ -121,7 +121,7 @@ def get_covariates(participant_ids,
 
     result_list = [result for result in result_list if result is not None]
     df = result_list[0]
-    for i in range(1, len(chunks) + 1):
+    for i in range(1, len(chunks)):
         df = pl.concat([df, result_list[i]])
     df = df.unique()
 
