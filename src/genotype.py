@@ -1,6 +1,6 @@
+from . import utils
 import hail as hl
 import polars as pl
-import utils
 
 
 def build_variant_cohort(mt_path,

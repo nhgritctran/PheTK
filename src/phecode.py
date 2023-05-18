@@ -1,7 +1,6 @@
+from . import queries, utils
 import os
 import polars as pl
-import queries
-import utils
 
 
 def count_phecode(db="aou", phecode_version="X"):

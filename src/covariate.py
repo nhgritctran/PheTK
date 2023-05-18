@@ -1,9 +1,7 @@
+from . import paths, queries, utils
 import os
 import pandas as pd
-import paths
 import polars as pl
-import queries
-import utils
 
 
 def _get_ancestry_preds(cdr_version, user_project):
