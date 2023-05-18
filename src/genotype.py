@@ -1,10 +1,9 @@
-from . import _utils
+from . import _paths, _utils
 import hail as hl
 import polars as pl
 
 
-def build_variant_cohort(mt_path,
-                         chromosome_number,
+def build_variant_cohort(chromosome_number,
                          genomic_position,
                          ref_allele,
                          alt_allele,
@@ -12,10 +11,11 @@ def build_variant_cohort(mt_path,
                          control_gt,
                          reference_genome="GRCh38",
                          db="aou",
+                         db_version=7,
+                         mt_path=None,
                          output_file_name=None):
     """
     generate cohort based on genotype of variant of interest
-    :param mt_path: path to population level Hail variant matrix table
     :param chromosome_number: chromosome number; int
     :param genomic_position: genomic position; int
     :param ref_allele: reference allele; str
@@ -24,6 +24,8 @@ def build_variant_cohort(mt_path,
     :param control_gt: genotype(s) for control; str or list of str
     :param reference_genome: defaults to "GRCh38"; accepts "GRCh37" or "GRCh38"
     :param db: defaults to "aou"; accepts "aou" or "ukb"
+    :param db_version: defaults to 7; only for All of Us
+    :param mt_path: path to population level Hail variant matrix table
     :param output_file_name: name of csv file output
     :return: polars data
     """
@@ -51,6 +53,8 @@ def build_variant_cohort(mt_path,
     # initialize Hail
     if db == "aou":
         hl.init(default_reference=reference_genome)
+        if mt_path is None and db_version == 7:
+            mt_path = _paths.cdr7_mt_path
 
     # hail variant struct
     variant = hl.parse_variant(variant_string, reference_genome=reference_genome)
