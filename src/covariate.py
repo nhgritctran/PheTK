@@ -102,7 +102,7 @@ def get_covariates(participant_ids,
                    first_n_pcs=0,
                    cdr_version=7,
                    chunk_size=10000):
-    chunks = [list(participant_ids)[i*chunk_size:(i+1)*chunk_size] for i in range(len(participant_ids)//chunk_size)]
+    chunks = [list(participant_ids)[i*chunk_size:(i+1)*chunk_size] for i in range((len(participant_ids)//chunk_size)+1)]
     with ThreadPoolExecutor() as executor:
         jobs = [
             executor.submit(
