@@ -225,6 +225,8 @@ def sex_at_birth(cdr, participant_ids):
                     {cdr}.person
                 WHERE
                     sex_at_birth_source_concept_id = 1585846
+                AND
+                    person_id IN {participant_ids}
                 )
             UNION DISTINCT
                 (
@@ -235,6 +237,8 @@ def sex_at_birth(cdr, participant_ids):
                     {cdr}.person
                 WHERE
                     sex_at_birth_source_concept_id = 1585847
+                AND
+                    person_id IN {participant_ids}
                 )
             UNION DISTINCT
                 (
@@ -245,6 +249,8 @@ def sex_at_birth(cdr, participant_ids):
                     {cdr}.observation
                 WHERE
                     observation_source_concept_id = 8507
+                AND
+                    person_id IN {participant_ids}
                 )
             UNION DISTINCT
                 (
@@ -255,6 +261,8 @@ def sex_at_birth(cdr, participant_ids):
                     {cdr}.observation
                 WHERE
                     observation_source_concept_id = 8532
+                AND
+                    person_id IN {participant_ids}
                 )
             )
     """
