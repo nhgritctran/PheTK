@@ -113,9 +113,11 @@ def build_variant_cohort(chromosome_number,
         cohort = cohort.unique()
         cohort.write_csv(output_file_name)
         print(f"\033[1mCohort data saved as {output_file_name}!\033[0m")
+        print()
         return cohort
 
     else:
         print()
         print(f"Variant {variant_string} not found!")
+        print()
         return

@@ -126,6 +126,13 @@ def get_covariates(participant_ids,
     for i in range(1, len(chunks)):
         df = pl.concat([df, result_list[i]])
     df = df.unique()
+    print()
+    print("\033[1mCohort size:", len(df))
+    # noinspection PyTypeChecker
+    print("\033[1mCases:", df["case"].sum())
+    print("\033[1mControls:", len(df.filter(pl.col("case") == 0)), "\033[0m")
     df.write_csv("cohort.csv")
+    print("\033[1mCohort data saved as \"cohort.csv\"!\033[0m")
+    print()
 
     return df
