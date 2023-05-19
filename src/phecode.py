@@ -30,11 +30,11 @@ def count_phecode(db="aou", phecode_version="X"):
 
         # generate query
         cdr = os.getenv("WORKSPACE_CDR")
-        icd_query = queries.phecode_icd_query(cdr)
+        icd_query = _queries.phecode_icd_query(cdr)
 
         # query data
         print("Start querying ICD codes...")
-        icd_events = utils.polars_gbq(icd_query)
+        icd_events = _utils.polars_gbq(icd_query)
         print("Mapping ICD codes to phecodes...")
         if phecode_version == "X":
             phecode_counts = icd_events.join(phecode_df[["phecode", "ICD"]], how="inner", on="ICD")
