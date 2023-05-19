@@ -56,7 +56,7 @@ class Cohort:
                        drop_nulls=True):
         if cohort is not None:
             pass
-        if cohort is None and self.genotype_cohort is not None:
+        elif cohort is None and self.genotype_cohort is not None:
             cohort = self.genotype_cohort
         else:
             print("A cohort is required.")
