@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm.notebook import tqdm
 import copy
 import numpy as np
+import os
 import pandas as pd
 import polars as pl
 import statsmodels.api as sm
@@ -110,16 +111,17 @@ class PheWAS:
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         # load phecode mapping file
+        cwd = os.getcwd()
         if phecode_version == "X":
             # noinspection PyTypeChecker
-            self.phecode_df = pl.read_csv("../phecode/phecodeX.csv",
+            self.phecode_df = pl.read_csv(f"{cwd}/PyPheWAS/phecode/phecodeX.csv",
                                           dtypes={"phecode": str,
                                                   "ICD": str,
                                                   "exclude_range": str,
                                                   "phecode_top": str})
         elif phecode_version == "1.2":
             # noinspection PyTypeChecker
-            self.phecode_df = pl.read_csv("../phecode/phecode12.csv",
+            self.phecode_df = pl.read_csv(f"{cwd}/PyPheWAS/phecode/phecode12.csv",
                                           dtypes={"phecode": str,
                                                   "ICD": str,
                                                   "exclude_range": str,
