@@ -29,9 +29,8 @@ class PheWAS:
         """
         :param phecode_df: dataframe contains phecode information & mapping; included in folder "phecode"
         :param phecode_counts: phecode count of relevant participants at minimum
-        :param covariate_df: dataframe contains person_id and covariates of interest;
-                             must have both "male" and "female" columns
-        :param gender_col: gender/sex column of interest; either "male" or "female" column can be used
+        :param covariate_df: dataframe contains person_id and covariates of interest
+        :param gender_col: gender/sex column of interest, by default, male = 1, female = 0
         :param covariate_cols: name of covariate columns; excluding independent var of interest
         :param independent_var_col: binary "case" column to specify participants with/without variant of interest
         :param phecode_to_process: defaults to "all"; otherwise, a list of phecodes must be provided
@@ -62,13 +61,14 @@ class PheWAS:
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
         self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
 
+        # check for string type variables among covariates
         if pl.Utf8 in self.covariate_df[self.var_cols].schema.values():
             str_cols = [k for k, v in self.covariate_df.schema.items() if v is pl.Utf8]
             print(f"Column(s) {str_cols} contain(s) string type. Only numerical types are accepted.")
             sys.exit(0)
 
         # keep only relevant columns in covariate_df
-        cols_to_keep = list(set(["person_id", "male", "female"] + self.var_cols))
+        cols_to_keep = list(set(["person_id"] + self.var_cols))
         self.covariate_df = self.covariate_df[cols_to_keep]
         self.cohort_size = self.covariate_df.n_unique()
 
@@ -185,9 +185,9 @@ class PheWAS:
         cases = covariate_df.filter(pl.col("person_id").is_in(case_ids))
         # select data based on phecode "sex", e.g., male/female only or both
         if sex_restriction == "Male":
-            cases = cases.filter(pl.col("male") == 1)
+            cases = cases.filter(pl.col(self.gender_col) == 1)
         elif sex_restriction == "Female":
-            cases = cases.filter(pl.col("female") == 1)
+            cases = cases.filter(pl.col(self.gender_col) == 0)
 
         # CONTROLS
         # phecode exclusions
@@ -201,9 +201,9 @@ class PheWAS:
         )["person_id"].unique().to_list()
         base_controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
         if sex_restriction == "Male":
-            controls = base_controls.filter(pl.col("male") == 1)
+            controls = base_controls.filter(pl.col(self.gender_col) == 1)
         elif sex_restriction == "Female":
-            controls = base_controls.filter(pl.col("female") == 1)
+            controls = base_controls.filter(pl.col(self.gender_col) == 0)
         else:
             controls = base_controls
 
@@ -330,14 +330,12 @@ class PheWAS:
 
     def run(self,
             parallelization="multithreading",
-            n_threads=None,
-            n_cores=multiprocessing.cpu_count()-1):
+            n_threads=None):
         """
         run parallel logistic regressions
         :param parallelization: defaults to "multithreading", utilizing concurrent.futures.ThreadPoolExecutor();
                                 if "multiprocessing": use multiprocessing.Pool()
         :param n_threads: number of threads in multithreading
-        :param n_cores: number of cores in multiprocessing
         :return: PheWAS summary statistics Polars dataframe
         """
 
@@ -356,25 +354,10 @@ class PheWAS:
                     ) for phecode in self.phecode_list
                 ]
                 result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
-        # WIP for multiprocessing, though multithread is faster
-        elif parallelization == "multiprocessing":
-            with multiprocessing.Pool(min(n_cores, multiprocessing.cpu_count()-1)) as p:
-                results = p.starmap_async(
-                    self._logistic_regression,
-                    [
-                        (
-                            phecode,
-                            self.phecode_counts.clone(),
-                            self.covariate_df.clone(),
-                            copy.deepcopy(self.var_cols),
-                            copy.deepcopy(self.gender_specific_var_cols)
-                        ) for phecode in self.phecode_list
-                    ]
-                )
-                result_dicts = [result for result in tqdm(results.get(), total=len(self.phecode_list))]
+        # # WIP for multiprocessing, though multithread is faster
         # elif parallelization == "multiprocessing":
         #     with multiprocessing.Pool(min(n_cores, multiprocessing.cpu_count()-1)) as p:
-        #         result_dicts = list(tqdm(p.starmap(
+        #         results = p.starmap_async(
         #             self._logistic_regression,
         #             [
         #                 (
@@ -385,9 +368,10 @@ class PheWAS:
         #                     copy.deepcopy(self.gender_specific_var_cols)
         #                 ) for phecode in self.phecode_list
         #             ]
-        #         ), total=len(self.phecode_list)))
+        #         )
+        #         result_dicts = [result for result in tqdm(results.get(), total=len(self.phecode_list))]
         else:
-            return "Invalid parallelization method! Use either \"multithreading\" or \"multiprocessing\""
+            return "Invalid parallelization method! Currently only supports \"multithreading\""
         result_dicts = [result for result in result_dicts if result is not None]
         if result_dicts:
             result_df = pl.from_dicts(result_dicts)
