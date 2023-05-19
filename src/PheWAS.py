@@ -82,7 +82,7 @@ class PheWAS:
     def __init__(self,
                  phecode_version,
                  phecode_count_csv_path,
-                 covariate_csv_path,
+                 cohort_csv_path,
                  gender_col,
                  covariate_cols,
                  independent_var_col,
@@ -95,7 +95,7 @@ class PheWAS:
         """
         :param phecode_version: accepts "1.2" or "X"
         :param phecode_count_csv_path: path to phecode count of relevant participants at minimum
-        :param covariate_csv_path: path to dataframe contains person_id and covariates of interest
+        :param cohort_csv_path: path to cohort data with covariates of interest
         :param gender_col: gender/sex column of interest, by default, male = 1, female = 0
         :param covariate_cols: name of covariate columns; excluding independent var of interest
         :param independent_var_col: binary "case" column to specify participants with/without variant of interest
@@ -135,7 +135,7 @@ class PheWAS:
 
         # load covariate data
         # make sure person_id in covariate data has the same type as person_id in phecode count
-        self.covariate_df = pl.read_csv(covariate_csv_path)
+        self.covariate_df = pl.read_csv(cohort_csv_path)
 
         # basic attributes from instantiation
         self.gender_col = gender_col

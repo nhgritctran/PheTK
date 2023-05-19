@@ -84,7 +84,6 @@ def _get_covariates(participant_ids,
                 cols_to_keep = cols_to_keep + [f"pc{i}" for i in range(first_n_pcs)]
             df = df.join(temp_df[cols_to_keep], how="left", on="person_id")
 
-        df.write_csv("covariates.csv")
         return df
 
     else:
@@ -127,5 +126,6 @@ def get_covariates(participant_ids,
     for i in range(1, len(chunks)):
         df = pl.concat([df, result_list[i]])
     df = df.unique()
+    df.write_csv("cohort.csv")
 
     return df
