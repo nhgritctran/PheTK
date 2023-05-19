@@ -15,8 +15,18 @@ import warnings
 class Cohort:
 
     def __init__(self,
-                 db,
-                 db_version):
+                 db="aou",
+                 db_version=7):
+        """
+        :param db: database; currently supports "aou" (All of Us)
+        :param db_version: int type, version of database, e.g., 7 for All of Us CDR v7
+        """
+        if db != "aou":
+            print("Unsupported database. Currently supports \"aou\" (All of Us).")
+            sys.exit(0)
+        if db_version != 7:
+            print("Unsupported database. Currently supports \"aou\" (All of Us) CDR v7 (enter 7 as parameter value).")
+            sys.exit(0)
         self.db = db
         self.db_version = db_version
         self.genotype_cohort = None
@@ -32,6 +42,19 @@ class Cohort:
                     reference_genome="GRCh38",
                     mt_path=None,
                     output_file_name=None):
+        """
+        this method is a proxy for genotype.build_variant_cohort method
+        :param chromosome_number: chromosome number; int
+        :param genomic_position: genomic position; int
+        :param ref_allele: reference allele; str
+        :param alt_allele: alternative allele; str
+        :param case_gt: genotype(s) for case; str or list of str
+        :param control_gt: genotype(s) for control; str or list of str
+        :param reference_genome: defaults to "GRCh38"; accepts "GRCh37" or "GRCh38"
+        :param mt_path: path to population level Hail variant matrix table
+        :param output_file_name: name of csv file output
+        :return: genotype cohort csv file as well as polars dataframe object
+        """
         self.genotype_cohort = genotype.build_variant_cohort(chromosome_number=chromosome_number,
                                                              genomic_position=genomic_position,
                                                              ref_allele=ref_allele,

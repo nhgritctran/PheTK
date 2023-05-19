@@ -27,7 +27,7 @@ def build_variant_cohort(chromosome_number,
     :param db_version: defaults to 7; only for All of Us
     :param mt_path: path to population level Hail variant matrix table
     :param output_file_name: name of csv file output
-    :return: polars data
+    :return: genotype cohort csv file as well as polars dataframe object
     """
     # basic data processing
     if output_file_name:
