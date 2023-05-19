@@ -100,7 +100,7 @@ def get_covariates(participant_ids,
                    dx_code_count=True,
                    genetic_ancestry=False,
                    first_n_pcs=0,
-                   cdr_version=7,
+                   db_version=7,
                    chunk_size=10000):
     chunks = [
         list(participant_ids)[i*chunk_size:(i+1)*chunk_size] for i in range((len(participant_ids)//chunk_size)+1)
@@ -117,7 +117,7 @@ def get_covariates(participant_ids,
                 dx_code_count,
                 genetic_ancestry,
                 first_n_pcs,
-                cdr_version
+                db_version
             ) for chunk in chunks
         ]
         result_list = [job.result() for job in tqdm(as_completed(jobs), total=len(chunks))]

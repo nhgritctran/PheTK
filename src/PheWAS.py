@@ -1,7 +1,7 @@
+from . import genotype, covariate
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm.notebook import tqdm
 import copy
-import multiprocessing
 import numpy as np
 import pandas as pd
 import polars as pl
@@ -11,12 +11,78 @@ import time
 import warnings
 
 
+class Cohort:
+
+    def __init__(self,
+                 db,
+                 db_version):
+        self.db = db
+        self.db_version = db_version
+        self.genotype_cohort = None
+        self.final_cohort = None
+
+    def by_genotype(self,
+                    chromosome_number,
+                    genomic_position,
+                    ref_allele,
+                    alt_allele,
+                    case_gt,
+                    control_gt,
+                    reference_genome="GRCh38",
+                    mt_path=None,
+                    output_file_name=None):
+        self.genotype_cohort = genotype.build_variant_cohort(chromosome_number=chromosome_number,
+                                                             genomic_position=genomic_position,
+                                                             ref_allele=ref_allele,
+                                                             alt_allele=alt_allele,
+                                                             case_gt=case_gt,
+                                                             control_gt=control_gt,
+                                                             reference_genome=reference_genome,
+                                                             db=self.db,
+                                                             db_version=self.db_version,
+                                                             mt_path=mt_path,
+                                                             output_file_name=output_file_name)
+
+    def add_covariates(self,
+                       cohort=None,
+                       natural_age=True,
+                       age_at_last_event=True,
+                       sex_at_birth=True,
+                       ehr_length=True,
+                       dx_code_count=True,
+                       genetic_ancestry=False,
+                       first_n_pcs=0,
+                       db_version=7,
+                       chunk_size=10000):
+        if cohort is not None:
+            participant_ids = cohort["person_id"].unique().to_list()
+        elif cohort is None and self.genotype_cohort is not None:
+            participant_ids = self.genotype_cohort["person_id"].unique().to_list()
+        else:
+            print("A cohort is required.")
+            sys.exit(0)
+        covariates = covariate.get_covariates(participant_ids=participant_ids,
+                                              natural_age=natural_age,
+                                              age_at_last_event=age_at_last_event,
+                                              sex_at_birth=sex_at_birth,
+                                              ehr_length=ehr_length,
+                                              dx_code_count=dx_code_count,
+                                              genetic_ancestry=genetic_ancestry,
+                                              first_n_pcs=first_n_pcs,
+                                              db_version=db_version,
+                                              chunk_size=chunk_size)
+        if cohort is not None:
+            self.final_cohort = cohort.join(covariates, how="left", on="person_id")
+        elif cohort is None and self.genotype_cohort is not None:
+            self.final_cohort = self.genotype_cohort.join(covariates, how="left", on="person_id")
+
+
 class PheWAS:
 
     def __init__(self,
-                 phecode_df,
-                 phecode_counts,
-                 covariate_df,
+                 phecode_version,
+                 phecode_count_csv_path,
+                 covariate_csv_path,
                  gender_col,
                  covariate_cols,
                  independent_var_col,
@@ -27,9 +93,9 @@ class PheWAS:
                  verbose=False,
                  suppress_warnings=True):
         """
-        :param phecode_df: dataframe contains phecode information & mapping; included in folder "phecode"
-        :param phecode_counts: phecode count of relevant participants at minimum
-        :param covariate_df: dataframe contains person_id and covariates of interest
+        :param phecode_version: accepts "1.2" or "X"
+        :param phecode_count_csv_path: path to phecode count of relevant participants at minimum
+        :param covariate_csv_path: path to dataframe contains person_id and covariates of interest
         :param gender_col: gender/sex column of interest, by default, male = 1, female = 0
         :param covariate_cols: name of covariate columns; excluding independent var of interest
         :param independent_var_col: binary "case" column to specify participants with/without variant of interest
@@ -43,10 +109,35 @@ class PheWAS:
         """
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
+        # load phecode mapping file
+        if phecode_version == "X":
+            # noinspection PyTypeChecker
+            self.phecode_df = pl.read_csv("../phecode/phecodeX.csv",
+                                          dtypes={"phecode": str,
+                                                  "ICD": str,
+                                                  "exclude_range": str,
+                                                  "phecode_top": str})
+        elif phecode_version == "1.2":
+            # noinspection PyTypeChecker
+            self.phecode_df = pl.read_csv("../phecode/phecode12.csv",
+                                          dtypes={"phecode": str,
+                                                  "ICD": str,
+                                                  "exclude_range": str,
+                                                  "phecode_top": str})
+        else:
+            print("Unsupported phecode version. Supports phecode \"1.2\" and \"X\".")
+            sys.exit(0)
+
+        # load phecode counts data for all participants
+        # noinspection PyTypeChecker
+        self.phecode_counts = pl.read_csv(phecode_count_csv_path,
+                                          dtypes={"phecode": str})
+
+        # load covariate data
+        # make sure person_id in covariate data has the same type as person_id in phecode count
+        self.covariate_df = pl.read_csv(covariate_csv_path)
+
         # basic attributes from instantiation
-        self.phecode_df = phecode_df
-        self.phecode_counts = self._to_polars(phecode_counts)
-        self.covariate_df = self._to_polars(covariate_df)
         self.gender_col = gender_col
         self.covariate_cols = covariate_cols
         self.independent_var_col = independent_var_col
