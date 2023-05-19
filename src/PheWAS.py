@@ -41,7 +41,6 @@ class PheWAS:
         :param suppress_warnings: defaults to True;
                                   if True, ignore common exception warnings such as ConvergenceWarnings, etc.
         """
-
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         # basic attributes from instantiation
@@ -109,7 +108,6 @@ class PheWAS:
         :param phecode: phecode of interest
         :return: processed exclude_range, either None or a valid list of phecode(s)
         """
-
         if phecode_df is None:
             phecode_df = self.phecode_df.clone()
 
@@ -155,7 +153,6 @@ class PheWAS:
         :param gender_specific_var_cols: variable columns in gender-specific case
         :return: cases, controls and analysis_var_cols
         """
-
         if phecode_counts is None:
             phecode_counts = self.phecode_counts.clone()
         if covariate_df is None:
@@ -227,7 +224,6 @@ class PheWAS:
         :param var_of_interest_index: index of variable of interest
         :return: dataframe with key statistics
         """
-
         results_as_html = result.summary().tables[0].as_html()
         converged = pd.read_html(results_as_html)[0].iloc[5, 1]
         results_as_html = result.summary().tables[1].as_html()
@@ -338,7 +334,6 @@ class PheWAS:
         :param n_threads: number of threads in multithreading
         :return: PheWAS summary statistics Polars dataframe
         """
-
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         if parallelization == "multithreading":
