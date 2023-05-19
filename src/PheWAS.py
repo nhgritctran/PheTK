@@ -52,15 +52,16 @@ class Cohort:
                        dx_code_count=True,
                        genetic_ancestry=False,
                        first_n_pcs=0,
-                       db_version=7,
-                       chunk_size=10000):
+                       chunk_size=10000,
+                       drop_nulls=True):
         if cohort is not None:
-            participant_ids = cohort["person_id"].unique().to_list()
-        elif cohort is None and self.genotype_cohort is not None:
-            participant_ids = self.genotype_cohort["person_id"].unique().to_list()
+            pass
+        if cohort is None and self.genotype_cohort is not None:
+            cohort = self.genotype_cohort
         else:
             print("A cohort is required.")
             sys.exit(0)
+        participant_ids = cohort["person_id"].unique().to_list()
         covariates = covariate.get_covariates(participant_ids=participant_ids,
                                               natural_age=natural_age,
                                               age_at_last_event=age_at_last_event,
@@ -69,12 +70,11 @@ class Cohort:
                                               dx_code_count=dx_code_count,
                                               genetic_ancestry=genetic_ancestry,
                                               first_n_pcs=first_n_pcs,
-                                              db_version=db_version,
+                                              db_version=self.db_version,
                                               chunk_size=chunk_size)
-        if cohort is not None:
-            self.final_cohort = cohort.join(covariates, how="left", on="person_id")
-        elif cohort is None and self.genotype_cohort is not None:
-            self.final_cohort = self.genotype_cohort.join(covariates, how="left", on="person_id")
+        self.final_cohort = cohort.join(covariates, how="left", on="person_id")
+        if drop_nulls:
+            self.final_cohort = self.final_cohort.drop_nulls()
 
 
 class PheWAS:
