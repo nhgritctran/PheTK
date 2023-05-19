@@ -76,6 +76,14 @@ class Cohort:
         self.final_cohort = cohort.join(covariates, how="left", on="person_id")
         if drop_nulls:
             self.final_cohort = self.final_cohort.drop_nulls()
+        self.final_cohort.write_csv("cohort.csv")
+
+        print()
+        print("\033[1mCohort size:", len(self.final_cohort))
+        print("\033[1mCases:", self.final_cohort["case"].sum())
+        print("\033[1mControls:", len(self.final_cohort.filter(pl.col("case") == 0)), "\033[0m")
+        print("\033[1mCohort data saved as \"cohort.csv\"!\033[0m")
+        print()
 
 
 class PheWAS:
