@@ -43,7 +43,7 @@ class Cohort:
                     mt_path=None,
                     output_file_name=None):
         """
-        this method is a proxy for genotype.build_variant_cohort method
+        This method is a proxy for genotype.build_variant_cohort method
         :param chromosome_number: chromosome number; int
         :param genomic_position: genomic position; int
         :param ref_allele: reference allele; str
@@ -217,7 +217,7 @@ class PheWAS:
     @staticmethod
     def _to_polars(df):
         """
-        check and convert pandas dataframe object to polars dataframe, if applicable
+        Check and convert pandas dataframe object to polars dataframe, if applicable
         :param df: dataframe object
         :return: polars dataframe
         """
@@ -229,7 +229,7 @@ class PheWAS:
 
     def _exclude_range(self, phecode, phecode_df=None):
         """
-        process text data in exclude_range column; exclusively for phecodeX
+        Process text data in exclude_range column; exclusively for phecodeX
         :param phecode: phecode of interest
         :return: processed exclude_range, either None or a valid list of phecode(s)
         """
@@ -344,7 +344,7 @@ class PheWAS:
     @staticmethod
     def _result_prep(result, var_of_interest_index):
         """
-        process result from statsmodels
+        Process result from statsmodels
         :param result: logistic regression result
         :param var_of_interest_index: index of variable of interest
         :return: dataframe with key statistics
@@ -371,7 +371,7 @@ class PheWAS:
                              phecode_counts=None, covariate_df=None,
                              var_cols=None, gender_specific_var_cols=None):
         """
-        logistic regression of single phecode
+        Logistic regression of single phecode
         :param phecode: phecode of interest
         :param phecode_counts: phecode counts table for cohort
         :param covariate_df: covariate table for cohort
@@ -453,7 +453,7 @@ class PheWAS:
             parallelization="multithreading",
             n_threads=None):
         """
-        run parallel logistic regressions
+        Run parallel logistic regressions
         :param parallelization: defaults to "multithreading", utilizing concurrent.futures.ThreadPoolExecutor();
                                 if "multiprocessing": use multiprocessing.Pool()
         :param n_threads: number of threads in multithreading

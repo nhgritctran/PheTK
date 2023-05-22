@@ -1,6 +1,6 @@
 def phecode_icd_query(cdr):
     """
-    this method is exclusively for All of Us platform
+    This method is exclusively for All of Us platform
     :param cdr: All of Us Curated Data Repository
     :return: a SQL query that would generate a table contains participant IDs and their ICD codes from unique dates
     """
@@ -76,7 +76,7 @@ def phecode_icd_query(cdr):
 
 def natural_age_query(cdr, participant_ids):
     """
-    this method is exclusively for All of Us platform
+    This method is exclusively for All of Us platform
     :param cdr: All of Us Curated Data Repository
     :param participant_ids: list of participant IDs to query
     :return: a SQL query that would generate a table
@@ -95,9 +95,11 @@ def natural_age_query(cdr, participant_ids):
     return query
 
 
-def ehr_dx_code_query(cdr, participant_ids):
+def ehr_dx_code_count_query(cdr, participant_ids):
     """
-    this method is exclusively for All of Us platform
+    This method is exclusively for All of Us platform.
+    In condition occurrence table, diagnosis codes belongs to ICD9CM, ICD10CM and SNOMED, are counted.
+    In observation table, diagnosis codes belongs to ICD9CM and ICD10CM are counted.
     :param cdr: All of Us Curated Data Repository
     :param participant_ids: list of participant IDs to query
     :return: a SQL query that would generate a table contains participant IDs and
@@ -107,7 +109,8 @@ def ehr_dx_code_query(cdr, participant_ids):
         SELECT DISTINCT
             df1.person_id,
             DATETIME_DIFF(MAX(date), MIN(date), DAY) AS ehr_length,
-            COUNT(code) AS dx_code_count,
+            COUNT(code) AS dx_code_occurence_count,
+            COUNT(DISTINCT(code)) AS dx_condition_count,
             DATETIME_DIFF(MAX(date), MIN(birthday), DAY)/365.2425 AS age_at_last_event,
         FROM
             (
@@ -157,7 +160,7 @@ def ehr_dx_code_query(cdr, participant_ids):
                 ON
                     o.observation_source_value = c.concept_code
                 WHERE
-                    c.vocabulary_id IN ("ICD9CM", "ICD10CM", "SNOMED")
+                    c.vocabulary_id IN ("ICD9CM", "ICD10CM")
                     AND
                     person_id IN {participant_ids}
                 )
@@ -174,7 +177,7 @@ def ehr_dx_code_query(cdr, participant_ids):
                 ON
                     o.observation_source_concept_id = c.concept_id
                 WHERE
-                    c.vocabulary_id IN ("ICD9CM", "ICD10CM", "SNOMED")
+                    c.vocabulary_id IN ("ICD9CM", "ICD10CM")
                     AND
                     person_id IN {participant_ids}
                 )
@@ -200,7 +203,7 @@ def ehr_dx_code_query(cdr, participant_ids):
 
 def sex_at_birth(cdr, participant_ids):
     """
-    this method is exclusively for All of Us platform
+    This method is exclusively for All of Us platform
     :param cdr: All of Us Curated Data Repository
     :param participant_ids: list of participant IDs to query
     :return: a SQL query that would generate a table contains participant IDs and

@@ -8,7 +8,7 @@ import polars as pl
 
 def _get_ancestry_preds(db_version, user_project, participant_ids):
     """
-    this method specifically designed for All of Us database
+    This method specifically designed for All of Us database
     :param db_version: version of database; supports All of Us CDR v6 & v7
     :param user_project: proxy of GOOGLE_PROJECT environment variable of current workspace in All of Us workbench
     :param participant_ids: participant IDs of interest
@@ -44,8 +44,8 @@ def _get_covariates(participant_ids,
                     first_n_pcs=0,
                     db_version=7):
     """
-    this method specifically designed for All of Us database
-    core internal function to generate covariate data for a set of participant IDs
+    This method specifically designed for All of Us database
+    Core internal function to generate covariate data for a set of participant IDs
     :param participant_ids: IDs of interest
     :param natural_age: age of participants as of today
     :param age_at_last_event: age of participants at their last diagnosis event in EHR record
@@ -53,7 +53,7 @@ def _get_covariates(participant_ids,
     :param ehr_length: number of days that EHR record spans
     :param dx_code_count: count of diagnosis codes, including ICD9CM, ICD10CM & SNOMED
     :param genetic_ancestry: predicted ancestry based on sequencing data
-    :param first_n_pcs: number of first principle components to include
+    :param first_n_pcs: number of first principal components to include
     :param db_version: version of database; supports All of Us version 7
     :return: polars dataframe object
     """
@@ -77,7 +77,7 @@ def _get_covariates(participant_ids,
             # print("Retrieved natural age...")
 
         if age_at_last_event or ehr_length or dx_code_count:
-            temp_df = _utils.polars_gbq(_queries.ehr_dx_code_query(cdr, participant_ids))
+            temp_df = _utils.polars_gbq(_queries.ehr_dx_code_count_query(cdr, participant_ids))
             cols_to_keep = ["person_id"]
             if age_at_last_event:
                 # print("Retrieved age at last event...")
@@ -123,7 +123,7 @@ def get_covariates(participant_ids,
                    db_version=7,
                    chunk_size=10000):
     """
-    multithreading version of _get_covariates method passing 10,000 IDs to each thread
+    Multithreading version of _get_covariates method passing 10,000 IDs to each thread
     :param participant_ids: IDs of interest
     :param natural_age: age of participants as of today
     :param age_at_last_event: age of participants at their last diagnosis event in EHR record
@@ -131,7 +131,7 @@ def get_covariates(participant_ids,
     :param ehr_length: number of days that EHR record spans
     :param dx_code_count: count of diagnosis codes, including ICD9CM, ICD10CM & SNOMED
     :param genetic_ancestry: predicted ancestry based on sequencing data
-    :param first_n_pcs: number of first principle components to include
+    :param first_n_pcs: number of first principal components to include
     :param db_version: version of database; supports All of Us version 7
     :param chunk_size: defaults to 10,000; number of IDs per thread
     :return: csv file and polars dataframe object

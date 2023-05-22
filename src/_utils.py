@@ -5,7 +5,7 @@ import pyarrow as pa
 
 def spark_to_polars(spark_df):
     """
-    convert spark df to polars df
+    Convert spark df to polars df
     :param spark_df: spark df
     :return: polars df
     """
@@ -17,7 +17,7 @@ def spark_to_polars(spark_df):
 
 def polars_gbq(query):
     """
-    take a SQL query and return result as polars dataframe
+    Take a SQL query and return result as polars dataframe
     :param query: BigQuery SQL query
     :return: polars dataframe
     """

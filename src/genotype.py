@@ -15,7 +15,7 @@ def build_variant_cohort(chromosome_number,
                          mt_path=None,
                          output_file_name=None):
     """
-    generate cohort based on genotype of variant of interest
+    Generate cohort based on genotype of variant of interest
     :param chromosome_number: chromosome number; int
     :param genomic_position: genomic position; int
     :param ref_allele: reference allele; str

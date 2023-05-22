@@ -82,7 +82,7 @@ class Manhattan:
     @staticmethod
     def _to_polars(df):
         """
-        check and convert pandas dataframe object to polars dataframe, if applicable
+        Check and convert pandas dataframe object to polars dataframe, if applicable
         :param df: dataframe object
         :return: polars dataframe
         """
@@ -110,8 +110,8 @@ class Manhattan:
     @staticmethod
     def _create_phecode_index(df):
         """
-        create phecode index after grouping by phecode_category and phecode;
-        phecode index will be used for plotting purpose
+        Create phecode index after grouping by phecode_category and phecode;
+        Phecode index will be used for plotting purpose
         :param df: PheWAS result to create index
         :return: same dataframe with column "phecode_index" created
         """
@@ -136,7 +136,7 @@ class Manhattan:
     @staticmethod
     def _x_ticks(plot_df, selected_color_dict, size=8):
         """
-        generate x tick labels and colors
+        Generate x tick labels and colors
         :param plot_df: plot data
         :param selected_color_dict: color dict; this is changed based on number of phecode categories selected
         :return: x tick labels and colors for the plot
@@ -156,7 +156,7 @@ class Manhattan:
 
     def _scatter(self, ax, plot_df):
         """
-        generate scatter data points
+        Generate scatter data points
         :param ax: plot object
         :param plot_df: dataframe containing data required for plotting
         :return: scatter plot of selected data
@@ -176,7 +176,7 @@ class Manhattan:
 
     def _lines(self, ax, plot_df):
         """
-        generate bonferroni, nominal significance and infinity lines
+        Generate bonferroni, nominal significance and infinity lines
         :param ax: plot object
         :param plot_df:
         :return:
@@ -211,7 +211,7 @@ class Manhattan:
     @staticmethod
     def _split_text(s, threshold=30):
         """
-        split long text label
+        Split long text label
         :param s: text string
         :param threshold: approximate number of characters per line
         :return: split text if longer than 40 chars
