@@ -84,7 +84,7 @@ def natural_age_query(cdr, participant_ids):
     """
     query: str = f"""
         SELECT
-            p.person_id, 
+            DISTINCT p.person_id, 
             DATETIME_DIFF(MIN(CURRENT_DATETIME(), death_date), DATETIME(birth_datetime), DAY)/365.2425 AS natural_age
         FROM
             {cdr}.person AS p
