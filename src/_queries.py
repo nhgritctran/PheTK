@@ -85,8 +85,8 @@ def natural_age_query(cdr, participant_ids):
     query: str = f"""
         SELECT
             DISTINCT p.person_id, 
-            IFNULL(death_datetime, CURRENT_DATETIME()) AS end_datetime,
-            DATETIME_DIFF(end_datetime, DATETIME(birth_datetime), DAY)/365.2425 AS natural_age
+            IFNULL(DATETIME(death_datetime), CURRENT_DATETIME()) AS end_datetime,
+            DATETIME_DIFF(DATETIME(end_datetime), DATETIME(birth_datetime), DAY)/365.2425 AS natural_age
         FROM
             {cdr}.person AS p
         LEFT JOIN
