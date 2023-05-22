@@ -87,8 +87,9 @@ def natural_age_query(cdr, participant_ids):
             DISTINCT p.person_id, 
             DATETIME_DIFF(
                 IF(DATETIME(death_datetime) IS NULL, CURRENT_DATETIME(), DATETIME(death_datetime)), 
-                DATETIME(birth_datetime
-            ), DAY)/365.2425 AS natural_age
+                DATETIME(birth_datetime), 
+                DAY
+            )/365.2425 AS natural_age
         FROM
             {cdr}.person AS p
         LEFT JOIN
