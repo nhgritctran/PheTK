@@ -39,7 +39,8 @@ def _get_covariates(participant_ids,
                     age_at_last_event=True,
                     sex_at_birth=True,
                     ehr_length=True,
-                    dx_code_count=True,
+                    dx_code_occurrence_count=True,
+                    dx_condition_count=True,
                     genetic_ancestry=False,
                     first_n_pcs=0,
                     db_version=7):
@@ -51,7 +52,9 @@ def _get_covariates(participant_ids,
     :param age_at_last_event: age of participants at their last diagnosis event in EHR record
     :param sex_at_birth: sex at birth from survey and observation
     :param ehr_length: number of days that EHR record spans
-    :param dx_code_count: count of diagnosis codes, including ICD9CM, ICD10CM & SNOMED
+    :param dx_code_occurrence_count: count of diagnosis code occurrences on unique dates,
+                                     including ICD9CM, ICD10CM & SNOMED, throughout participant EHR history
+    :param dx_condition_count: count of unique condition (dx code) throughout participant EHR history
     :param genetic_ancestry: predicted ancestry based on sequencing data
     :param first_n_pcs: number of first principal components to include
     :param db_version: version of database; supports All of Us version 7
@@ -74,20 +77,18 @@ def _get_covariates(participant_ids,
         if natural_age:
             natural_age_df = _utils.polars_gbq(_queries.natural_age_query(cdr, participant_ids))
             df = df.join(natural_age_df, how="left", on="person_id")
-            # print("Retrieved natural age...")
 
-        if age_at_last_event or ehr_length or dx_code_count:
-            temp_df = _utils.polars_gbq(_queries.ehr_dx_code_count_query(cdr, participant_ids))
+        if age_at_last_event or ehr_length or dx_code_occurrence_count or dx_condition_count:
+            temp_df = _utils.polars_gbq(_queries.ehr_dx_code_query(cdr, participant_ids))
             cols_to_keep = ["person_id"]
             if age_at_last_event:
-                # print("Retrieved age at last event...")
                 cols_to_keep.append("age_at_last_event")
             if ehr_length:
-                # print("Retrieved ehr length...")
                 cols_to_keep.append("ehr_length")
-            if dx_code_count:
-                # print("Retrieved diagnosis code count...")
-                cols_to_keep.append("dx_code_count")
+            if dx_code_occurrence_count:
+                cols_to_keep.append("dx_code_occurrence_count")
+            if dx_condition_count:
+                cols_to_keep.append("dx_condition_count")
             df = df.join(temp_df[cols_to_keep], how="left", on="person_id")
 
         if sex_at_birth:
@@ -98,10 +99,8 @@ def _get_covariates(participant_ids,
             temp_df = _get_ancestry_preds(db_version, user_project, participant_ids)
             cols_to_keep = ["person_id"]
             if genetic_ancestry:
-                # print("Retrieved genetic ancestry...")
                 cols_to_keep.append("genetic_ancestry")
             if first_n_pcs > 0:
-                # print(f"Retrieved first {first_n_pcs} PCs...")
                 cols_to_keep = cols_to_keep + [f"pc{i}" for i in range(first_n_pcs)]
             df = df.join(temp_df[cols_to_keep], how="left", on="person_id")
 
@@ -117,7 +116,8 @@ def get_covariates(participant_ids,
                    age_at_last_event=True,
                    sex_at_birth=True,
                    ehr_length=True,
-                   dx_code_count=True,
+                   dx_code_occurrence_count=True,
+                   dx_condition_count=True,
                    genetic_ancestry=False,
                    first_n_pcs=0,
                    db_version=7,
@@ -129,7 +129,9 @@ def get_covariates(participant_ids,
     :param age_at_last_event: age of participants at their last diagnosis event in EHR record
     :param sex_at_birth: sex at birth from survey and observation
     :param ehr_length: number of days that EHR record spans
-    :param dx_code_count: count of diagnosis codes, including ICD9CM, ICD10CM & SNOMED
+    :param dx_code_occurrence_count: count of diagnosis code occurrences on unique dates,
+                                     including ICD9CM, ICD10CM & SNOMED, throughout participant EHR history
+    :param dx_condition_count: count of unique condition (dx code) throughout participant EHR history
     :param genetic_ancestry: predicted ancestry based on sequencing data
     :param first_n_pcs: number of first principal components to include
     :param db_version: version of database; supports All of Us version 7
@@ -148,7 +150,8 @@ def get_covariates(participant_ids,
                 age_at_last_event,
                 sex_at_birth,
                 ehr_length,
-                dx_code_count,
+                dx_code_occurrence_count,
+                dx_condition_count,
                 genetic_ancestry,
                 first_n_pcs,
                 db_version

@@ -33,7 +33,12 @@ def build_variant_cohort(chromosome_number,
     if output_file_name:
         output_file_name = f"{output_file_name}.csv"
     else:
-        output_file_name = "cohort.csv"
+        output_file_name = "aou_chr" + \
+                           str(chromosome_number) + \
+                           str(genomic_position) + \
+                           str(ref_allele) + \
+                           str(alt_allele) + \
+                           ".csv"
     if isinstance(case_gt, str):
         case_gt = [case_gt]
     if isinstance(control_gt, str):

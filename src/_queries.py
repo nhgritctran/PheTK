@@ -103,7 +103,7 @@ def natural_age_query(cdr, participant_ids):
     return query
 
 
-def ehr_dx_code_count_query(cdr, participant_ids):
+def ehr_dx_code_query(cdr, participant_ids):
     """
     This method is exclusively for All of Us platform.
     In condition occurrence table, diagnosis codes belongs to ICD9CM, ICD10CM and SNOMED, are counted.
