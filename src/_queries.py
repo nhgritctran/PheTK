@@ -117,7 +117,7 @@ def ehr_dx_code_query(cdr, participant_ids):
         SELECT DISTINCT
             df1.person_id,
             DATETIME_DIFF(MAX(date), MIN(date), DAY) AS ehr_length,
-            COUNT(code) AS dx_code_occurence_count,
+            COUNT(code) AS dx_code_occurrence_count,
             COUNT(DISTINCT(code)) AS dx_condition_count,
             DATETIME_DIFF(MAX(date), MIN(birthday), DAY)/365.2425 AS age_at_last_event,
         FROM
