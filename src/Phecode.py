@@ -25,14 +25,14 @@ class Phecode:
         :return: phecode counts polars dataframe
         """
         # load phecode mapping file by version
-        if phecode_version == "X":
+        if phecode_version.upper() == "X":
             # noinspection PyTypeChecker
             phecode_df = pl.read_csv("PyPheWAS/phecode/phecodeX.csv",
                                      dtypes={"phecode": str,
                                              "ICD": str,
                                              "exclude_range": str,
                                              "phecode_top": str})
-        elif phecode_version == "1.2":
+        elif phecode_version.upper() == "1.2":
             # noinspection PyTypeChecker
             phecode_df = pl.read_csv("PyPheWAS/phecode/phecode12.csv",
                                      dtypes={"phecode": str,
