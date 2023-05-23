@@ -19,7 +19,8 @@ def count_phecode(db="aou", phecode_version="X"):
             phecode_df = pl.read_csv("PyPheWAS/phecode/phecodeX.csv",
                                      dtypes={"phecode": str,
                                              "ICD": str,
-                                             "exclude_range": str})
+                                             "exclude_range": str,
+                                             "phecode_top": str})
         elif phecode_version == "1.2":
             # noinspection PyTypeChecker
             phecode_df = pl.read_csv("PyPheWAS/phecode/phecode12.csv",

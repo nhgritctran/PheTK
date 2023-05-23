@@ -58,7 +58,7 @@ class PheWAS:
                                           dtypes={"phecode": str,
                                                   "ICD": str,
                                                   "exclude_range": str,
-                                                  "phecode_top": str})
+                                                  "phecode_unrolled": str})
         else:
             print("Unsupported phecode version. Supports phecode \"1.2\" and \"X\".")
             sys.exit(0)
