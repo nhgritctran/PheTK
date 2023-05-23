@@ -340,6 +340,7 @@ class Manhattan:
              label_values="positive_beta",
              label_value_threshold=0,
              label_count=10,
+             label_size=8,
              label_text_column="phecode_string",
              label_color="label_color",
              label_weight="normal",
@@ -416,7 +417,7 @@ class Manhattan:
         # labeling
         self._label(plot_df, label_values=label_values, label_count=label_count, label_text_column=label_text_column,
                     label_value_threshold=label_value_threshold, label_split_threshold=label_split_threshold,
-                    label_color=label_color, label_weight=label_weight)
+                    label_size=label_size, label_color=label_color, label_weight=label_weight)
 
         # legend
         if show_legend:
