@@ -245,30 +245,6 @@ def sex_at_birth(cdr, participant_ids):
                 AND
                     person_id IN {participant_ids}
                 )
-            UNION DISTINCT
-                (
-                SELECT
-                    person_id,
-                    1 AS sex_at_birth
-                FROM
-                    {cdr}.observation
-                WHERE
-                    observation_source_concept_id = 8507
-                AND
-                    person_id IN {participant_ids}
-                )
-            UNION DISTINCT
-                (
-                SELECT
-                    person_id,
-                    0 AS sex_at_birth
-                FROM
-                    {cdr}.observation
-                WHERE
-                    observation_source_concept_id = 8532
-                AND
-                    person_id IN {participant_ids}
-                )
             )
     """
 
