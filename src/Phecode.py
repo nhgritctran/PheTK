@@ -60,7 +60,7 @@ class Phecode:
                 db_val = "All of Us"
             else:
                 db_val = None
-            file_name = self.db + "_phecode" + phecode_version.replace(".", "") + "_counts.csv"
+            file_name = self.db + "_phecode" + phecode_version.upper().replace(".", "") + "_counts.csv"
             phecode_counts.write_csv(file_name)
             print(f"\033[1mSuccessfully generated phecode {phecode_version} counts for {db_val} participants!\n"
                   f"\033[1mSaved to {file_name}!\033[0m")
