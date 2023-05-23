@@ -54,7 +54,10 @@ def count_phecode(db="aou", phecode_version="X"):
             db_val = "All of Us"
         else:
             db_val = None
-        print(f"Successfully generated phecode {phecode_version} counts for {db_val} participants.")
+        phecode_counts.write_csv(f"{db_val}_phecode{phecode_version}_counts.csv")
+        print(f"Successfully generated phecode {phecode_version} counts for {db_val} participants!\n"
+              f"Saved to {db_val}_phecode{phecode_version}_counts.csv!")
+
         return phecode_counts
     else:
         print("No phecode count generated.")
