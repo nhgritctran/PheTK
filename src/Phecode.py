@@ -35,9 +35,9 @@ def count_phecode(db="aou", phecode_version="X"):
         icd_query = _queries.phecode_icd_query(cdr)
 
         # query data
-        print("Start querying ICD codes...")
+        print("\033[1mStart querying ICD codes...")
         icd_events = _utils.polars_gbq(icd_query)
-        print("Mapping ICD codes to phecodes...")
+        print("\033[1mMapping ICD codes to phecodes...")
         if phecode_version == "X":
             phecode_counts = icd_events.join(phecode_df[["phecode", "ICD"]], how="inner", on="ICD")
         elif phecode_version == "1.2":
@@ -57,10 +57,10 @@ def count_phecode(db="aou", phecode_version="X"):
         else:
             db_val = None
         phecode_counts.write_csv(f"{db_val}_phecode{phecode_version}_counts.csv")
-        print(f"Successfully generated phecode {phecode_version} counts for {db_val} participants!\n"
-              f"Saved to {db_val}_phecode{phecode_version}_counts.csv!")
+        print(f"\033[1mSuccessfully generated phecode {phecode_version} counts for {db_val} participants!\n"
+              f"\033[1mSaved to {db_val}_phecode{phecode_version}_counts.csv!\033[0m")
+        print()
 
-        return phecode_counts
     else:
-        print("No phecode count generated.")
-        return None
+        print("\033[1mNo phecode count generated.\033[0m")
+        print()
