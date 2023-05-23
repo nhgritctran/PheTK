@@ -43,7 +43,7 @@ class Phecode:
             return "Invalid phecode version. Please choose either \"1.2\" or \"X\"."
 
         print()
-        print("\033[1mMapping ICD codes to phecodes...")
+        print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
         if phecode_version == "X":
             phecode_counts = self.icd_events.join(phecode_df[["phecode", "ICD"]], how="inner", on="ICD")
         elif phecode_version == "1.2":
@@ -56,11 +56,11 @@ class Phecode:
 
         # report result
         if not phecode_counts.is_empty() or phecode_counts is not None:
-            if db == "aou":
+            if self.db == "aou":
                 db_val = "All of Us"
             else:
                 db_val = None
-            file_name = db + "_phecode" + phecode_version.replace(".", "") + "_counts.csv"
+            file_name = self.db + "_phecode" + phecode_version.replace(".", "") + "_counts.csv"
             phecode_counts.write_csv(file_name)
             print(f"\033[1mSuccessfully generated phecode {phecode_version} counts for {db_val} participants!\n"
                   f"\033[1mSaved to {file_name}!\033[0m")
