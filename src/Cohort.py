@@ -71,9 +71,9 @@ class Cohort:
             output_file_name = f"{output_file_name}.csv"
         else:
             output_file_name = "aou_chr" + \
-                               str(chromosome_number) + \
-                               str(genomic_position) + \
-                               str(ref_allele) + \
+                               str(chromosome_number) + "_" + \
+                               str(genomic_position) + "_" + \
+                               str(ref_allele) + "_" + \
                                str(alt_allele) + \
                                ".csv"
         if isinstance(case_gt, str):
@@ -288,7 +288,7 @@ class Cohort:
             cohort = pl.read_csv(cohort_csv_path)
             if "person_id" not in cohort.columns:
                 print("Cohort must contains \"person_id\" column!")
-            sys.exit(0)
+                sys.exit(0)
         elif cohort_csv_path is None and self.genotype_cohort is not None:
             cohort = self.genotype_cohort
         else:

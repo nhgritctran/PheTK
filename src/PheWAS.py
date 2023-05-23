@@ -17,7 +17,7 @@ class PheWAS:
                  phecode_version,
                  phecode_count_csv_path,
                  cohort_csv_path,
-                 gender_col,
+                 sex_at_birth_col,
                  covariate_cols,
                  independent_var_col,
                  phecode_to_process="all",
@@ -30,7 +30,7 @@ class PheWAS:
         :param phecode_version: accepts "1.2" or "X"
         :param phecode_count_csv_path: path to phecode count of relevant participants at minimum
         :param cohort_csv_path: path to cohort data with covariates of interest
-        :param gender_col: gender/sex column of interest, by default, male = 1, female = 0
+        :param sex_at_birth_col: gender/sex column of interest, by default, male = 1, female = 0
         :param covariate_cols: name of covariate columns; excluding independent var of interest
         :param independent_var_col: binary "case" column to specify participants with/without variant of interest
         :param phecode_to_process: defaults to "all"; otherwise, a list of phecodes must be provided
@@ -73,7 +73,7 @@ class PheWAS:
         self.covariate_df = pl.read_csv(cohort_csv_path)
 
         # basic attributes from instantiation
-        self.gender_col = gender_col
+        self.sex_at_birth_col = sex_at_birth_col
         self.covariate_cols = covariate_cols
         self.independent_var_col = independent_var_col
         self.verbose = verbose
@@ -84,7 +84,7 @@ class PheWAS:
 
         # additional attributes
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
-        self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.gender_col]
+        self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.sex_at_birth_col]
 
         # check for string type variables among covariates
         if pl.Utf8 in self.covariate_df[self.var_cols].schema.values():
@@ -208,9 +208,9 @@ class PheWAS:
         cases = covariate_df.filter(pl.col("person_id").is_in(case_ids))
         # select data based on phecode "sex", e.g., male/female only or both
         if sex_restriction == "Male":
-            cases = cases.filter(pl.col(self.gender_col) == 1)
+            cases = cases.filter(pl.col(self.sex_at_birth_col) == 1)
         elif sex_restriction == "Female":
-            cases = cases.filter(pl.col(self.gender_col) == 0)
+            cases = cases.filter(pl.col(self.sex_at_birth_col) == 0)
 
         # CONTROLS
         # phecode exclusions
@@ -224,9 +224,9 @@ class PheWAS:
         )["person_id"].unique().to_list()
         base_controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
         if sex_restriction == "Male":
-            controls = base_controls.filter(pl.col(self.gender_col) == 1)
+            controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 1)
         elif sex_restriction == "Female":
-            controls = base_controls.filter(pl.col(self.gender_col) == 0)
+            controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 0)
         else:
             controls = base_controls
 
