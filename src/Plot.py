@@ -44,7 +44,7 @@ class Manhattan:
 
         # phecode_version
         if phecode_version:
-            self.phecode_version = phecode_version
+            self.phecode_version = phecode_version.upper()
         else:
             self.phecode_version = "X"
 
