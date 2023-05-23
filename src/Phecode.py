@@ -42,6 +42,7 @@ class Phecode:
         else:
             return "Invalid phecode version. Please choose either \"1.2\" or \"X\"."
 
+        print()
         print("\033[1mMapping ICD codes to phecodes...")
         if phecode_version == "X":
             phecode_counts = self.icd_events.join(phecode_df[["phecode", "ICD"]], how="inner", on="ICD")
