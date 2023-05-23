@@ -400,3 +400,5 @@ class PheWAS:
             print("Number of phecodes above Bonferroni correction:", self.above_bonferroni_count)
         else:
             print("No analysis done.")
+
+        print()
