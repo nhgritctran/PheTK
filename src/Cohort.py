@@ -150,6 +150,9 @@ class Cohort:
                 .with_columns(pl.col("person_id").cast(int))
             cohort = cohort.unique()
 
+            self.genotype_cohort = cohort
+            self.genotype_cohort.write_csv(output_file_name)
+
             print()
             print("\033[1mCohort size:", len(cohort))
             print("\033[1mCases:", cohort["case"].sum())
@@ -157,9 +160,6 @@ class Cohort:
             print()
             print(f"\033[1mCohort data saved as {output_file_name}!\033[0m")
             print()
-
-            self.genotype_cohort = cohort
-            self.genotype_cohort.write_csv(output_file_name)
 
         else:
             print()
@@ -327,6 +327,9 @@ class Cohort:
         if drop_nulls:
             final_cohort = final_cohort.drop_nulls()
 
+        self.final_cohort = final_cohort
+        self.final_cohort.write_csv("cohort.csv")
+
         print()
         print("\033[1mCohort size:", len(self.final_cohort))
         print("\033[1mCases:", self.final_cohort["case"].sum())
@@ -334,6 +337,3 @@ class Cohort:
         print()
         print("\033[1mCohort data saved as \"cohort.csv\"!\033[0m")
         print()
-
-        self.final_cohort = final_cohort
-        self.final_cohort.write_csv("cohort.csv")
