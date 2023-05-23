@@ -57,9 +57,10 @@ def count_phecode(db="aou", phecode_version="X"):
             db_val = "All of Us"
         else:
             db_val = None
-        phecode_counts.write_csv(f"{db_val}_phecode{phecode_version}_counts.csv")
+        file_name = db + "_phecode" + phecode_version.replace(".", "") + "_counts.csv"
+        phecode_counts.write_csv(file_name)
         print(f"\033[1mSuccessfully generated phecode {phecode_version} counts for {db_val} participants!\n"
-              f"\033[1mSaved to {db_val}_phecode{phecode_version}_counts.csv!\033[0m")
+              f"\033[1mSaved to {file_name}!\033[0m")
         print()
 
     else:
