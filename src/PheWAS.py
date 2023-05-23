@@ -1,4 +1,3 @@
-from . import genotype, covariate
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm.notebook import tqdm
 import copy
