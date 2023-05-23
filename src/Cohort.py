@@ -1,5 +1,9 @@
-from . import _paths, _utils, covariate
+from . import _paths, _queries, _utils
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm.notebook import tqdm
 import hail as hl
+import os
+import pandas as pd
 import polars as pl
 import sys
 
@@ -21,7 +25,22 @@ class Cohort:
             sys.exit(0)
         self.db = db
         self.db_version = db_version
+        self.cdr = os.getenv("WORKSPACE_CDR")
+        self.user_project = os.getenv("GOOGLE_PROJECT")
+
+        # attributes for add_covariate method
+        self.natural_age = True
+        self.age_at_last_event = True
+        self.sex_at_birth = True
+        self.ehr_length = True
+        self.dx_code_occurrence_count = True
+        self.dx_condition_count = True
+        self.genetic_ancestry = False
+        self.first_n_pcs = 0
+
+        # output attributes
         self.genotype_cohort = None
+        self.covariates = None
         self.final_cohort = None
 
     def by_genotype(self,
@@ -130,7 +149,6 @@ class Cohort:
                 .rename({"s": "person_id"})[["person_id", "case"]] \
                 .with_columns(pl.col("person_id").cast(int))
             cohort = cohort.unique()
-            cohort.write_csv(output_file_name)
 
             print()
             print("\033[1mCohort size:", len(cohort))
@@ -141,11 +159,91 @@ class Cohort:
             print()
 
             self.genotype_cohort = cohort
+            self.genotype_cohort.write_csv(output_file_name)
 
         else:
             print()
             print(f"Variant {variant_string} not found!")
             print()
+
+    def _get_ancestry_preds(self, user_project, participant_ids):
+        """
+        This method specifically designed for All of Us database
+        :param user_project: proxy of GOOGLE_PROJECT environment variable of current workspace in All of Us workbench
+        :param participant_ids: participant IDs of interest
+        :return: ancestry_preds data of specific version as polars dataframe object
+        """
+        if self.db_version == 7:
+            ancestry_preds = pd.read_csv(_paths.cdr7_ancestry_pred_path,
+                                         sep="\t",
+                                         storage_options={"requester_pays": True,
+                                                          "user_project": user_project})
+            ancestry_preds = pl.from_pandas(ancestry_preds)
+            ancestry_preds = ancestry_preds.with_columns(pl.col("pca_features").str.replace(r"\[", "")) \
+                .with_columns(pl.col("pca_features").str.replace(r"\]", "")) \
+                .with_columns(pl.col("pca_features").str.split(",").arr.get(i).alias(f"pc{i}") for i in range(16)) \
+                .with_columns(pl.col(f"pc{i}").str.replace(" ", "").cast(float) for i in range(16)) \
+                .drop(["probabilities", "pca_features", "ancestry_pred_other"]) \
+                .rename({"research_id": "person_id",
+                         "ancestry_pred": "genetic_ancestry"}) \
+                .filter(pl.col("person_id").is_in(participant_ids))
+        else:
+            ancestry_preds = None
+
+        return ancestry_preds
+
+    def _get_covariates(self, participant_ids):
+        """
+        This method specifically designed for All of Us database
+        Core internal function to generate covariate data for a set of participant IDs
+        :param participant_ids: IDs of interest
+        :return: polars dataframe object
+        """
+
+        # initial data prep
+        if isinstance(participant_ids, str) or isinstance(participant_ids, int):
+            participant_ids = (participant_ids,)
+        elif isinstance(participant_ids, list):
+            participant_ids = tuple(participant_ids)
+        df = pl.DataFrame({"person_id": participant_ids})
+        participant_ids = tuple([int(i) for i in participant_ids])
+
+        # GET COVARIATES
+        # natural_age
+        if self.natural_age:
+            natural_age_df = _utils.polars_gbq(_queries.natural_age_query(self.cdr, participant_ids))
+            df = df.join(natural_age_df, how="left", on="person_id")
+
+        # age_at_last_event, ehr_length, dx_code_occurrence_count, dx_condition_count
+        if self.age_at_last_event or self.ehr_length or self.dx_code_occurrence_count or self.dx_condition_count:
+            temp_df = _utils.polars_gbq(_queries.ehr_dx_code_query(self.cdr, participant_ids))
+            cols_to_keep = ["person_id"]
+            if self.age_at_last_event:
+                cols_to_keep.append("age_at_last_event")
+            if self.ehr_length:
+                cols_to_keep.append("ehr_length")
+            if self.dx_code_occurrence_count:
+                cols_to_keep.append("dx_code_occurrence_count")
+            if self.dx_condition_count:
+                cols_to_keep.append("dx_condition_count")
+            df = df.join(temp_df[cols_to_keep], how="left", on="person_id")
+
+        # sex_at_birth
+        if self.sex_at_birth:
+            sex_df = _utils.polars_gbq(_queries.sex_at_birth(self.cdr, participant_ids))
+            df = df.join(sex_df, how="left", on="person_id")
+
+        # genetic_ancestry, first_n_pcs
+        if self.genetic_ancestry or self.first_n_pcs > 0:
+            temp_df = self._get_ancestry_preds(self.user_project, participant_ids)
+            cols_to_keep = ["person_id"]
+            if self.genetic_ancestry:
+                cols_to_keep.append("genetic_ancestry")
+            if self.first_n_pcs > 0:
+                cols_to_keep = cols_to_keep + [f"pc{i}" for i in range(self.first_n_pcs)]
+            df = df.join(temp_df[cols_to_keep], how="left", on="person_id")
+
+        return df
 
     def add_covariates(self,
                        cohort_csv_path=None,
@@ -175,6 +273,17 @@ class Cohort:
         :param drop_nulls: defaults to False; drop rows having null values, i.e., participants without all covariates
         :return: csv file and polars dataframe object
         """
+        # assign attributes
+        self.natural_age = natural_age
+        self.age_at_last_event = age_at_last_event
+        self.sex_at_birth = sex_at_birth
+        self.ehr_length = ehr_length
+        self.dx_code_occurrence_count = dx_code_occurrence_count
+        self.dx_condition_count = dx_condition_count
+        self.genetic_ancestry = genetic_ancestry
+        self.first_n_pcs = first_n_pcs
+
+        # check for valid input
         if cohort_csv_path is not None:
             cohort = pl.read_csv(cohort_csv_path)
             if "person_id" not in cohort.columns:
@@ -183,24 +292,40 @@ class Cohort:
         elif cohort_csv_path is None and self.genotype_cohort is not None:
             cohort = self.genotype_cohort
         else:
-            print("A cohort is required.")
+            print("A cohort is required."
+                  "Please run by_genotype() method to create a genotype cohort or provide a valid file path.")
             sys.exit(0)
+
+        # get participant IDs from cohort
         participant_ids = cohort["person_id"].unique().to_list()
-        covariates = covariate.get_covariates(participant_ids=participant_ids,
-                                              natural_age=natural_age,
-                                              age_at_last_event=age_at_last_event,
-                                              sex_at_birth=sex_at_birth,
-                                              ehr_length=ehr_length,
-                                              dx_code_occurrence_count=dx_code_occurrence_count,
-                                              dx_condition_count=dx_condition_count,
-                                              genetic_ancestry=genetic_ancestry,
-                                              first_n_pcs=first_n_pcs,
-                                              db_version=self.db_version,
-                                              chunk_size=chunk_size)
-        self.final_cohort = cohort.join(covariates, how="left", on="person_id")
+
+        # setup multi-threading to generate covariates
+        chunks = [
+            list(participant_ids)[i * chunk_size:(i + 1) * chunk_size] for i in
+            range((len(participant_ids) // chunk_size) + 1)
+        ]
+        with ThreadPoolExecutor() as executor:
+            jobs = [
+                executor.submit(
+                    self._get_covariates,
+                    chunk
+                ) for chunk in chunks
+            ]
+            result_list = [job.result() for job in tqdm(as_completed(jobs), total=len(chunks))]
+
+        # process result
+        result_list = [result for result in result_list if result is not None]
+        covariates = result_list[0]
+        for i in range(1, len(chunks)):
+            covariates = pl.concat([covariates, result_list[i]])
+
+        self.covariates = covariates.unique()
+        self.covariates.write_csv("covariates.csv")
+
+        # merge covariates to cohort
+        final_cohort = cohort.join(covariates, how="left", on="person_id")
         if drop_nulls:
-            self.final_cohort = self.final_cohort.drop_nulls()
-        self.final_cohort.write_csv("cohort.csv")
+            final_cohort = final_cohort.drop_nulls()
 
         print()
         print("\033[1mCohort size:", len(self.final_cohort))
@@ -209,3 +334,6 @@ class Cohort:
         print()
         print("\033[1mCohort data saved as \"cohort.csv\"!\033[0m")
         print()
+
+        self.final_cohort = final_cohort
+        self.final_cohort.write_csv("cohort.csv")
