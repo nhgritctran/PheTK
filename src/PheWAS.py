@@ -5,7 +5,8 @@ import numpy as np
 import os
 import pandas as pd
 import polars as pl
-import statsmodels.api as sm
+import statsmodels as sm
+# import statsmodels.api as sm
 import sys
 import time
 import warnings
@@ -321,13 +322,13 @@ class PheWAS:
                 warnings.simplefilter("ignore")
             y = regressors["y"].to_numpy()
             regressors = regressors[analysis_var_cols].to_numpy()
-            regressors = sm.tools.add_constant(regressors, prepend=False)
-            logit = sm.Logit(y, regressors, missing="drop")
+            regressors = sm.api.tools.add_constant(regressors, prepend=False)
+            logit = sm.api.Logit(y, regressors, missing="drop")
 
             # catch Singular matrix error
             try:
                 result = logit.fit(disp=False)
-            except (np.linalg.linalg.LinAlgError, sm.tools.sm_exception.PerfectSeparationError) as err:
+            except (np.linalg.linalg.LinAlgError, sm.tools.sm_exceptions.PerfectSeparationError) as err:
                 if "Singular matrix" in str(err) or "Perfect separation" in str(err):
                     pass
                 else:
