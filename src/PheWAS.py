@@ -324,8 +324,8 @@ class PheWAS:
             # catch Singular matrix error
             try:
                 result = logit.fit(disp=False)
-            except np.linalg.linalg.LinAlgError as err:
-                if "Singular matrix" in str(err):
+            except (np.linalg.linalg.LinAlgError, sm.tools.sm_exception.PerfectSeparationError) as err:
+                if "Singular matrix" in str(err) or "Perfect separation" in str(err):
                     pass
                 else:
                     raise
