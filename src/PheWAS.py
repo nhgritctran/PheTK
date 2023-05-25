@@ -84,7 +84,10 @@ class PheWAS:
 
         # additional attributes
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
-        self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.sex_at_birth_col]
+        if self.covariate_df[sex_at_birth_col].n_unique() == 1:
+            self.var_cols = [self.independent_var_col] + self.covariate_cols
+        else:
+            self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.sex_at_birth_col]
 
         # check for string type variables among covariates
         if pl.Utf8 in self.covariate_df[self.var_cols].schema.values():
