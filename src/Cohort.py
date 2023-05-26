@@ -1,7 +1,6 @@
 from . import _paths, _queries, _utils
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm.notebook import tqdm
-import hail as hl
 import os
 import pandas as pd
 import polars as pl
@@ -12,20 +11,27 @@ class Cohort:
 
     def __init__(self,
                  db="aou",
-                 db_version=7):
+                 db_version=7,
+                 omop_cdr=None):
         """
         :param db: database; currently supports "aou" (All of Us)
         :param db_version: int type, version of database, e.g., 7 for All of Us CDR v7
+        :param omop_cdr: cdr string value, define where to query OMOP data;
+                    if None, it will use current workspace CDR value, i.e., os.getenv("WORKSPACE_CDR")
         """
         if db != "aou":
             print("Unsupported database. Currently supports \"aou\" (All of Us).")
             sys.exit(0)
-        if db_version != 7:
-            print("Unsupported database. Currently supports \"aou\" (All of Us) CDR v7 (enter 7 as parameter value).")
+        if db_version != 6 or db_version != 7:
+            print("Unsupported database. Currently supports \"aou\" (All of Us) CDR v6 and v7 "
+                  "(enter 6 or 7 as parameter value).")
             sys.exit(0)
         self.db = db
         self.db_version = db_version
-        self.cdr = os.getenv("WORKSPACE_CDR")
+        if omop_cdr is None:
+            self.cdr = os.getenv("WORKSPACE_CDR")
+        else:
+            self.cdr = omop_cdr
         self.user_project = os.getenv("GOOGLE_PROJECT")
 
         # attributes for add_covariate method
@@ -66,6 +72,8 @@ class Cohort:
         :param output_file_name: name of csv file output
         :return: genotype cohort csv file as well as polars dataframe object
         """
+        import hail as hl
+
         # basic data processing
         if output_file_name:
             output_file_name = f"{output_file_name}.csv"
@@ -95,7 +103,9 @@ class Cohort:
         # initialize Hail
         if self.db == "aou":
             hl.init(default_reference=reference_genome)
-            if mt_path is None and self.db_version == 7:
+            if mt_path is None and self.db_version == 6:
+                mt_path = _paths.cdr6_mt_path
+            elif mt_path is None and self.db_version == 7:
                 mt_path = _paths.cdr7_mt_path
 
         # hail variant struct
@@ -123,7 +133,7 @@ class Cohort:
             mt.row.show()
 
         # keep variant of interest
-        mt = mt.filter_rows((mt.locus == variant["locus"]) & \
+        mt = mt.filter_rows((mt.locus == variant["locus"]) &
                             (mt.alleles == variant["alleles"]))
         if mt:
             print()
