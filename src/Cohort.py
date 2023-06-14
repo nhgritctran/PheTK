@@ -22,7 +22,7 @@ class Cohort:
         if db != "aou":
             print("Unsupported database. Currently supports \"aou\" (All of Us).")
             sys.exit(0)
-        if db_version != 6 or db_version != 7:
+        if db_version != 6 and db_version != 7:
             print("Unsupported database. Currently supports \"aou\" (All of Us) CDR v6 and v7 "
                   "(enter 6 or 7 as parameter value).")
             sys.exit(0)
