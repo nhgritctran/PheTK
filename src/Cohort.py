@@ -146,8 +146,8 @@ class Cohort:
 
             # convert list of int to GT string, e.g., "0/0", "0/1", "1/1"
             polars_df = polars_df.with_columns(
-                pl.col("GT.alleles").arr.get(0).cast(pl.Utf8).alias("GT0"),
-                pl.col("GT.alleles").arr.get(1).cast(pl.Utf8).alias("GT1"),
+                pl.col("GT.alleles").list.get(0).cast(pl.Utf8).alias("GT0"),
+                pl.col("GT.alleles").list.get(1).cast(pl.Utf8).alias("GT1"),
             )
             polars_df = polars_df.with_columns((pl.col("GT0") + "/" + pl.col("GT1")).alias("GT"))
             polars_df = polars_df.filter(pl.col("GT").is_in(gt_list))
@@ -191,7 +191,7 @@ class Cohort:
             ancestry_preds = pl.from_pandas(ancestry_preds)
             ancestry_preds = ancestry_preds.with_columns(pl.col("pca_features").str.replace(r"\[", "")) \
                 .with_columns(pl.col("pca_features").str.replace(r"\]", "")) \
-                .with_columns(pl.col("pca_features").str.split(",").arr.get(i).alias(f"pc{i}") for i in range(16)) \
+                .with_columns(pl.col("pca_features").str.split(",").list.get(i).alias(f"pc{i}") for i in range(16)) \
                 .with_columns(pl.col(f"pc{i}").str.replace(" ", "").cast(float) for i in range(16)) \
                 .drop(["probabilities", "pca_features", "ancestry_pred_other"]) \
                 .rename({"research_id": "person_id",
