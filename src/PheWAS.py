@@ -247,8 +247,7 @@ class PheWAS:
 
         return cases, controls, analysis_var_cols
 
-    @staticmethod
-    def _result_prep(result, var_of_interest_index):
+    def _result_prep(self, result, var_of_interest_index):
         """
         Process result from statsmodels
         :param result: logistic regression result
