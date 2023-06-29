@@ -112,6 +112,7 @@ class PheWAS:
             self.phecode_list = phecode_to_process
 
         # attributes for reporting PheWAS results
+        self._phecode_summary_statistics = None
         self.result = None
         self.not_tested_count = 0
         self.tested_count = 0
@@ -257,6 +258,7 @@ class PheWAS:
         results_as_html = result.summary().tables[0].as_html()
         converged = pd.read_html(results_as_html)[0].iloc[5, 1]
         results_as_html = result.summary().tables[1].as_html()
+        self._phecode_summary_statistics = pd.read_html(results_as_html, header=0, index_col=0)
         res = pd.read_html(results_as_html, header=0, index_col=0)[0]
 
         p_value = result.pvalues[var_of_interest_index]
