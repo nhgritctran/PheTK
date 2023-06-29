@@ -26,7 +26,8 @@ class PheWAS:
                  min_phecode_count=2,
                  use_exclusion=True,
                  verbose=False,
-                 suppress_warnings=True):
+                 suppress_warnings=True,
+                 debug_mode=False):
         """
         :param phecode_version: accepts "1.2" or "X"
         :param phecode_count_csv_path: path to phecode count of relevant participants at minimum
@@ -41,6 +42,7 @@ class PheWAS:
         :param verbose: defaults to False; if True, print brief result of each phecode run
         :param suppress_warnings: defaults to True;
                                   if True, ignore common exception warnings such as ConvergenceWarnings, etc.
+        :param debug_mode: defaults to False; if True, generate some additional statistics to assist debugging
         """
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
@@ -82,6 +84,7 @@ class PheWAS:
         self.min_phecode_count = min_phecode_count
         self.use_exclusion = use_exclusion
         self.suppress_warnings = suppress_warnings
+        self.debug_mode = debug_mode
 
         # additional attributes
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
@@ -113,6 +116,8 @@ class PheWAS:
 
         # attributes for reporting PheWAS results
         self._phecode_summary_statistics = None
+        self._cases = None
+        self._controls = None
         self.result = None
         self.not_tested_count = 0
         self.tested_count = 0
@@ -245,6 +250,11 @@ class PheWAS:
         cases = cases[analysis_var_cols]
         controls = controls[analysis_var_cols]
 
+        # for debugging
+        if self.debug_mode:
+            self._cases = cases
+            self._controls = controls
+
         return cases, controls, analysis_var_cols
 
     def _result_prep(self, result, var_of_interest_index):
@@ -257,14 +267,17 @@ class PheWAS:
         results_as_html = result.summary().tables[0].as_html()
         converged = pd.read_html(results_as_html)[0].iloc[5, 1]
         results_as_html = result.summary().tables[1].as_html()
-        self._phecode_summary_statistics = pd.read_html(results_as_html, header=0, index_col=0)
         res = pd.read_html(results_as_html, header=0, index_col=0)[0]
-
+    
         p_value = result.pvalues[var_of_interest_index]
         beta_ind = result.params[var_of_interest_index]
         conf_int_1 = res.iloc[var_of_interest_index]['[0.025']
         conf_int_2 = res.iloc[var_of_interest_index]['0.975]']
         neg_log_p_value = -np.log10(p_value)
+
+        # for debugging
+        if self.debug_mode:
+            self._phecode_summary_statistics = res
 
         return {"p_value": p_value,
                 "neg_log_p_value": neg_log_p_value,
