@@ -102,7 +102,10 @@ class Cohort:
 
         # initialize Hail
         if self.db == "aou":
-            hl.init(default_reference=reference_genome)
+            try:
+                hl.init(default_reference=reference_genome)
+            except:
+                pass
             if mt_path is None and self.db_version == 6:
                 mt_path = _paths.cdr6_mt_path
             elif mt_path is None and self.db_version == 7:
