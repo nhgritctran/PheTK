@@ -23,7 +23,7 @@ class Phecode:
         Extract phecode counts for a biobank database
         :param phecode_version: defaults to "X"; other option is "1.2"
         :return: phecode counts polars dataframe
-        """
+        """        
         # load phecode mapping file by version
         if phecode_version.upper() == "X":
             # noinspection PyTypeChecker
@@ -42,12 +42,15 @@ class Phecode:
         else:
             return "Invalid phecode version. Please choose either \"1.2\" or \"X\"."
 
+        # make a copy of self.icd_events
+        icd_events = self.icd_events.clone()
+
         print()
         print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
         if phecode_version == "X":
-            phecode_counts = self.icd_events.join(phecode_df[["phecode", "ICD"]], how="inner", on="ICD")
+            phecode_counts = icd_events.join(phecode_df[["phecode", "ICD"]], how="inner", on="ICD")
         elif phecode_version == "1.2":
-            phecode_counts = self.icd_events.join(phecode_df[["phecode_unrolled", "ICD"]], how="inner", on="ICD")
+            phecode_counts = icd_events.join(phecode_df[["phecode_unrolled", "ICD"]], how="inner", on="ICD")
             phecode_counts = phecode_counts.rename({"phecode_unrolled": "phecode"})
         else:
             phecode_counts = None
