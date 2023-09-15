@@ -112,6 +112,7 @@ class Cohort:
         if not self.hail_init.called:  # check if hl.init() was called
             self.hail_init(default_reference=reference_genome)
 
+        # set database path
         if self.db == "aou":
             if mt_path is None and self.db_version == 6:
                 mt_path = _paths.cdr6_mt_path
