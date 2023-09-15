@@ -110,12 +110,13 @@ class Cohort:
 
         # initialize Hail
         if not self.hail_init.called:  # check if hl.init() was called
-            if self.db == "aou":
-                self.hail_init(default_reference=reference_genome)
-                if mt_path is None and self.db_version == 6:
-                    mt_path = _paths.cdr6_mt_path
-                elif mt_path is None and self.db_version == 7:
-                    mt_path = _paths.cdr7_mt_path
+            self.hail_init(default_reference=reference_genome)
+
+        if self.db == "aou":
+            if mt_path is None and self.db_version == 6:
+                mt_path = _paths.cdr6_mt_path
+            elif mt_path is None and self.db_version == 7:
+                mt_path = _paths.cdr7_mt_path
 
         # hail variant struct
         variant = hl.parse_variant(variant_string, reference_genome=reference_genome)
