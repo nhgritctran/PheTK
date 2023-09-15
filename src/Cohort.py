@@ -1,6 +1,7 @@
 from . import _paths, _queries, _utils
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm.notebook import tqdm
+from unittest.mock import Mock
 import os
 import pandas as pd
 import polars as pl
@@ -34,6 +35,9 @@ class Cohort:
             self.cdr = omop_cdr
         self.user_project = os.getenv("GOOGLE_PROJECT")
 
+        # self check for hl.init()
+        self.hail_init = Mock(side_effect=hl.init)
+                     
         # attributes for add_covariate method
         self.natural_age = True
         self.age_at_last_event = True
@@ -101,15 +105,13 @@ class Cohort:
         variant_string = locus + ":" + alleles
 
         # initialize Hail
-        if self.db == "aou":
-            try:
-                hl.init(default_reference=reference_genome)
-            except:
-                pass
-            if mt_path is None and self.db_version == 6:
-                mt_path = _paths.cdr6_mt_path
-            elif mt_path is None and self.db_version == 7:
-                mt_path = _paths.cdr7_mt_path
+        if not self.hail_init.called:  # check if hl.init() was called
+            if self.db == "aou":
+                self.hail_init(default_reference=reference_genome)
+                if mt_path is None and self.db_version == 6:
+                    mt_path = _paths.cdr6_mt_path
+                elif mt_path is None and self.db_version == 7:
+                    mt_path = _paths.cdr7_mt_path
 
         # hail variant struct
         variant = hl.parse_variant(variant_string, reference_genome=reference_genome)
