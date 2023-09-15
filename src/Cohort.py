@@ -36,7 +36,7 @@ class Cohort:
         self.user_project = os.getenv("GOOGLE_PROJECT")
 
         # self check for hl.init()
-        self.hail_init = Mock(side_effect=hl.init)
+        self.hail_init = None
                      
         # attributes for add_covariate method
         self.natural_age = True
@@ -76,7 +76,11 @@ class Cohort:
         :param output_file_name: name of csv file output
         :return: genotype cohort csv file as well as polars dataframe object
         """
+
+        # import hail and assign hail_init attribute if needed
         import hail as hl
+        if self.hail_init is None:
+            self.hail_init = Mock(side_effect=hl.init)
 
         # basic data processing
         if output_file_name:
