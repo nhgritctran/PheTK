@@ -1,7 +1,6 @@
 from . import _paths, _queries, _utils
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm.notebook import tqdm
-from unittest.mock import Mock
 import os
 import pandas as pd
 import polars as pl
@@ -36,7 +35,7 @@ class Cohort:
         self.user_project = os.getenv("GOOGLE_PROJECT")
 
         # self check for hl.init()
-        self.hail_init = None
+        self.hail_init_status = 0
                      
         # attributes for add_covariate method
         self.natural_age = True
@@ -79,8 +78,6 @@ class Cohort:
 
         # import hail and assign hail_init attribute if needed
         import hail as hl
-        if self.hail_init is None:
-            self.hail_init = Mock(side_effect=hl.init)
 
         # basic data processing
         if output_file_name:
@@ -109,8 +106,9 @@ class Cohort:
         variant_string = locus + ":" + alleles
 
         # initialize Hail
-        if not self.hail_init.called:  # check if hl.init() was called
-            self.hail_init(default_reference=reference_genome)
+        if self.hail_init_status == 0:  # check if hl.init() was called
+            hl.init(default_reference=reference_genome)
+            self.hail_init_status = 1
 
         # set database path
         if self.db == "aou":
