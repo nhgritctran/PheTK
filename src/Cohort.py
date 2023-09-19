@@ -34,8 +34,8 @@ class Cohort:
             self.cdr = omop_cdr
         self.user_project = os.getenv("GOOGLE_PROJECT")
 
-        # self check for hl.init()
-        self.hail_init_status = 0
+        # # self check for hl.init()
+        # self.hail_init_status = 0
                      
         # attributes for add_covariate method
         self.natural_age = True
@@ -106,9 +106,14 @@ class Cohort:
         variant_string = locus + ":" + alleles
 
         # initialize Hail
-        if self.hail_init_status == 0:  # check if hl.init() was called
+        # if self.hail_init_status == 0:  # check if hl.init() was called
+        #     hl.init(default_reference=reference_genome)
+        #     self.hail_init_status = 1
+        try:
             hl.init(default_reference=reference_genome)
-            self.hail_init_status = 1
+        except:
+            print("Hail was already initialized.")
+            pass
 
         # set database path
         if self.db == "aou":
@@ -184,8 +189,6 @@ class Cohort:
             print()
             print(f"Variant {variant_string} not found!")
             print()
-
-        hl.stop()
 
     def _get_ancestry_preds(self, user_project, participant_ids):
         """
