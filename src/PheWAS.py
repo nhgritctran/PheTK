@@ -247,6 +247,8 @@ class PheWAS:
                 controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 1)
             elif sex_restriction == "Female":
                 controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 0)
+        else:
+            controls = base_controls
         # WIP
         # else:
         #     if ((self.single_sex_value == 1 and sex_restriction == "Female") or (
