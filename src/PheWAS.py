@@ -226,10 +226,10 @@ class PheWAS:
             elif sex_restriction == "Female":
                 cases = cases.filter(pl.col(self.sex_at_birth_col) == 0)
         # WIP
-        else:
-            if ((self.single_sex_value == 1 and sex_restriction == "Female") or (
-                    self.single_sex_value == 0 and sex_restriction == "Male")):
-                cases = pl.DataFrame()
+        # else:
+        #     if ((self.single_sex_value == 1 and sex_restriction == "Female") or (
+        #             self.single_sex_value == 0 and sex_restriction == "Male")):
+        #         cases = pl.DataFrame()
 
         # CONTROLS
         # phecode exclusions
@@ -247,15 +247,15 @@ class PheWAS:
                 controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 1)
             elif sex_restriction == "Female":
                 controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 0)
-            else:
-                controls = base_controls
-        # WIP
         else:
-            if ((self.single_sex_value == 1 and sex_restriction == "Female") or (
-                    self.single_sex_value == 0 and sex_restriction == "Male")):
-                controls = pl.DataFrame()
-            else:
-                controls = base_controls
+            controls = base_controls
+        # WIP
+        # else:
+        #     if ((self.single_sex_value == 1 and sex_restriction == "Female") or (
+        #             self.single_sex_value == 0 and sex_restriction == "Male")):
+        #         controls = pl.DataFrame()
+        #     else:
+        #         controls = base_controls
 
         # DUPLICATE CHECK
         # drop duplicates and keep analysis covariate cols only
