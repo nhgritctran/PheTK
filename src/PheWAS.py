@@ -349,7 +349,7 @@ class PheWAS:
                     raise
                 result = None
 
-            if result:
+            if result is not None:
                 # process result
                 base_dict = {"phecode": phecode,
                              "cases": len(cases),
