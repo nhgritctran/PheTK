@@ -91,6 +91,7 @@ class PheWAS:
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
         if self.covariate_df[sex_at_birth_col].n_unique() == 1:
             self.data_has_single_sex = True
+            self.single_sex_value = self.covariate_df[sex_at_birth_col].unique().to_list()[0]
             self.var_cols = [self.independent_var_col] + self.covariate_cols
         else:
             self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.sex_at_birth_col]
@@ -224,6 +225,10 @@ class PheWAS:
                 cases = cases.filter(pl.col(self.sex_at_birth_col) == 1)
             elif sex_restriction == "Female":
                 cases = cases.filter(pl.col(self.sex_at_birth_col) == 0)
+        else:
+            if ((self.single_sex_value == 1 and sex_restriction == "Female") or (
+                    self.single_sex_value == 0 and sex_restriction == "Male")):
+                cases = pl.DataFrame()
 
         # CONTROLS
         # phecode exclusions
@@ -242,7 +247,11 @@ class PheWAS:
             elif sex_restriction == "Female":
                 controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 0)
         else:
-            controls = base_controls
+            if ((self.single_sex_value == 1 and sex_restriction == "Female") or (
+                    self.single_sex_value == 0 and sex_restriction == "Male")):
+                controls = pl.DataFrame()
+            else:
+                controls = base_controls
 
         # DUPLICATE CHECK
         # drop duplicates and keep analysis covariate cols only
@@ -272,7 +281,7 @@ class PheWAS:
         converged = pd.read_html(results_as_html)[0].iloc[5, 1]
         results_as_html = result.summary().tables[1].as_html()
         res = pd.read_html(results_as_html, header=0, index_col=0)[0]
-    
+
         p_value = result.pvalues[var_of_interest_index]
         beta_ind = result.params[var_of_interest_index]
         conf_int_1 = res.iloc[var_of_interest_index]['[0.025']
