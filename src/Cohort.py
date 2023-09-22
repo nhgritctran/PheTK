@@ -107,7 +107,7 @@ class Cohort:
             hl.init(default_reference=reference_genome)
         except Exception as err:
             if "IllegalArgumentException" not in str(err):
-                print(err)
+                raise
             else:
                 print("Hail Initialization skipped as Hail has already been initialized.")
 
