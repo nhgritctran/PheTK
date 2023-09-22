@@ -1,6 +1,6 @@
 from . import _paths, _queries, _utils
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 import os
 import pandas as pd
 import polars as pl
