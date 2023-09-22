@@ -88,11 +88,9 @@ class PheWAS:
 
         # check for sex in data
         self.data_has_single_sex = False
-        self.single_sex_value = None
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
         if self.covariate_df[sex_at_birth_col].n_unique() == 1:
             self.data_has_single_sex = True
-            self.single_sex_value = self.covariate_df[sex_at_birth_col].unique().to_list()[0]
             self.var_cols = [self.independent_var_col] + self.covariate_cols
         else:
             self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.sex_at_birth_col]
@@ -220,17 +218,12 @@ class PheWAS:
             (pl.col("phecode") == phecode) & (pl.col("count") >= self.min_phecode_count)
         )["person_id"].unique().to_list()
         cases = covariate_df.filter(pl.col("person_id").is_in(case_ids))
-
-        # # select data based on phecode "sex", e.g., male/female only or both
-        # if not self.data_has_single_sex:
-        #     if sex_restriction == "Male":
-        #         cases = cases.filter(pl.col(self.sex_at_birth_col) == 1)
-        #     elif sex_restriction == "Female":
-        #         cases = cases.filter(pl.col(self.sex_at_birth_col) == 0)
-        # else:
-        #     if (sex_restriction == "Male" and self.single_sex_value == 0) or (
-        #             sex_restriction == "Female" and self.single_sex_value == 1):
-        #         cases = pl.DataFrame()
+        # select data based on phecode "sex", e.g., male/female only or both
+        if not self.data_has_single_sex:
+            if sex_restriction == "Male":
+                cases = cases.filter(pl.col(self.sex_at_birth_col) == 1)
+            elif sex_restriction == "Female":
+                cases = cases.filter(pl.col(self.sex_at_birth_col) == 0)
 
         # CONTROLS
         # phecode exclusions
@@ -242,22 +235,14 @@ class PheWAS:
         exclude_ids = phecode_counts.filter(
             pl.col("phecode").is_in(exclude_range)
         )["person_id"].unique().to_list()
-        controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
-
-        # check for sex restriction if both sexes are present in data
+        base_controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
         if not self.data_has_single_sex:
             if sex_restriction == "Male":
-                cases = cases.filter(pl.col(self.sex_at_birth_col) == 1)
-                controls = controls.filter(pl.col(self.sex_at_birth_col) == 1)
+                controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 1)
             elif sex_restriction == "Female":
-                cases = cases.filter(pl.col(self.sex_at_birth_col) == 0)
-                controls = controls.filter(pl.col(self.sex_at_birth_col) == 0)
-        # if only 1 sex presented, assign to empty dataframe if sex restriction of phecode and sex in data are different
+                controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 0)
         else:
-            if (sex_restriction == "Male" and self.single_sex_value == 0) or (
-                    sex_restriction == "Female" and self.single_sex_value == 1):
-                cases = pl.DataFrame()
-                controls = pl.DataFrame()
+            controls = base_controls
 
         # DUPLICATE CHECK
         # drop duplicates and keep analysis covariate cols only
