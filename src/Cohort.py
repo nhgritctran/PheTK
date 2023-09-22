@@ -105,9 +105,11 @@ class Cohort:
         # initialize Hail
         try:
             hl.init(default_reference=reference_genome)
-        except:
-            print("Hail was already initialized.")
-            pass
+        except Exception as err:
+            if "IllegalArgumentException" not in str(err):
+                print(err)
+            else:
+                print("Hail Initialization skipped as Hail has already been initialized.")
 
         # set database path
         if self.db == "aou":
