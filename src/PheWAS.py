@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 import copy
 import numpy as np
 import os
