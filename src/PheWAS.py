@@ -86,9 +86,11 @@ class PheWAS:
         self.suppress_warnings = suppress_warnings
         self.debug_mode = debug_mode
 
-        # additional attributes
+        # check for sex in data
+        self.data_has_single_sex = False
         self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
         if self.covariate_df[sex_at_birth_col].n_unique() == 1:
+            self.data_has_single_sex = True
             self.var_cols = [self.independent_var_col] + self.covariate_cols
         else:
             self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.sex_at_birth_col]
@@ -217,10 +219,11 @@ class PheWAS:
         )["person_id"].unique().to_list()
         cases = covariate_df.filter(pl.col("person_id").is_in(case_ids))
         # select data based on phecode "sex", e.g., male/female only or both
-        if sex_restriction == "Male":
-            cases = cases.filter(pl.col(self.sex_at_birth_col) == 1)
-        elif sex_restriction == "Female":
-            cases = cases.filter(pl.col(self.sex_at_birth_col) == 0)
+        if not self.data_has_single_sex:
+            if sex_restriction == "Male":
+                cases = cases.filter(pl.col(self.sex_at_birth_col) == 1)
+            elif sex_restriction == "Female":
+                cases = cases.filter(pl.col(self.sex_at_birth_col) == 0)
 
         # CONTROLS
         # phecode exclusions
@@ -233,10 +236,11 @@ class PheWAS:
             pl.col("phecode").is_in(exclude_range)
         )["person_id"].unique().to_list()
         base_controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
-        if sex_restriction == "Male":
-            controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 1)
-        elif sex_restriction == "Female":
-            controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 0)
+        if not self.data_has_single_sex:
+            if sex_restriction == "Male":
+                controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 1)
+            elif sex_restriction == "Female":
+                controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 0)
         else:
             controls = base_controls
 
