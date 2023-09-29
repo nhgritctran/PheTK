@@ -124,11 +124,11 @@ class Cohort:
         # load and filter matrix table
         mt = hl.read_matrix_table(mt_path)
         mt = mt.filter_rows(mt.locus == hl.Locus.parse(locus))
-        if not mt:
+        if mt.count_rows() == 0:
             print()
             print(f"\033[1mLocus {locus} not found!")
             return
-        else:
+        elif mt.count_rows() >= 1:
             print()
             print(f"\033[1mLocus {locus} found!")
             mt.row.show()
