@@ -396,7 +396,7 @@ class PheWAS:
 
     def run(self,
             parallelization="multithreading",
-            n_threads=None):
+            n_threads=round(os.cpu_count()*2/3)):
         """
         Run parallel logistic regressions
         :param parallelization: defaults to "multithreading", utilizing concurrent.futures.ThreadPoolExecutor();
