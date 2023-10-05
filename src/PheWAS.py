@@ -38,7 +38,8 @@ class PheWAS:
         :param phecode_to_process: defaults to "all"; otherwise, a list of phecodes must be provided
         :param min_cases: defaults to 50; minimum number of cases for each phecode to be considered for PheWAS
         :param min_phecode_count: defaults to 2; minimum number of phecode count to qualify as case for PheWAS
-        :param use_exclusion: defaults to True; whether to use additional exclusion range in control for PheWAS
+        :param use_exclusion: defaults to True for phecode 1.2; always False for phecode X;
+                              whether to use additional exclusion range in control for PheWAS
         :param verbose: defaults to False; if True, print brief result of each phecode run
         :param suppress_warnings: defaults to True;
                                   if True, ignore common exception warnings such as ConvergenceWarnings, etc.
@@ -82,9 +83,17 @@ class PheWAS:
         self.verbose = verbose
         self.min_cases = min_cases
         self.min_phecode_count = min_phecode_count
-        self.use_exclusion = use_exclusion
         self.suppress_warnings = suppress_warnings
         self.debug_mode = debug_mode
+
+        # exclusion:
+        # - phecode 1.2: user can choose to use exclusion or not
+        # - phecode X: exclusion is removed, therefore this parameter will be False for Phecode X regardless of input
+        # to prevent user error
+        if phecode_version == "1.2":
+            self.use_exclusion = use_exclusion
+        elif phecode_version == "X":
+            self.use_exclusion = False
 
         # check for sex in data
         self.data_has_single_sex = False
@@ -241,16 +250,13 @@ class PheWAS:
         exclude_ids = phecode_counts.filter(
             pl.col("phecode").is_in(exclude_range)
         )["person_id"].unique().to_list()
-        base_controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
+        controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
         if not self.data_has_single_sex:
             if sex_restriction == "Male":
-                controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 1)
+                controls = controls.filter(pl.col(self.sex_at_birth_col) == 1)
             elif sex_restriction == "Female":
-                controls = base_controls.filter(pl.col(self.sex_at_birth_col) == 0)
-            else:
-                controls = base_controls
-        else:
-            controls = base_controls
+                controls = controls.filter(pl.col(self.sex_at_birth_col) == 0)
+
         # WIP
         # else:
         #     if ((self.single_sex_value == 1 and sex_restriction == "Female") or (
