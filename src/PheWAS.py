@@ -55,7 +55,8 @@ class PheWAS:
                                           dtypes={"phecode": str,
                                                   "ICD": str,
                                                   "exclude_range": str,
-                                                  "phecode_top": str})
+                                                  "phecode_top": str,
+                                                  "code_val": float})
         elif phecode_version == "1.2":
             # noinspection PyTypeChecker
             self.phecode_df = pl.read_csv(f"{cwd}/PyPheWAS/phecode/phecode12.csv",
