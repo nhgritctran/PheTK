@@ -370,7 +370,7 @@ class PheWAS:
                 result = logit.fit(disp=False)
             except (np.linalg.linalg.LinAlgError, statsmodels.tools.sm_exceptions.PerfectSeparationError) as err:
                 if "Singular matrix" in str(err) or "Perfect separation" in str(err):
-                    continue
+                    pass
                 else:
                     raise
                 result = None
