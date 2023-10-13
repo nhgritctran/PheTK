@@ -348,8 +348,8 @@ class PheWAS:
         if len(cases) >= self.min_cases:
 
             # add case/control values
-            cases = cases.with_columns(pl.Series([1] * len(cases)).alias("y"))
-            controls = controls.with_columns(pl.Series([0] * len(controls)).alias("y"))
+            cases = cases.with_columns(pl.Series([1] * len(cases)).cast(pl.Int64).alias("y"))
+            controls = controls.with_columns(pl.Series([0] * len(controls)).cast(pl.Int64).alias("y"))
 
             # merge cases & controls
             regressors = cases.vstack(controls)
