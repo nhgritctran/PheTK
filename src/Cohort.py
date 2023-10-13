@@ -352,8 +352,9 @@ class Cohort:
 
         print()
         print("Cohort size:", len(self.final_cohort))
-        print("Cases:", self.final_cohort["case"].sum())
-        print("Controls:", len(self.final_cohort.filter(pl.col("case") == 0)), "\033[0m")
+        if "case" in self.final_cohort.columns:
+            print("Cases:", self.final_cohort["case"].sum())
+            print("Controls:", len(self.final_cohort.filter(pl.col("case") == 0)), "\033[0m")
         print()
         print("Cohort data saved as \"cohort.csv\"!\033[0m")
         print()
