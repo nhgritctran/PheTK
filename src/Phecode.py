@@ -30,7 +30,6 @@ class Phecode:
             phecode_df = pl.read_csv("PyPheWAS/phecode/phecodeX.csv",
                                      dtypes={"phecode": str,
                                              "ICD": str,
-                                             "phecode_top": str,
                                              "code_val": float})
         elif phecode_version.upper() == "1.2":
             # noinspection PyTypeChecker
