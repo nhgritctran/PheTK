@@ -13,6 +13,7 @@ def phecode_icd_query(cdr):
                 SELECT DISTINCT
                     co.person_id,
                     co.condition_start_date AS date,
+                    c.vocabulary_id AS vocabulary_id,
                     c.concept_code AS ICD
                 FROM
                     {cdr}.condition_occurrence AS co
@@ -28,6 +29,7 @@ def phecode_icd_query(cdr):
                 SELECT DISTINCT
                     co.person_id,
                     co.condition_start_date AS date,
+                    c.vocabulary_id AS vocabulary_id,
                     c.concept_code AS ICD
                 FROM
                     {cdr}.condition_occurrence AS co
@@ -43,6 +45,7 @@ def phecode_icd_query(cdr):
                 SELECT DISTINCT
                     o.person_id,
                     o.observation_date AS date,
+                    c.vocabulary_id AS vocabulary_id,
                     c.concept_code AS ICD
                 FROM
                     {cdr}.observation AS o
@@ -58,6 +61,7 @@ def phecode_icd_query(cdr):
                 SELECT DISTINCT
                     o.person_id,
                     o.observation_date AS date,
+                    c.vocabulary_id AS vocabulary_id,
                     c.concept_code AS ICD
                 FROM
                     {cdr}.observation AS o
