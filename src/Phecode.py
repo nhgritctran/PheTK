@@ -55,7 +55,7 @@ class Phecode:
         else:
             phecode_counts = None
         if not phecode_counts.is_empty() or phecode_counts is not None:
-            phecode_counts = phecode_counts.drop("date").groupby(["person_id", "phecode"]).count()
+            phecode_counts = phecode_counts.drop(["date", "vocabulary_id"]).groupby(["person_id", "phecode"]).count()
 
         # report result
         if not phecode_counts.is_empty() or phecode_counts is not None:
