@@ -43,6 +43,7 @@ class Phecode:
 
         # make a copy of self.icd_events
         icd_events = self.icd_events.clone()
+        icd_events = icd_events.drop(["date", "vocabulary_id"])
 
         print()
         print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
@@ -54,7 +55,7 @@ class Phecode:
         else:
             phecode_counts = None
         if not phecode_counts.is_empty() or phecode_counts is not None:
-            phecode_counts = phecode_counts.drop(["date", "vocabulary_id"]).groupby(["person_id", "phecode"]).count()
+            phecode_counts = phecode_counts.groupby(["person_id", "phecode"]).count()
 
         # report result
         if not phecode_counts.is_empty() or phecode_counts is not None:
