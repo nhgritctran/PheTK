@@ -234,7 +234,7 @@ class Manhattan:
                plot_df,
                label_values,
                label_count,
-               label_value_columns,
+               label_value_columns=None,
                label_text_column="phecode_string",
                label_value_threshold=0,
                label_split_threshold=30,
@@ -271,18 +271,24 @@ class Manhattan:
                 self.data_to_label = pl.concat(
                     [
                         self.data_to_label,
-                        self.positive_betas.filter(pl.col("beta_ind") >= label_value_threshold)[:label_count]
+                        self.positive_betas.filter(pl.col("beta_ind") >= label_value_threshold)
                     ]
                 )
+                if label_value_columns is not None:
+                    self.data_to_label = self.data_to_label.filter(pl.col("phecode_category").is_in(label_value_columns))[:label_count]
+                else:
+                    self.data_to_label = self.data_to_label[:label_count]
             elif item == "negative_beta":
                 self.data_to_label = pl.concat(
                     [
                         self.data_to_label,
-                        self.negative_betas.filter(pl.col("beta_ind") <= label_value_threshold)[:label_count]
+                        self.negative_betas.filter(pl.col("beta_ind") <= label_value_threshold)
                     ]
                 )
-                if label_value_threshold:
-                    self.data_to_label = self.data_to_label.filter(pl.col("beta_ind") <= label_value_threshold)
+                if label_value_columns is not None:
+                    self.data_to_label = self.data_to_label.filter(pl.col("phecode_category").is_in(label_value_columns))[:label_count]
+                else:
+                    self.data_to_label = self.data_to_label[:label_count]
             elif item == "p_value":
                 self.data_to_label = pl.concat(
                     [
@@ -291,6 +297,10 @@ class Manhattan:
                                .filter(pl.col("neg_log_p_value") >= label_value_threshold)[:label_count]
                     ]
                 )
+                if label_value_columns is not None:
+                    self.data_to_label = self.data_to_label.filter(pl.col("phecode_category").is_in(label_value_columns))[:label_count]
+                else:
+                    self.data_to_label = self.data_to_label[:label_count]
             else:
                 self.data_to_label = pl.concat([self.data_to_label,
                                                 plot_df.filter(pl.col("phecode") == item)])
