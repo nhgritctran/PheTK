@@ -276,7 +276,8 @@ class Cohort:
                        genetic_ancestry=False,
                        first_n_pcs=0,
                        chunk_size=10000,
-                       drop_nulls=False):
+                       drop_nulls=False,
+                       output_file_name=None):
         """
         This method is a proxy for covariate.get_covariates method
         :param cohort_csv_path:
@@ -348,7 +349,11 @@ class Cohort:
             final_cohort = final_cohort.drop_nulls()
 
         self.final_cohort = final_cohort
-        self.final_cohort.write_csv("cohort.csv")
+
+        file_name = "cohort"
+        if output_file_name is not None:
+            file_name = output_file_name
+        self.final_cohort.write_csv(f"{file_name}.csv")
 
         print()
         print("Cohort size:", len(self.final_cohort))
@@ -356,5 +361,5 @@ class Cohort:
             print("Cases:", self.final_cohort["case"].sum())
             print("Controls:", len(self.final_cohort.filter(pl.col("case") == 0)), "\033[0m")
         print()
-        print("Cohort data saved as \"cohort.csv\"!\033[0m")
+        print(f"Cohort data saved as \"{file_name}.csv\"!\033[0m")
         print()
