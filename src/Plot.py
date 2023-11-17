@@ -234,7 +234,7 @@ class Manhattan:
                plot_df,
                label_values,
                label_count,
-               label_value_columns=None,
+               label_categories=None,
                label_text_column="phecode_string",
                label_value_threshold=0,
                label_split_threshold=30,
@@ -274,8 +274,8 @@ class Manhattan:
                         self.positive_betas.filter(pl.col("beta_ind") >= label_value_threshold)
                     ]
                 )
-                if label_value_columns is not None:
-                    self.data_to_label = self.data_to_label.filter(pl.col("phecode_category").is_in(label_value_columns))[:label_count]
+                if label_categories is not None:
+                    self.data_to_label = self.data_to_label.filter(pl.col("phecode_category").is_in(label_categories))[:label_count]
                 else:
                     self.data_to_label = self.data_to_label[:label_count]
             elif item == "negative_beta":
@@ -285,8 +285,8 @@ class Manhattan:
                         self.negative_betas.filter(pl.col("beta_ind") <= label_value_threshold)
                     ]
                 )
-                if label_value_columns is not None:
-                    self.data_to_label = self.data_to_label.filter(pl.col("phecode_category").is_in(label_value_columns))[:label_count]
+                if label_categories is not None:
+                    self.data_to_label = self.data_to_label.filter(pl.col("phecode_category").is_in(label_categories))[:label_count]
                 else:
                     self.data_to_label = self.data_to_label[:label_count]
             elif item == "p_value":
@@ -294,11 +294,11 @@ class Manhattan:
                     [
                         self.data_to_label,
                         plot_df.sort(by="p_value")
-                               .filter(pl.col("neg_log_p_value") >= label_value_threshold)[:label_count]
+                               .filter(pl.col("neg_log_p_value") >= label_value_threshold)
                     ]
                 )
-                if label_value_columns is not None:
-                    self.data_to_label = self.data_to_label.filter(pl.col("phecode_category").is_in(label_value_columns))[:label_count]
+                if label_categories is not None:
+                    self.data_to_label = self.data_to_label.filter(pl.col("phecode_category").is_in(label_categories))[:label_count]
                 else:
                     self.data_to_label = self.data_to_label[:label_count]
             else:
@@ -374,16 +374,16 @@ class Manhattan:
         # dpi
         dpi = 150
         
-        # phecode_categories & label_value_columns
+        # phecode_categories & label_categories
         if phecode_categories:
             if isinstance(phecode_categories, str):  # convert to list if input is str
                 phecode_categories = [phecode_categories]
             phecode_categories.sort()
-            label_value_columns = phecode_categories
+            label_categories = phecode_categories
             self.phecode_categories = phecode_categories
         else:
-            label_value_columns = list(self.phewas_result.schema.keys())
-            label_value_columns.sort()
+            label_categories = list(self.phewas_result.schema.keys())
+            label_categories.sort()
         
         # plot_df and label_value_cols
         if plot_all_categories:
@@ -443,7 +443,7 @@ class Manhattan:
 
         # labeling
         self._label(plot_df, label_values=label_values, label_count=label_count, 
-                    label_text_column=label_text_column, label_value_columns=label_value_columns,
+                    label_text_column=label_text_column, label_categories=label_categories,
                     label_value_threshold=label_value_threshold, label_split_threshold=label_split_threshold,
                     label_size=label_size, label_color=label_color, label_weight=label_weight)
 
