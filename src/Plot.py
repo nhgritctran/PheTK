@@ -231,9 +231,10 @@ class Manhattan:
         return new_s
 
     def _label(self,
-               label_df,
+               plot_df,
                label_values,
                label_count,
+               label_value_columns,
                label_text_column="phecode_string",
                label_value_threshold=0,
                label_split_threshold=30,
@@ -243,7 +244,7 @@ class Manhattan:
                y_col="neg_log_p_value",
                x_col="phecode_index"):
         """
-        :param label_df: plot data
+        :param plot_df: plot data
         :param label_values: can take a single phecode, a list of phecodes,
                              or preset values "positive_betas", "negative_betas", "p_value"
         :param label_value_threshold: cutoff value for label values;
@@ -264,7 +265,7 @@ class Manhattan:
         if isinstance(label_values, str):
             label_values = [label_values]
 
-        self.data_to_label = pl.DataFrame(schema=label_df.schema)
+        self.data_to_label = pl.DataFrame(schema=plot_df.schema)
         for item in label_values:
             if item == "positive_beta":
                 self.data_to_label = pl.concat(
@@ -286,13 +287,13 @@ class Manhattan:
                 self.data_to_label = pl.concat(
                     [
                         self.data_to_label,
-                        label_df.sort(by="p_value")
+                        plot_df.sort(by="p_value")
                                .filter(pl.col("neg_log_p_value") >= label_value_threshold)[:label_count]
                     ]
                 )
             else:
                 self.data_to_label = pl.concat([self.data_to_label,
-                                                label_df.filter(pl.col("phecode") == item)])
+                                                plot_df.filter(pl.col("phecode") == item)])
 
         texts = []
         for i in range(len(self.data_to_label)):
@@ -358,27 +359,30 @@ class Manhattan:
         # SETTINGS #
         ############
 
-        # setup some variables based on plot_all_categories and phecode_categories
+        ## setup some variables based on plot_all_categories and phecode_categories
+        
+        # dpi
         dpi = 150
+        
+        # phecode_categories & label_value_columns
+        if phecode_categories:
+            if isinstance(phecode_categories, str):  # convert to list if input is str
+                phecode_categories = [phecode_categories]
+            phecode_categories.sort()
+            label_value_columns = phecode_categories
+            self.phecode_categories = phecode_categories
+        else:
+            label_value_columns = list(self.phewas_result.schema.keys())
+            label_value_columns.sort()
+        
+        # plot_df and label_value_cols
         if plot_all_categories:
             selected_color_dict = self.color_dict
             n_categories = len(self.phewas_result.columns)
             # create plot_df containing only necessary data for plotting
             plot_df = self._create_phecode_index(self.phewas_result)
-            if phecode_categories:
-                label_df = self._create_phecode_index(
-                    self._filter_by_phecode_categories(
-                        self.phewas_result, phecode_categories=phecode_categories
-                    )
-                )
-            else:
-                label_df = plot_df.clone()
         else:
             if phecode_categories:
-                if isinstance(phecode_categories, str):
-                    phecode_categories = [phecode_categories]
-                phecode_categories.sort()
-                self.phecode_categories = phecode_categories
                 selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
                 n_categories = len(phecode_categories)
                 dpi = None
@@ -388,7 +392,6 @@ class Manhattan:
                         self.phewas_result, phecode_categories=phecode_categories
                     )
                 )
-                label_df = plot_df.clone()
             else:
                 print("phecode_categories must not be None when plot_all_categories = False.")
                 return
@@ -429,7 +432,8 @@ class Manhattan:
         self._lines(ax, plot_df)
 
         # labeling
-        self._label(label_df, label_values=label_values, label_count=label_count, label_text_column=label_text_column,
+        self._label(plot_df, label_values=label_values, label_count=label_count, 
+                    label_text_column=label_text_column, label_value_columns=label_value_columns,
                     label_value_threshold=label_value_threshold, label_split_threshold=label_split_threshold,
                     label_size=label_size, label_color=label_color, label_weight=label_weight)
 
