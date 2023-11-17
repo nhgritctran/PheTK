@@ -382,8 +382,7 @@ class Manhattan:
             label_categories = phecode_categories
             self.phecode_categories = phecode_categories
         else:
-            label_categories = list(self.phewas_result.schema.keys())
-            label_categories.sort()
+            label_categories = None
         
         # plot_df and label_value_cols
         if plot_all_categories:
