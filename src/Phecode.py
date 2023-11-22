@@ -68,9 +68,13 @@ class Phecode:
         print()
         print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
         if phecode_version == "X":
-            phecode_counts = icd_events.join(phecode_df[["phecode", "ICD"]], how="inner", on=["ICD", "flag"])
+            phecode_counts = icd_events.join(phecode_df[["phecode", "ICD", "flag"]],
+                                             how="inner",
+                                             on=["ICD", "flag"])
         elif phecode_version == "1.2":
-            phecode_counts = icd_events.join(phecode_df[["phecode_unrolled", "ICD"]], how="inner", on=["ICD", "flag"])
+            phecode_counts = icd_events.join(phecode_df[["phecode_unrolled", "ICD", "flag"]],
+                                             how="inner",
+                                             on=["ICD", "flag"])
             phecode_counts = phecode_counts.rename({"phecode_unrolled": "phecode"})
         else:
             phecode_counts = None
