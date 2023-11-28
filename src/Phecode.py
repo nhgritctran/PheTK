@@ -20,8 +20,8 @@ class Phecode:
         :param icd_df_path: path to ICD table csv file; required columns are "person_id", "ICD", and "vocabulary_id";
             "vocabulary_id" values should be "ICD9CM" or "ICD10CM"
         """
+        self.db = db
         if db == "aou":
-            self.db = db
             self.cdr = os.getenv("WORKSPACE_CDR")
             self.icd_query = _queries.phecode_icd_query(self.cdr)
             print("\033[1mStart querying ICD codes...")
