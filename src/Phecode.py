@@ -64,7 +64,8 @@ class Phecode:
         icd_events = icd_events.with_columns(pl.when(pl.col("vocabulary_id") == "ICD9CM")
                                              .then(9)
                                              .otherwise(10)
-                                             .alias("flag"))
+                                             .alias("flag")
+                                             .cast(pl.Int32))
         icd_events = icd_events.drop(["date", "vocabulary_id"])
 
         print()
@@ -82,7 +83,6 @@ class Phecode:
             phecode_counts = None
         if not phecode_counts.is_empty() or phecode_counts is not None:
             phecode_counts = phecode_counts.groupby(["person_id", "phecode"]).count()
-        phecode_counts = phecode_counts.drop(["flag"])
 
         # report result
         if not phecode_counts.is_empty() or phecode_counts is not None:
