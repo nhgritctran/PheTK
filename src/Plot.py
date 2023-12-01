@@ -443,10 +443,10 @@ class Manhattan:
         # generate marker_size if marker_size_by_beta is True
         if marker_size_by_beta:
             self.positive_betas = self.positive_betas.with_columns(
-                (20 * (pl.col("beta_ind")/pl.col("beta_ind").max())**2 + 5).alias("marker_size")
+                (100 * (pl.col("beta_ind")/(pl.col("beta_ind").max())**2) + 5).alias("marker_size")
             )
             self.negative_betas = self.negative_betas.with_columns(
-                (20 * (pl.col("beta_ind").abs()/pl.col("beta_ind").abs().max())**2 + 5).alias("marker_size")
+                (100 * (pl.col("beta_ind").abs()/(pl.col("beta_ind").abs().max())**2) + 5).alias("marker_size")
             )
 
         ############
