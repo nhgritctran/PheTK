@@ -118,7 +118,8 @@ class Manhattan:
         if "phecode_index" in df.columns:
             df = df.drop("phecode_index")
         df = df.sort(by=["phecode_category", "phecode"])\
-               .with_columns(pl.Series("phecode_index", range(1, len(df) + 1)))
+               .with_columns(pl.Series("phecode_index", range(1, len(df) + 1)))\
+               .with_columns(15*np.exp(pl.col("beta_ind")).alias("marker_size_by_beta"))
 
         return df
 
@@ -154,22 +155,31 @@ class Manhattan:
         for tick_label, tick_color in zip(sorted_labels, selected_color_dict.values()):
             tick_label.set_color(tick_color)
 
-    def _scatter(self, ax, plot_df):
+    def _scatter(self, ax, marker_size_by_beta):
         """
         Generate scatter data points
         :param ax: plot object
-        :param plot_df: dataframe containing data required for plotting
+        :param marker_size_by_beta: adjust marker size by beta coefficient if True
         :return: scatter plot of selected data
         """
-        self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
 
-        ax.scatter(self.positive_betas["phecode_index"].to_numpy(),
-                   self.positive_betas["neg_log_p_value"],
+        if marker_size_by_beta:
+            s_positive = self.positive_betas["marker_size"]
+            s_negative = self.negative_betas["marker_size"]
+        else:
+            s_positive = None
+            s_negative = None
+
+        ax.scatter(x=self.positive_betas["phecode_index"].to_numpy(),
+                   y=self.positive_betas["neg_log_p_value"],
+                   s=s_positive,
                    c=self.positive_betas["label_color"],
                    marker="^",
                    alpha=self.positive_alpha)
-        ax.scatter(self.negative_betas["phecode_index"].to_numpy(),
-                   self.negative_betas["neg_log_p_value"],
+
+        ax.scatter(x=self.negative_betas["phecode_index"].to_numpy(),
+                   y=self.negative_betas["neg_log_p_value"],
+                   s=s_negative,
                    c=self.negative_betas["label_color"],
                    marker="v",
                    alpha=self.negative_alpha)
@@ -275,7 +285,9 @@ class Manhattan:
                     ]
                 )
                 if label_categories is not None:
-                    self.data_to_label = self.data_to_label.filter(pl.col("phecode_category").is_in(label_categories))[:label_count]
+                    self.data_to_label = self.data_to_label.filter(
+                        pl.col("phecode_category").is_in(label_categories)
+                    )[:label_count]
                 else:
                     self.data_to_label = self.data_to_label[:label_count]
             elif item == "negative_beta":
@@ -286,7 +298,9 @@ class Manhattan:
                     ]
                 )
                 if label_categories is not None:
-                    self.data_to_label = self.data_to_label.filter(pl.col("phecode_category").is_in(label_categories))[:label_count]
+                    self.data_to_label = self.data_to_label.filter(
+                        pl.col("phecode_category").is_in(label_categories)
+                    )[:label_count]
                 else:
                     self.data_to_label = self.data_to_label[:label_count]
             elif item == "p_value":
@@ -298,7 +312,9 @@ class Manhattan:
                     ]
                 )
                 if label_categories is not None:
-                    self.data_to_label = self.data_to_label.filter(pl.col("phecode_category").is_in(label_categories))[:label_count]
+                    self.data_to_label = self.data_to_label.filter(
+                        pl.col("phecode_category").is_in(label_categories)
+                    )[:label_count]
                 else:
                     self.data_to_label = self.data_to_label[:label_count]
             else:
@@ -356,6 +372,7 @@ class Manhattan:
              label_color="label_color",
              label_weight="normal",
              label_split_threshold=30,
+             marker_size_by_beta=False,
              phecode_categories=None,
              plot_all_categories=True,
              title=None,
@@ -369,8 +386,8 @@ class Manhattan:
         # SETTINGS #
         ############
 
-        ## setup some variables based on plot_all_categories and phecode_categories
-        
+        # setup some variables based on plot_all_categories and phecode_categories
+
         # dpi
         dpi = 150
         
@@ -423,6 +440,15 @@ class Manhattan:
         # generate positive & negative betas
         self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
 
+        # generate marker_size if marker_size_by_beta is True
+        if marker_size_by_beta:
+            self.positive_betas = self.positive_betas.with_columns(
+                (15 * pl.col("beta_ind") / (pl.col("beta_ind").max()) + 5).alias("marker_size")
+            )
+            self.negative_betas = self.negative_betas.with_columns(
+                (15 * pl.col("beta_ind").abs() / (pl.col("beta_ind").abs().max()) + 5).alias("marker_size")
+            )
+
         ############
         # PLOTTING #
         ############
@@ -435,13 +461,13 @@ class Manhattan:
         self._x_ticks(plot_df, selected_color_dict)
 
         # scatter
-        self._scatter(ax, plot_df)
+        self._scatter(ax=ax, marker_size_by_beta=marker_size_by_beta)
 
         # lines
-        self._lines(ax, plot_df)
+        self._lines(ax=ax, plot_df=plot_df)
 
         # labeling
-        self._label(plot_df, label_values=label_values, label_count=label_count, 
+        self._label(plot_df=plot_df, label_values=label_values, label_count=label_count,
                     label_text_column=label_text_column, label_categories=label_categories,
                     label_value_threshold=label_value_threshold, label_split_threshold=label_split_threshold,
                     label_size=label_size, label_color=label_color, label_weight=label_weight)
