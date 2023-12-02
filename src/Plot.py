@@ -132,7 +132,7 @@ class Manhattan:
 
         # add marker size if marker_size_by_beta is True
         if marker_size_by_beta:
-            df = df.with_columns(15*np.exp(pl.col("beta_ind").abs()).alias("marker_size"))
+            df = df.with_columns((15*np.exp(pl.col("beta_ind").abs())).alias("marker_size"))
 
         # split to positive and negative beta data
         positive_betas = df.filter(pl.col("beta_ind") >= 0).sort(by="beta_ind", descending=True)
