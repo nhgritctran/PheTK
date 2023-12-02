@@ -136,7 +136,7 @@ class Manhattan:
 
         # split to positive and negative beta data
         positive_betas = df.filter(pl.col("beta_ind") >= 0).sort(by="beta_ind", descending=True)
-        negative_betas = df.filter(pl.col("beta_ind") < 0)
+        negative_betas = df.filter(pl.col("beta_ind") < 0).sort(by="beta_ind", descending=False)
         return positive_betas, negative_betas
 
     @staticmethod
