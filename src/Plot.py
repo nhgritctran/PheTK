@@ -286,7 +286,7 @@ class Manhattan:
                 self.data_to_label = pl.concat(
                     [
                         self.data_to_label,
-                        self.positive_betas.filter(pl.col("beta_ind") >= label_value_threshold)
+                        self.positive_betas.drop("marker_size").filter(pl.col("beta_ind") >= label_value_threshold)
                     ]
                 )
                 if label_categories is not None:
@@ -299,7 +299,7 @@ class Manhattan:
                 self.data_to_label = pl.concat(
                     [
                         self.data_to_label,
-                        self.negative_betas.filter(pl.col("beta_ind") <= label_value_threshold)
+                        self.negative_betas.drop("marker_size").filter(pl.col("beta_ind") <= label_value_threshold)
                     ]
                 )
                 if label_categories is not None:
