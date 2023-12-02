@@ -124,11 +124,16 @@ class Manhattan:
         return df
 
     @staticmethod
-    def _split_by_beta(df):
+    def _split_by_beta(df, marker_size_by_beta):
         """
         :param df: data of interest, e.g., full phewas result or result of a phecode_category
         :return: positive and negative beta polars dataframes
         """
+
+        # add marker size if marker_size_by_beta is True
+        if marker_size_by_beta:
+            df = df.with_columns(15*np.exp(pl.col("beta_ind").abs()).alias("marker_size"))
+
         # split to positive and negative beta data
         positive_betas = df.filter(pl.col("beta_ind") >= 0).sort(by="beta_ind", descending=True)
         negative_betas = df.filter(pl.col("beta_ind") < 0)
@@ -281,7 +286,7 @@ class Manhattan:
                 self.data_to_label = pl.concat(
                     [
                         self.data_to_label,
-                        self.positive_betas.drop("marker_size").filter(pl.col("beta_ind") >= label_value_threshold)
+                        self.positive_betas.filter(pl.col("beta_ind") >= label_value_threshold)
                     ]
                 )
                 if label_categories is not None:
@@ -294,7 +299,7 @@ class Manhattan:
                 self.data_to_label = pl.concat(
                     [
                         self.data_to_label,
-                        self.negative_betas.drop("marker_size").filter(pl.col("beta_ind") <= label_value_threshold)
+                        self.negative_betas.filter(pl.col("beta_ind") <= label_value_threshold)
                     ]
                 )
                 if label_categories is not None:
@@ -438,16 +443,7 @@ class Manhattan:
         ax.set_ylabel(r"$-\log_{10}$(p-value)", size=axis_text_size)
 
         # generate positive & negative betas
-        self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
-
-        # generate marker_size if marker_size_by_beta is True
-        if marker_size_by_beta:
-            self.positive_betas = self.positive_betas.with_columns(
-                (100 * (pl.col("beta_ind")/pl.col("beta_ind").max()) + 5).alias("marker_size")
-            )
-            self.negative_betas = self.negative_betas.with_columns(
-                (100 * (pl.col("beta_ind").abs()/pl.col("beta_ind").abs().max()) + 5).alias("marker_size")
-            )
+        self.positive_betas, self.negative_betas = self._split_by_beta(plot_df, marker_size_by_beta)
 
         ############
         # PLOTTING #
