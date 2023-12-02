@@ -267,12 +267,12 @@ class Cohort:
 
     def add_covariates(self,
                        cohort_csv_path=None,
-                       natural_age=True,
-                       age_at_last_event=True,
+                       natural_age=False,
+                       age_at_last_event=False,
                        sex_at_birth=True,
-                       ehr_length=True,
-                       dx_code_occurrence_count=True,
-                       dx_condition_count=True,
+                       ehr_length=False,
+                       dx_code_occurrence_count=False,
+                       dx_condition_count=False,
                        genetic_ancestry=False,
                        first_n_pcs=0,
                        chunk_size=10000,
@@ -292,6 +292,7 @@ class Cohort:
         :param first_n_pcs: number of first principal components to include
         :param chunk_size: defaults to 10,000; number of IDs per thread
         :param drop_nulls: defaults to False; drop rows having null values, i.e., participants without all covariates
+        :param output_file_name: name for output csv file; do not include ".csv"
         :return: csv file and polars dataframe object
         """
         # assign attributes
