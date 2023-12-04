@@ -218,7 +218,10 @@ class PheWAS:
 
         # SEX RESTRICTION
         filtered_df = phecode_df.filter(pl.col("phecode") == phecode)
-        sex_restriction = filtered_df["sex"].unique().to_list()[0]
+        if lne(filtered_df["sex"].unique().to_list()) > 0:
+            sex_restriction = filtered_df["sex"].unique().to_list()[0]
+        else:
+            return pl.DataFrame(), pl.DataFrame(), []
 
         # ANALYSIS VAR COLS
         if sex_restriction == "Both":
