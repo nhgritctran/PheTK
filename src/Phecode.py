@@ -57,7 +57,7 @@ class Phecode:
                                              "ICD": str,
                                              "flag": pl.Int8,
                                              "phecode_unrolled": str,
-                                             "exclude_range": str}
+                                             "exclude_range": str},
                                      low_memory=True)
             phecode_df = phecode_df[["phecode_unrolled", "ICD", "flag"]]
         else:
