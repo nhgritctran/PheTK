@@ -104,4 +104,3 @@ class Phecode:
 
         del icd_events
         del phecode_counts
-        sleep(3)
