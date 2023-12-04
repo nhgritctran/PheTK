@@ -305,6 +305,7 @@ class PheWAS:
         beta_ind = result.params[var_of_interest_index]
         conf_int_1 = res.iloc[var_of_interest_index]['[0.025']
         conf_int_2 = res.iloc[var_of_interest_index]['0.975]']
+        odd_ratio = np.exp(beta_ind)
         neg_log_p_value = -np.log10(p_value)
 
         # for debugging
@@ -316,6 +317,7 @@ class PheWAS:
                 "beta_ind": beta_ind,
                 "conf_int_1": conf_int_1,
                 "conf_int_2": conf_int_2,
+                "odd_ratio": odd_ratio,
                 "converged": converged}
 
     def _logistic_regression(self, phecode,
