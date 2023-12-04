@@ -46,16 +46,18 @@ class Phecode:
             phecode_df = pl.read_csv("PyPheWAS/phecode/phecodeX.csv",
                                      dtypes={"phecode": str,
                                              "ICD": str,
-                                             "flag": pl.Int32,
+                                             "flag": pl.Int8,
                                              "code_val": float})
+            phecode_df = phecode_df[["phecode", "ICD", "flag"]]
         elif phecode_version.upper() == "1.2":
             # noinspection PyTypeChecker
             phecode_df = pl.read_csv("PyPheWAS/phecode/phecode12.csv",
                                      dtypes={"phecode": str,
                                              "ICD": str,
-                                             "flag": pl.Int32,
+                                             "flag": pl.Int8,
                                              "phecode_unrolled": str,
                                              "exclude_range": str})
+            phecode_df = phecode_df[["phecode_unrolled", "ICD", "flag"]]
         else:
             return "Invalid phecode version. Please choose either \"1.2\" or \"X\"."
 
@@ -65,17 +67,17 @@ class Phecode:
                                              .then(9)
                                              .otherwise(10)
                                              .alias("flag")
-                                             .cast(pl.Int32))
+                                             .cast(pl.Int8))
         icd_events = icd_events.drop(["date", "vocabulary_id"])
 
         print()
         print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
         if phecode_version == "X":
-            phecode_counts = icd_events.join(phecode_df[["phecode", "ICD", "flag"]],
+            phecode_counts = icd_events.join(phecode_df,
                                              how="inner",
                                              on=["ICD", "flag"])
         elif phecode_version == "1.2":
-            phecode_counts = icd_events.join(phecode_df[["phecode_unrolled", "ICD", "flag"]],
+            phecode_counts = icd_events.join(phecode_df,
                                              how="inner",
                                              on=["ICD", "flag"])
             phecode_counts = phecode_counts.rename({"phecode_unrolled": "phecode"})
