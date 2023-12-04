@@ -186,6 +186,9 @@ class Cohort:
             print(f"Variant {variant_string} not found!")
             print()
 
+        del polars_df
+        del cohort
+
     def _get_ancestry_preds(self, user_project, participant_ids):
         """
         This method specifically designed for All of Us database
@@ -364,3 +367,6 @@ class Cohort:
         print()
         print(f"Cohort data saved as \"{file_name}.csv\"!\033[0m")
         print()
+
+        self.covariates = None
+        self.final_cohort = None
