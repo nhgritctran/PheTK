@@ -44,11 +44,6 @@ class Cohort:
         self.genetic_ancestry = False
         self.first_n_pcs = 0
 
-        # output attributes
-        self.genotype_cohort = None
-        self.covariates = None
-        self.final_cohort = None
-
     def by_genotype(self,
                     chromosome_number,
                     genomic_position,
@@ -169,9 +164,7 @@ class Cohort:
                 .rename({"s": "person_id"})[["person_id", "case"]] \
                 .with_columns(pl.col("person_id").cast(int))
             cohort = cohort.unique()
-
-            self.genotype_cohort = cohort
-            self.genotype_cohort.write_csv(output_file_name)
+            cohort.write_csv(output_file_name)
 
             print()
             print("\033[1mCohort size:", len(cohort))
@@ -315,11 +308,9 @@ class Cohort:
             if "person_id" not in cohort.columns:
                 print("Cohort must contains \"person_id\" column!")
                 sys.exit(0)
-        elif cohort_csv_path is None and self.genotype_cohort is not None:
-            cohort = self.genotype_cohort
         else:
             print("A cohort is required."
-                  "Please run by_genotype() method to create a genotype cohort or provide a valid file path.")
+                  "Please provide a valid file path.")
             sys.exit(0)
 
         # get participant IDs from cohort
@@ -345,29 +336,24 @@ class Cohort:
         for i in range(1, len(chunks)):
             covariates = pl.concat([covariates, result_list[i]])
 
-        self.covariates = covariates.unique()
-        self.covariates.write_csv("covariates.csv")
+        covariates = covariates.unique()
+        covariates.write_csv("covariates.csv")
 
         # merge covariates to cohort
         final_cohort = cohort.join(covariates, how="left", on="person_id")
         if drop_nulls:
             final_cohort = final_cohort.drop_nulls()
 
-        self.final_cohort = final_cohort
-
         file_name = "cohort"
         if output_file_name is not None:
             file_name = output_file_name
-        self.final_cohort.write_csv(f"{file_name}.csv")
+        final_cohort.write_csv(f"{file_name}.csv")
 
         print()
-        print("Cohort size:", len(self.final_cohort))
-        if "case" in self.final_cohort.columns:
-            print("Cases:", self.final_cohort["case"].sum())
-            print("Controls:", len(self.final_cohort.filter(pl.col("case") == 0)), "\033[0m")
+        print("Cohort size:", len(final_cohort))
+        if "case" in final_cohort.columns:
+            print("Cases:", final_cohort["case"].sum())
+            print("Controls:", len(final_cohort.filter(pl.col("case") == 0)), "\033[0m")
         print()
         print(f"Cohort data saved as \"{file_name}.csv\"!\033[0m")
         print()
-
-        self.covariates = None
-        self.final_cohort = None
