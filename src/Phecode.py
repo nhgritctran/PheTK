@@ -47,7 +47,8 @@ class Phecode:
                                      dtypes={"phecode": str,
                                              "ICD": str,
                                              "flag": pl.Int8,
-                                             "code_val": float})
+                                             "code_val": float},
+                                     low_memory=True)
             phecode_df = phecode_df[["phecode", "ICD", "flag"]]
         elif phecode_version.upper() == "1.2":
             # noinspection PyTypeChecker
@@ -56,7 +57,8 @@ class Phecode:
                                              "ICD": str,
                                              "flag": pl.Int8,
                                              "phecode_unrolled": str,
-                                             "exclude_range": str})
+                                             "exclude_range": str}
+                                     low_memory=True)
             phecode_df = phecode_df[["phecode_unrolled", "ICD", "flag"]]
         else:
             return "Invalid phecode version. Please choose either \"1.2\" or \"X\"."
@@ -83,11 +85,10 @@ class Phecode:
             phecode_counts = phecode_counts.rename({"phecode_unrolled": "phecode"})
         else:
             phecode_counts = None
+        phecode_counts = phecode_counts.collect()
             
         if not phecode_counts.is_empty() or phecode_counts is not None:
             phecode_counts = phecode_counts.groupby(["person_id", "phecode"]).count()
-
-        phecode_counts = phecode_counts.collect()
 
         # report result
         if not phecode_counts.is_empty() or phecode_counts is not None:
