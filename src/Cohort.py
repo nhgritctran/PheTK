@@ -186,6 +186,7 @@ class Cohort:
             print(f"Variant {variant_string} not found!")
             print()
 
+        del mt
         del polars_df
         del cohort
 
