@@ -85,7 +85,7 @@ class Phecode:
             lazy_counts = lazy_counts.rename({"phecode_unrolled": "phecode"})
         else:
             lazy_counts = None
-        phecode_counts = lazy_counts.collect(streaming=True)
+        phecode_counts = lazy_counts.collect()
             
         if not phecode_counts.is_empty() or phecode_counts is not None:
             phecode_counts = phecode_counts.groupby(["person_id", "phecode"]).count()
