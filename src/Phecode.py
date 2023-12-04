@@ -85,7 +85,7 @@ class Phecode:
             phecode_counts = phecode_counts.rename({"phecode_unrolled": "phecode"})
         else:
             phecode_counts = None
-        phecode_counts = phecode_counts.collect()
+        phecode_counts = phecode_counts.collect(streaming=True)
             
         if not phecode_counts.is_empty() or phecode_counts is not None:
             phecode_counts = phecode_counts.groupby(["person_id", "phecode"]).count()
