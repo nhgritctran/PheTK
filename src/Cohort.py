@@ -179,10 +179,6 @@ class Cohort:
             print(f"Variant {variant_string} not found!")
             print()
 
-        del mt
-        del polars_df
-        del cohort
-
     def _get_ancestry_preds(self, user_project, participant_ids):
         """
         This method specifically designed for All of Us database
