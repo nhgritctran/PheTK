@@ -348,7 +348,7 @@ class PheWAS:
             print(f"Phecode {phecode} cases & controls created in {case_end_time - case_start_time} seconds\n")
 
         # only run regression if number of cases > min_cases
-        if (len(cases) >= self.min_cases) and (len(controls) > 0):
+        if (len(cases) >= self.min_cases) and (len(controls) > self.min_cases):
 
             # add case/control values
             cases = cases.with_columns(pl.Series([1] * len(cases)).alias("y"))
