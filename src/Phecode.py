@@ -73,18 +73,21 @@ class Phecode:
         print()
         print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
         if phecode_version == "X":
-            phecode_counts = icd_events.join(phecode_df,
-                                             how="inner",
-                                             on=["ICD", "flag"])
+            phecode_counts = icd_events.lazy().join(phecode_df,
+                                                    how="inner",
+                                                    on=["ICD", "flag"])
         elif phecode_version == "1.2":
-            phecode_counts = icd_events.join(phecode_df,
-                                             how="inner",
-                                             on=["ICD", "flag"])
+            phecode_counts = icd_events.lazy().join(phecode_df,
+                                                    how="inner",
+                                                    on=["ICD", "flag"])
             phecode_counts = phecode_counts.rename({"phecode_unrolled": "phecode"})
         else:
             phecode_counts = None
+            
         if not phecode_counts.is_empty() or phecode_counts is not None:
             phecode_counts = phecode_counts.groupby(["person_id", "phecode"]).count()
+
+        phecode_counts = phecode_counts.collect()
 
         # report result
         if not phecode_counts.is_empty() or phecode_counts is not None:
