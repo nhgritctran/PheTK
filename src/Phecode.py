@@ -102,4 +102,5 @@ class Phecode:
             print("\033[1mNo phecode count generated.\033[0m")
             print()
 
+        del icd_events
         del phecode_counts
