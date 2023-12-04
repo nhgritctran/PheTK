@@ -385,16 +385,14 @@ class Manhattan:
              y_limit=None,
              axis_text_size=8,
              show_legend=True,
-             legend_marker_size=6):
+             legend_marker_size=6,
+             dpi=150):
 
         ############
         # SETTINGS #
         ############
 
         # setup some variables based on plot_all_categories and phecode_categories
-
-        # dpi
-        dpi = 150
         
         # phecode_categories & label_categories
         if phecode_categories:
