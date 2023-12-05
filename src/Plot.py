@@ -192,7 +192,6 @@ class Plot:
     def _lines(self,
                ax,
                plot_df,
-               x_col=None,
                nominal_significance_line=False,
                bonferroni_line=False,
                infinity_line=False,
@@ -235,19 +234,16 @@ class Plot:
                           lw=1)
 
         # vertical lines
-        if x_col is None:
-            print("Error: Please provide name of column containing x values for vertical lines.")
-        else:
-            if x_positive_threshold_line:
-                ax.vlines(x=x_positive_threshold_value,
-                          ymin=0-self.offset,
-                          ymax=plot_df[x_col].max() + self.offset + 1,
-                          linestyles="dashed")
-            if x_negative_threshold_line:
-                ax.vlines(x=x_negative_threshold_value,
-                          ymin=0-self.offset,
-                          ymax=plot_df[x_col].max() + self.offset + 1,
-                          linestyles="dashed")
+        if x_positive_threshold_line:
+            ax.vlines(x=x_positive_threshold_value,
+                      ymin=0-self.offset,
+                      ymax=plot_df["neg_log_p_value"].max() + self.offset + 1,
+                      linestyles="dashed")
+        if x_negative_threshold_line:
+            ax.vlines(x=x_negative_threshold_value,
+                      ymin=0-self.offset,
+                      ymax=plot_df["neg_log_p_value"].max() + self.offset + 1,
+                      linestyles="dashed")
 
     @staticmethod
     def _split_text(s, threshold=30):
@@ -573,7 +569,6 @@ class Plot:
             x_negative_threshold_line = True
         self._lines(ax=ax,
                     plot_df=plot_df,
-                    x_col=x_col,
                     x_positive_threshold_line=x_positive_threshold_line,
                     x_positive_threshold_value=x_positive_threshold,
                     x_negative_threshold_line=x_negative_threshold_line,
