@@ -210,7 +210,7 @@ class Plot:
         # nominal significance line
         if nominal_significance_line:
             ax.hlines(-adjustText.np.log10(.05),
-                      0 - self.offset,
+                      plot_df[x_col].min() - self.offset,
                       plot_df[x_col].max() + self.offset + 1,
                       colors="red",
                       lw=1)
@@ -218,7 +218,7 @@ class Plot:
         # bonferroni
         if bonferroni_line:
             ax.hlines(self.bonferroni,
-                      0 - self.offset,
+                      plot_df[x_col].min() - self.offset,
                       plot_df[x_col].max() + self.offset + 1,
                       colors="green",
                       lw=1)
@@ -228,7 +228,7 @@ class Plot:
             if self.inf_proxy is not None:
                 ax.yaxis.get_major_ticks()[-2].set_visible(False)
                 ax.hlines(self.inf_proxy * 0.98,
-                          0 - self.offset,
+                          plot_df[x_col].min() - self.offset,
                           plot_df[x_col].max() + self.offset + 1,
                           colors="blue",
                           linestyle="dashdot",
@@ -237,12 +237,12 @@ class Plot:
         # vertical lines
         if x_positive_threshold_line:
             ax.vlines(x=x_positive_threshold_value,
-                      ymin=0-self.offset,
+                      ymin=plot_df["neg_log_p_value"].min()-self.offset,
                       ymax=plot_df["neg_log_p_value"].max() + self.offset + 1,
                       linestyles="dashed")
         if x_negative_threshold_line:
             ax.vlines(x=x_negative_threshold_value,
-                      ymin=0-self.offset,
+                      ymin=plot_df["neg_log_p_value"].min()-self.offset,
                       ymax=plot_df["neg_log_p_value"].max() + self.offset + 1,
                       linestyles="dashed")
 
