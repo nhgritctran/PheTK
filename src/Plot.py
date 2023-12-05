@@ -249,7 +249,6 @@ class Plot:
                           ymax=plot_df[x_col].max() + self.offset + 1,
                           linestyles="dash")
 
-
     @staticmethod
     def _split_text(s, threshold=30):
         """
