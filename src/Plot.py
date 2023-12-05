@@ -245,7 +245,7 @@ class Plot:
             ax.vlines(x=x_negative_threshold_value,
                       ymin=plot_df["neg_log_p_value"].min()-self.offset,
                       ymax=plot_df["neg_log_p_value"].max() + self.offset + 5,
-                      colors="cyan",
+                      colors="green",
                       linestyles="dashed")
 
     @staticmethod
