@@ -302,11 +302,12 @@ class PheWAS:
         res = pd.read_html(results_as_html, header=0, index_col=0)[0]
 
         p_value = result.pvalues[var_of_interest_index]
+        neg_log_p_value = -np.log10(p_value)
         beta_ind = result.params[var_of_interest_index]
         conf_int_1 = res.iloc[var_of_interest_index]['[0.025']
         conf_int_2 = res.iloc[var_of_interest_index]['0.975]']
-        odd_ratio = np.exp(beta_ind)
-        neg_log_p_value = -np.log10(p_value)
+        odds_ratio = np.exp(beta_ind)
+        log_odds_ratio = np.log(odds_ratio)
 
         # for debugging
         if self.debug_mode:
@@ -317,7 +318,8 @@ class PheWAS:
                 "beta_ind": beta_ind,
                 "conf_int_1": conf_int_1,
                 "conf_int_2": conf_int_2,
-                "odd_ratio": odd_ratio,
+                "odds_ratio": odds_ratio,
+                "log_odds_ratio": log_odds_ratio,
                 "converged": converged}
 
     def _logistic_regression(self, phecode,
