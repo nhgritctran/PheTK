@@ -281,12 +281,19 @@ class Plot:
             label_values = [label_values]
 
         self.data_to_label = pl.DataFrame(schema=plot_df.schema)
+        positive_betas = self.positive_betas.clone()
+        negative_betas = self.negative_betas.clone()
+        if "marker_size" in positive_betas.columns:
+            positive_betas = positive_betas.drop("marker_size")
+        if "marker_size" in negative_betas.columns:
+            negative_betas = negative_betas.drop("marker_size")
+
         for item in label_values:
             if item == "positive_beta":
                 self.data_to_label = pl.concat(
                     [
                         self.data_to_label,
-                        self.positive_betas.drop("marker_size").filter(pl.col("beta_ind") >= label_value_threshold)
+                        positive_betas.filter(pl.col("beta_ind") >= label_value_threshold)
                     ]
                 )
                 if label_categories is not None:
@@ -299,7 +306,7 @@ class Plot:
                 self.data_to_label = pl.concat(
                     [
                         self.data_to_label,
-                        self.negative_betas.drop("marker_size").filter(pl.col("beta_ind") <= label_value_threshold)
+                        negative_betas.filter(pl.col("beta_ind") <= label_value_threshold)
                     ]
                 )
                 if label_categories is not None:
