@@ -238,13 +238,13 @@ class Plot:
         if x_positive_threshold_line:
             ax.vlines(x=x_positive_threshold_value,
                       ymin=plot_df["neg_log_p_value"].min()-self.offset,
-                      ymax=plot_df["neg_log_p_value"].max() + self.offset + 1,
+                      ymax=plot_df["neg_log_p_value"].max() + self.offset + 5,
                       colors="orange",
                       linestyles="dashed")
         if x_negative_threshold_line:
             ax.vlines(x=x_negative_threshold_value,
                       ymin=plot_df["neg_log_p_value"].min()-self.offset,
-                      ymax=plot_df["neg_log_p_value"].max() + self.offset + 1,
+                      ymax=plot_df["neg_log_p_value"].max() + self.offset + 5,
                       colors="cyan",
                       linestyles="dashed")
 
