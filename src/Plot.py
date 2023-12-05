@@ -210,7 +210,7 @@ class Plot:
         if nominal_significance_line:
             ax.hlines(-adjustText.np.log10(.05),
                       0 - self.offset,
-                      plot_df["phecode_index"].max() + self.offset + 1,
+                      len(plot_df) + self.offset + 1,
                       colors="red",
                       lw=1)
 
@@ -218,7 +218,7 @@ class Plot:
         if bonferroni_line:
             ax.hlines(self.bonferroni,
                       0 - self.offset,
-                      plot_df["phecode_index"].max() + self.offset + 1,
+                      len(plot_df) + self.offset + 1,
                       colors="green",
                       lw=1)
 
@@ -228,7 +228,7 @@ class Plot:
                 ax.yaxis.get_major_ticks()[-2].set_visible(False)
                 ax.hlines(self.inf_proxy * 0.98,
                           0 - self.offset,
-                          plot_df["phecode_index"].max() + self.offset + 1,
+                          len(plot_df) + self.offset + 1,
                           colors="blue",
                           linestyle="dashdot",
                           lw=1)
