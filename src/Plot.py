@@ -192,6 +192,7 @@ class Plot:
     def _lines(self,
                ax,
                plot_df,
+               x_col,
                nominal_significance_line=False,
                bonferroni_line=False,
                infinity_line=False,
@@ -210,7 +211,7 @@ class Plot:
         if nominal_significance_line:
             ax.hlines(-adjustText.np.log10(.05),
                       0 - self.offset,
-                      len(plot_df) + self.offset + 1,
+                      plot_df[x_col].max() + self.offset + 1,
                       colors="red",
                       lw=1)
 
@@ -218,7 +219,7 @@ class Plot:
         if bonferroni_line:
             ax.hlines(self.bonferroni,
                       0 - self.offset,
-                      len(plot_df) + self.offset + 1,
+                      plot_df[x_col].max() + self.offset + 1,
                       colors="green",
                       lw=1)
 
@@ -228,7 +229,7 @@ class Plot:
                 ax.yaxis.get_major_ticks()[-2].set_visible(False)
                 ax.hlines(self.inf_proxy * 0.98,
                           0 - self.offset,
-                          len(plot_df) + self.offset + 1,
+                          plot_df[x_col].max() + self.offset + 1,
                           colors="blue",
                           linestyle="dashdot",
                           lw=1)
@@ -489,6 +490,7 @@ class Plot:
         # lines
         self._lines(ax=ax,
                     plot_df=plot_df,
+                    x_col="phecode_index",
                     nominal_significance_line=True,
                     bonferroni_line=True,
                     infinity_line=True)
@@ -572,6 +574,7 @@ class Plot:
             x_negative_threshold_line = True
         self._lines(ax=ax,
                     plot_df=plot_df,
+                    x_col=x_col,
                     x_positive_threshold_line=x_positive_threshold_line,
                     x_positive_threshold_value=x_positive_threshold,
                     x_negative_threshold_line=x_negative_threshold_line,
