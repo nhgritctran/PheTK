@@ -423,6 +423,9 @@ class Plot:
         ############
 
         # setup some variables based on plot_all_categories and phecode_categories
+
+        # offset
+        self.offset = 9
         
         # phecode_categories & label_categories
         if phecode_categories:
@@ -538,6 +541,9 @@ class Plot:
                 axis_text_size=None,
                 marker_size_col=None,
                 dpi=150):
+
+        # set offset
+        self.offset = 0.1
 
         # create plot
         fig, ax = adjustText.plt.subplots(figsize=(12 * self.ratio, 7), dpi=dpi)
