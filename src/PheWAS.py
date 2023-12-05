@@ -303,10 +303,10 @@ class PheWAS:
 
         p_value = result.pvalues[var_of_interest_index]
         neg_log_p_value = -np.log10(p_value)
-        beta_ind = result.params[var_of_interest_index]
+        beta = result.params[var_of_interest_index]
         conf_int_1 = res.iloc[var_of_interest_index]['[0.025']
         conf_int_2 = res.iloc[var_of_interest_index]['0.975]']
-        odds_ratio = np.exp(beta_ind)
+        odds_ratio = np.exp(beta)
 
         # for debugging
         if self.debug_mode:
@@ -314,7 +314,7 @@ class PheWAS:
 
         return {"p_value": p_value,
                 "neg_log_p_value": neg_log_p_value,
-                "beta_ind": beta_ind,
+                "beta": beta,
                 "conf_int_1": conf_int_1,
                 "conf_int_2": conf_int_2,
                 "odds_ratio": odds_ratio,
