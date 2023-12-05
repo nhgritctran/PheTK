@@ -527,6 +527,9 @@ class Plot:
                 y_threshold=None,
                 x_negative_threshold=None,
                 x_positive_threshold=None,
+                bonferroni_line=False,
+                nominal_significance_line=False,
+                infinity_line=False,
                 y_limit=None,
                 title=None,
                 title_text_size=None,
@@ -572,4 +575,7 @@ class Plot:
                     x_positive_threshold_line=x_positive_threshold_line,
                     x_positive_threshold_value=x_positive_threshold,
                     x_negative_threshold_line=x_negative_threshold_line,
-                    x_negative_threshold_value=x_negative_threshold)
+                    x_negative_threshold_value=x_negative_threshold,
+                    bonferroni_line=bonferroni_line,
+                    nominal_significance_line=nominal_significance_line,
+                    infinity_line=infinity_line)
