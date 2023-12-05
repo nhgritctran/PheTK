@@ -189,7 +189,18 @@ class Plot:
                    marker="v",
                    alpha=self.negative_alpha)
 
-    def _lines(self, ax, plot_df):
+    def _lines(self,
+               ax,
+               plot_df,
+               x_col=None,
+               nominal_significance_line=False,
+               bonferroni_line=False,
+               infinity_line=False,
+               x_positive_threshold_line=False,
+               x_positive_threshold_value=None,
+               x_negative_threshold_line=False,
+               x_negative_threshold_value=None):
+
         """
         Generate bonferroni, nominal significance and infinity lines
         :param ax: plot object
@@ -197,31 +208,47 @@ class Plot:
         :return:
         """
         # nominal significance line
-        ax.hlines(-adjustText.np.log10(.05),
-                  0 - self.offset,
-                  plot_df["phecode_index"].max() + self.offset + 1,
-                  colors="red",
-                  lw=1)
-
-        # bonferroni
-        ax.hlines(self.bonferroni,
-                  0 - self.offset,
-                  plot_df["phecode_index"].max() + self.offset + 1,
-                  colors="green",
-                  lw=1)
-
-        # infinity
-        max_neg_log_p_value = plot_df.filter(
-            pl.col("phecode_category").is_in(self.phecode_categories)
-        )["neg_log_p_value"].max()
-        if self.inf_proxy is not None:
-            ax.yaxis.get_major_ticks()[-2].set_visible(False)
-            ax.hlines(self.inf_proxy * 0.98,
+        if nominal_significance_line:
+            ax.hlines(-adjustText.np.log10(.05),
                       0 - self.offset,
                       plot_df["phecode_index"].max() + self.offset + 1,
-                      colors="blue",
-                      linestyle="dashdot",
+                      colors="red",
                       lw=1)
+
+        # bonferroni
+        if bonferroni_line:
+            ax.hlines(self.bonferroni,
+                      0 - self.offset,
+                      plot_df["phecode_index"].max() + self.offset + 1,
+                      colors="green",
+                      lw=1)
+
+        # infinity
+        if infinity_line:
+            if self.inf_proxy is not None:
+                ax.yaxis.get_major_ticks()[-2].set_visible(False)
+                ax.hlines(self.inf_proxy * 0.98,
+                          0 - self.offset,
+                          plot_df["phecode_index"].max() + self.offset + 1,
+                          colors="blue",
+                          linestyle="dashdot",
+                          lw=1)
+
+        # vertical lines
+        if x_col is None:
+            print("Error: Please provide name of column containing x values for vertical lines.")
+        else:
+            if x_positive_threshold_line:
+                ax.vlines(x=x_positive_threshold_value,
+                          ymin=0-self.offset,
+                          ymax=plot_df[x_col].max() + self.offset + 1,
+                          linestyles="dash")
+            if x_negative_threshold_line:
+                ax.vlines(x=x_negative_threshold_value,
+                          ymin=0-self.offset,
+                          ymax=plot_df[x_col].max() + self.offset + 1,
+                          linestyles="dash")
+
 
     @staticmethod
     def _split_text(s, threshold=30):
@@ -465,7 +492,11 @@ class Plot:
         self._manhattan_scatter(ax=ax, marker_size_by_beta=marker_size_by_beta)
 
         # lines
-        self._lines(ax=ax, plot_df=plot_df)
+        self._lines(ax=ax,
+                    plot_df=plot_df,
+                    nominal_significance_line=True,
+                    bonferroni_line=True,
+                    infinity_line=True)
 
         # labeling
         self._label(plot_df=plot_df, label_values=label_values, label_count=label_count,
@@ -533,3 +564,18 @@ class Plot:
 
         # scatter
         self._volcano_scatter(ax=ax, x_col=x_col, marker_size_col=marker_size_col)
+
+        # lines
+        x_positive_threshold_line = False
+        x_negative_threshold_line = False
+        if x_positive_threshold:
+            x_positive_threshold_line = True
+        if x_negative_threshold:
+            x_negative_threshold_line = True
+        self._lines(ax=ax,
+                    plot_df=plot_df,
+                    x_col=x_col,
+                    x_positive_threshold_line=x_positive_threshold_line,
+                    x_positive_threshold_value=x_positive_threshold,
+                    x_negative_threshold_line=x_negative_threshold_line,
+                    x_negative_threshold_value=x_negative_threshold)
