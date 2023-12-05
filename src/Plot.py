@@ -477,19 +477,25 @@ class Plot:
         if show_legend:
             self._manhattan_legend(ax, legend_marker_size)
 
-    def _volcano_scatter(self, ax, marker_size=None, positive_beta_color="indianred", negative_beta_color="darkcyan"):
-        ax.scatter(x=self.positive_betas["odd_ratio"].to_numpy(),
+    def _volcano_scatter(self,
+                         ax,
+                         x_col,
+                         marker_size=None,
+                         positive_beta_color="indianred",
+                         negative_beta_color="darkcyan"):
+        ax.scatter(x=self.positive_betas[x_col].to_numpy(),
                    y=self.positive_betas["neg_log_p_value"],
                    s=marker_size,
                    c=positive_beta_color,
                    marker="^")
-        ax.scatter(x=self.negative_betas["odd_ratio"].to_numpy(),
+        ax.scatter(x=self.negative_betas[x_col].to_numpy(),
                    y=self.negative_betas["neg_log_p_value"],
                    s=marker_size,
                    c=negative_beta_color,
                    marker="v")
 
     def volcano(self,
+                x_col,
                 label_values=None,
                 label_count=10,
                 y_threshold=None,
@@ -525,4 +531,4 @@ class Plot:
         ############
 
         # scatter
-        self._volcano_scatter(ax=ax)
+        self._volcano_scatter(ax=ax, x_col=x_col)
