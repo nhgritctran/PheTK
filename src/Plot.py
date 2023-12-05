@@ -485,12 +485,12 @@ class Plot:
                          negative_beta_color="darkcyan"):
         ax.scatter(x=self.positive_betas[x_col].to_numpy(),
                    y=self.positive_betas["neg_log_p_value"],
-                   s=self.positive_betas[marker_size_col].log10().to_numpy(),
+                   s=self.positive_betas[marker_size_col].log2().to_numpy(),
                    c=positive_beta_color,
                    marker="^")
         ax.scatter(x=self.negative_betas[x_col].to_numpy(),
                    y=self.negative_betas["neg_log_p_value"],
-                   s=self.negative_betas[marker_size_col].log10().to_numpy(),
+                   s=self.negative_betas[marker_size_col].log2().to_numpy(),
                    c=negative_beta_color,
                    marker="v")
 
@@ -520,7 +520,7 @@ class Plot:
             ax.set_ylim(-0.2, y_limit)
 
         # y axis label
-        ax.set_xlabel(r"OR", size=axis_text_size)
+        ax.set_xlabel(r"log(OR)", size=axis_text_size)
         ax.set_ylabel(r"$-\log_{10}$(p-value)", size=axis_text_size)
 
         # generate positive & negative betas
