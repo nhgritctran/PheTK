@@ -487,12 +487,12 @@ class Plot:
                    y=self.positive_betas["neg_log_p_value"],
                    s=self.positive_betas[marker_size_col].sqrt().to_numpy(),
                    c=positive_beta_color,
-                   marker="^")
+                   marker=".")
         ax.scatter(x=self.negative_betas[x_col].to_numpy(),
                    y=self.negative_betas["neg_log_p_value"],
                    s=self.negative_betas[marker_size_col].sqrt().to_numpy(),
                    c=negative_beta_color,
-                   marker="v")
+                   marker=".")
 
     def volcano(self,
                 x_col,
