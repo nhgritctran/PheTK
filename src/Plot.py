@@ -485,12 +485,12 @@ class Plot:
                          negative_beta_color="darkcyan"):
         ax.scatter(x=self.positive_betas[x_col].to_numpy(),
                    y=self.positive_betas["neg_log_p_value"],
-                   s=self.positive_betas[marker_size_col].log().to_numpy(),
+                   s=self.positive_betas[marker_size_col].log1p().to_numpy(),
                    c=positive_beta_color,
                    marker="^")
         ax.scatter(x=self.negative_betas[x_col].to_numpy(),
                    y=self.negative_betas["neg_log_p_value"],
-                   s=self.negative_betas[marker_size_col].log().to_numpy(),
+                   s=self.negative_betas[marker_size_col].log1p().to_numpy(),
                    c=negative_beta_color,
                    marker="v")
 
