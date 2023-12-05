@@ -242,12 +242,12 @@ class Plot:
                 ax.vlines(x=x_positive_threshold_value,
                           ymin=0-self.offset,
                           ymax=plot_df[x_col].max() + self.offset + 1,
-                          linestyles="dashes")
+                          linestyles="dashed")
             if x_negative_threshold_line:
                 ax.vlines(x=x_negative_threshold_value,
                           ymin=0-self.offset,
                           ymax=plot_df[x_col].max() + self.offset + 1,
-                          linestyles="dashes")
+                          linestyles="dashed")
 
     @staticmethod
     def _split_text(s, threshold=30):
