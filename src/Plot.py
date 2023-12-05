@@ -480,17 +480,17 @@ class Plot:
     def _volcano_scatter(self,
                          ax,
                          x_col,
-                         marker_size=None,
+                         marker_size_col=None,
                          positive_beta_color="indianred",
                          negative_beta_color="darkcyan"):
         ax.scatter(x=self.positive_betas[x_col].to_numpy(),
                    y=self.positive_betas["neg_log_p_value"],
-                   s=marker_size,
+                   s=self.positive_betas[marker_size_col].to_numpy(),
                    c=positive_beta_color,
                    marker="^")
         ax.scatter(x=self.negative_betas[x_col].to_numpy(),
                    y=self.negative_betas["neg_log_p_value"],
-                   s=marker_size,
+                   s=self.negative_betas[marker_size_col].to_numpy(),
                    c=negative_beta_color,
                    marker="v")
 
@@ -505,6 +505,7 @@ class Plot:
                 title=None,
                 title_text_size=None,
                 axis_text_size=None,
+                marker_size_col=None,
                 dpi=150):
 
         # create plot
@@ -531,4 +532,4 @@ class Plot:
         ############
 
         # scatter
-        self._volcano_scatter(ax=ax, x_col=x_col)
+        self._volcano_scatter(ax=ax, x_col=x_col, marker_size_col=marker_size_col)
