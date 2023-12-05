@@ -5,7 +5,7 @@ import numpy as np
 import polars as pl
 
 
-class Manhattan:
+class Plot:
     def __init__(self,
                  phewas_result,
                  bonferroni=None,
@@ -124,7 +124,7 @@ class Manhattan:
         return df
 
     @staticmethod
-    def _split_by_beta(df, marker_size_by_beta):
+    def _split_by_beta(df, marker_size_by_beta=False):
         """
         :param df: data of interest, e.g., full phewas result or result of a phecode_category
         :return: positive and negative beta polars dataframes
@@ -160,7 +160,7 @@ class Manhattan:
         for tick_label, tick_color in zip(sorted_labels, selected_color_dict.values()):
             tick_label.set_color(tick_color)
 
-    def _scatter(self, ax, marker_size_by_beta):
+    def _manhattan_scatter(self, ax, marker_size_by_beta):
         """
         Generate scatter data points
         :param ax: plot object
@@ -347,7 +347,7 @@ class Manhattan:
             return adjustText.adjust_text(texts,
                                           arrowprops=dict(arrowstyle="simple", color="gray", lw=0.5, mutation_scale=2))
 
-    def _legend(self, ax, legend_marker_size):
+    def _manhattan_legend(self, ax, legend_marker_size):
         """
         :param ax: plot object
         :param legend_marker_size: size of markers
@@ -368,25 +368,25 @@ class Manhattan:
                   bbox_to_anchor=(1, 0.5),
                   fontsize=legend_marker_size)
 
-    def plot(self,
-             label_values="positive_beta",
-             label_value_threshold=0,
-             label_count=10,
-             label_size=8,
-             label_text_column="phecode_string",
-             label_color="label_color",
-             label_weight="normal",
-             label_split_threshold=30,
-             marker_size_by_beta=False,
-             phecode_categories=None,
-             plot_all_categories=True,
-             title=None,
-             title_text_size=10,
-             y_limit=None,
-             axis_text_size=8,
-             show_legend=True,
-             legend_marker_size=6,
-             dpi=150):
+    def manhattan(self,
+                  label_values="positive_beta",
+                  label_value_threshold=0,
+                  label_count=10,
+                  label_size=8,
+                  label_text_column="phecode_string",
+                  label_color="label_color",
+                  label_weight="normal",
+                  label_split_threshold=30,
+                  marker_size_by_beta=False,
+                  phecode_categories=None,
+                  plot_all_categories=True,
+                  title=None,
+                  title_text_size=10,
+                  y_limit=None,
+                  axis_text_size=8,
+                  show_legend=True,
+                  legend_marker_size=6,
+                  dpi=150):
 
         ############
         # SETTINGS #
@@ -455,7 +455,7 @@ class Manhattan:
         self._x_ticks(plot_df, selected_color_dict)
 
         # scatter
-        self._scatter(ax=ax, marker_size_by_beta=marker_size_by_beta)
+        self._manhattan_scatter(ax=ax, marker_size_by_beta=marker_size_by_beta)
 
         # lines
         self._lines(ax=ax, plot_df=plot_df)
@@ -468,4 +468,54 @@ class Manhattan:
 
         # legend
         if show_legend:
-            self._legend(ax, legend_marker_size)
+            self._manhattan_legend(ax, legend_marker_size)
+
+    def _volcano_scatter(self, ax, marker_size=None, positive_beta_color="indianred", negative_beta_color="darkcyan"):
+        ax.scatter(x=self.positive_betas["odd_ratio"].to_numpy(),
+                   y=self.positive_betas["neg_log_p_value"],
+                   s=marker_size,
+                   c=positive_beta_color,
+                   marker="^")
+        ax.scatter(x=self.negative_betas["odd_ratio"].to_numpy(),
+                   y=self.negative_betas["neg_log_p_value"],
+                   s=marker_size,
+                   c=negative_beta_color,
+                   marker="v")
+
+    def volcano(self,
+                label_values=None,
+                label_count=10,
+                y_threshold=None,
+                x_negative_threshold=None,
+                x_positive_threshold=None,
+                y_limit=None,
+                title=None,
+                title_text_size=None,
+                axis_text_size=None,
+                dpi=150):
+
+        # create plot
+        fig, ax = adjustText.plt.subplots(figsize=(12 * self.ratio, 7), dpi=dpi)
+
+        # plot title
+        if title is not None:
+            adjustText.plt.title(title, weight="bold", size=title_text_size)
+
+        # set limit for display on y axes
+        if y_limit is not None:
+            ax.set_ylim(-0.2, y_limit)
+
+        # y axis label
+        ax.set_xlabel(r"OR", size=axis_text_size)
+        ax.set_ylabel(r"$-\log_{10}$(p-value)", size=axis_text_size)
+
+        # generate positive & negative betas
+        plot_df = self.phewas_result
+        self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
+
+        ############
+        # PLOTTING #
+        ############
+
+        # scatter
+        self._volcano_scatter(ax=ax)
