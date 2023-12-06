@@ -535,11 +535,13 @@ class Plot:
                    y=self.positive_betas["neg_log_p_value"],
                    s=self.positive_betas[marker_size_col].to_numpy(),
                    c=positive_beta_color,
+                   facecolors='none',
                    marker=marker_shape)
         ax.scatter(x=self.negative_betas[x_col].to_numpy(),
                    y=self.negative_betas["neg_log_p_value"],
                    s=self.negative_betas[marker_size_col].to_numpy(),
                    c=negative_beta_color,
+                   facecolors='none',
                    marker=marker_shape)
 
     # def _volcano_label(self,
