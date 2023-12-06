@@ -242,8 +242,9 @@ class Plot:
             ax.hlines(y=y_threshold_value,
                       xmin=plot_df[x_col].min() - self.offset,
                       xmax=plot_df[x_col].max() + self.offset + 1,
-                      colors="black",
-                      linestyles="dashed")
+                      colors="gray",
+                      linestyles="dashed",
+                      lw=1)
 
         # vertical lines
         if x_positive_threshold_line:
@@ -251,13 +252,15 @@ class Plot:
                       ymin=plot_df["neg_log_p_value"].min()-self.offset,
                       ymax=plot_df["neg_log_p_value"].max() + self.offset + 5,
                       colors="orange",
-                      linestyles="dashed")
+                      linestyles="dashed",
+                      lw=1)
         if x_negative_threshold_line:
             ax.vlines(x=x_negative_threshold_value,
                       ymin=plot_df["neg_log_p_value"].min()-self.offset,
                       ymax=plot_df["neg_log_p_value"].max() + self.offset + 5,
                       colors="lightseagreen",
-                      linestyles="dashed")
+                      linestyles="dashed",
+                      lw=1)
 
     @staticmethod
     def _split_text(s, threshold=30):
