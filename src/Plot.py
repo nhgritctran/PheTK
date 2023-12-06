@@ -572,21 +572,21 @@ class Plot:
                        x_positive_threshold=None,
                        x_negative_threshold=None,):
         data_to_label = plot_df.filter(
-            (
-                    (pl.col(x_col) >= x_positive_threshold) |
-                    (pl.col(x_col) <= x_negative_threshold)
-            ) &
-            (
-                    pl.col("neg_log_p_value") >= y_threshold
-            )
+            ((pl.col(x_col) >= x_positive_threshold) | (pl.col(x_col) <= x_negative_threshold)) &
+            (pl.col("neg_log_p_value") >= y_threshold)
         )
         texts = []
         for i in range(len(data_to_label)):
+            if data_to_label[x_col][i] < 0:
+                color = "lightseagreen"
+            else:
+                color = "orange"
             # noinspection PyTypeChecker
             texts.append(adjustText.plt.text(float(data_to_label[x_col][i]),
                                              float(data_to_label[y_col][i]),
                                              self._split_text(data_to_label[label_text_column][i],
                                                               label_split_threshold),
+                                             color=color,
                                              size=label_size,
                                              weight=label_weight,
                                              alpha=1))
