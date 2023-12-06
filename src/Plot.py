@@ -528,18 +528,19 @@ class Plot:
                          ax,
                          x_col,
                          marker_size_col=None,
+                         marker_shape=".",
                          positive_beta_color="indianred",
                          negative_beta_color="darkcyan"):
         ax.scatter(x=self.positive_betas[x_col].to_numpy(),
                    y=self.positive_betas["neg_log_p_value"],
                    s=self.positive_betas[marker_size_col].to_numpy(),
                    c=positive_beta_color,
-                   marker=".")
+                   marker=marker_shape)
         ax.scatter(x=self.negative_betas[x_col].to_numpy(),
                    y=self.negative_betas["neg_log_p_value"],
                    s=self.negative_betas[marker_size_col].to_numpy(),
                    c=negative_beta_color,
-                   marker=".")
+                   marker=marker_shape)
 
     # def _volcano_label(self,
     #                    plot_df,
@@ -580,6 +581,7 @@ class Plot:
                 title_text_size=None,
                 axis_text_size=None,
                 marker_size_col=None,
+                marker_shape=".",
                 dpi=150):
 
         # set offset
@@ -612,7 +614,7 @@ class Plot:
         ############
 
         # scatter
-        self._volcano_scatter(ax=ax, x_col=x_col, marker_size_col=marker_size_col)
+        self._volcano_scatter(ax=ax, x_col=x_col, marker_size_col=marker_size_col, marker_shape=marker_shape)
 
         # lines
         x_positive_threshold_line = False
