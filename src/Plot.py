@@ -600,6 +600,13 @@ class Plot:
                 texts, arrowprops=dict(arrowstyle="simple", color="gray", lw=0.5, mutation_scale=2)
             )
 
+    @staticmethod
+    def _volcano_legend(ax, legend_size=6):
+        ax.legend(*ax.legend_elements("sizes", num=6),
+                  loc="center left",
+                  bbox_to_anchor=(1, 0.5),
+                  fontsize=legend_size)
+
     def volcano(self,
                 x_col="log10_odds_ratio",
                 y_col="neg_log_p_value",
@@ -683,3 +690,5 @@ class Plot:
         # labels
         self._volcano_label(plot_df=plot_df, x_col=x_col, y_col=y_col, y_threshold=y_threshold,
                             x_positive_threshold=x_positive_threshold, x_negative_threshold=x_negative_threshold)
+        # legend
+        self._volcano_legend(ax=ax)
