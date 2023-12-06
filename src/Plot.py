@@ -585,13 +585,12 @@ class Plot:
         ax.set_xlabel(r"log(OR)", size=axis_text_size)
         ax.set_ylabel(r"$-\log_{10}$(p-value)", size=axis_text_size)
 
-        # generate positive & negative betas
+        # plot_df
         plot_df = self.phewas_result
-        self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
-
-        # exclusion
         if exclude_infinity:
             plot_df = plot_df.filter(pl.col("neg_log_p_value") != np.inf)
+        # generate positive & negative betas
+        self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
 
         ############
         # PLOTTING #
