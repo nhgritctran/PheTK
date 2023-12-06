@@ -578,9 +578,9 @@ class Plot:
         texts = []
         for i in range(len(data_to_label)):
             if data_to_label[x_col][i] < 0:
-                color = "lightseagreen"
+                color = "green"
             else:
-                color = "orange"
+                color = "red"
             # noinspection PyTypeChecker
             texts.append(adjustText.plt.text(float(data_to_label[x_col][i]),
                                              float(data_to_label[y_col][i]),
