@@ -572,7 +572,6 @@ class Plot:
             loc="center left",
             bbox_to_anchor=(1, 0.5),
             title="Case Number")
-        legend.legendHandles[0]._legmarker.set_markersize(5)
 
     def _volcano_label(self,
                        plot_df,
