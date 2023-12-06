@@ -241,7 +241,7 @@ class Plot:
         if y_threshold_line:
             ax.hlines(y=y_threshold_value,
                       xmin=plot_df[x_col].min() - self.offset,
-                      xmax=[x_col].max() + self.offset + 1,
+                      xmax=plot_df[x_col].max() + self.offset + 1,
                       colors="black",
                       linestyles="dashed")
 
