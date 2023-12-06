@@ -586,7 +586,7 @@ class Plot:
         ax.set_ylabel(r"$-\log_{10}$(p-value)", size=axis_text_size)
 
         # plot_df
-        plot_df = self.phewas_result
+        plot_df = self.phewas_result.clone()
         if exclude_infinity:
             plot_df = plot_df.filter(pl.col("neg_log_p_value") != np.inf)
         # generate positive & negative betas
