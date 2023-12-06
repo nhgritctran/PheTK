@@ -193,9 +193,12 @@ class Plot:
                ax,
                plot_df,
                x_col,
+               y_threshold=None,
                nominal_significance_line=False,
                bonferroni_line=False,
                infinity_line=False,
+               y_threshold_line=False,
+               y_threshold_value=None,
                x_positive_threshold_line=False,
                x_positive_threshold_value=None,
                x_negative_threshold_line=False,
@@ -209,17 +212,17 @@ class Plot:
         """
         # nominal significance line
         if nominal_significance_line:
-            ax.hlines(-adjustText.np.log10(.05),
-                      plot_df[x_col].min() - self.offset,
-                      plot_df[x_col].max() + self.offset + 1,
+            ax.hlines(y=-adjustText.np.log10(.05),
+                      xmin=plot_df[x_col].min() - self.offset,
+                      xmax=plot_df[x_col].max() + self.offset + 1,
                       colors="red",
                       lw=1)
 
         # bonferroni
         if bonferroni_line:
-            ax.hlines(self.bonferroni,
-                      plot_df[x_col].min() - self.offset,
-                      plot_df[x_col].max() + self.offset + 1,
+            ax.hlines(y=self.bonferroni,
+                      xmin=plot_df[x_col].min() - self.offset,
+                      xmax=plot_df[x_col].max() + self.offset + 1,
                       colors="green",
                       lw=1)
 
@@ -227,12 +230,20 @@ class Plot:
         if infinity_line:
             if self.inf_proxy is not None:
                 ax.yaxis.get_major_ticks()[-2].set_visible(False)
-                ax.hlines(self.inf_proxy * 0.98,
-                          plot_df[x_col].min() - self.offset,
-                          plot_df[x_col].max() + self.offset + 1,
+                ax.hlines(y=self.inf_proxy * 0.98,
+                          xmin=plot_df[x_col].min() - self.offset,
+                          xmax=plot_df[x_col].max() + self.offset + 1,
                           colors="blue",
                           linestyle="dashdot",
                           lw=1)
+
+        # y threshold line
+        if y_threshold_line:
+            ax.hlines(y=y_threshold_value,
+                      xmin=plot_df[x_col].min() - self.offset,
+                      xmax=[x_col].max() + self.offset + 1,
+                      colors="black",
+                      linestyles="dashed")
 
         # vertical lines
         if x_positive_threshold_line:
@@ -603,13 +614,18 @@ class Plot:
         # lines
         x_positive_threshold_line = False
         x_negative_threshold_line = False
-        if x_positive_threshold:
+        y_threshold_line = False
+        if x_positive_threshold is not None:
             x_positive_threshold_line = True
-        if x_negative_threshold:
+        if x_negative_threshold is not None:
             x_negative_threshold_line = True
+        if y_threshold is not None:
+            y_threshold_line = True
         self._lines(ax=ax,
                     plot_df=plot_df,
                     x_col=x_col,
+                    y_threshold_line=y_threshold_line,
+                    y_threshold_value=y_threshold,
                     x_positive_threshold_line=x_positive_threshold_line,
                     x_positive_threshold_value=x_positive_threshold,
                     x_negative_threshold_line=x_negative_threshold_line,
