@@ -602,7 +602,7 @@ class Plot:
 
     @staticmethod
     def _volcano_legend(ax, legend_size=6):
-        ax.legend(*ax.legend_elements("sizes", num=6),
+        ax.legend(*ax.scatter.legend_elements("sizes", num=6),
                   loc="center left",
                   bbox_to_anchor=(1, 0.5),
                   fontsize=legend_size)
