@@ -210,6 +210,7 @@ class Plot:
         :param plot_df:
         :return:
         """
+        extra_offset = 0
         if plot_type == "manhattan":
             extra_offset = 1
         elif plot_type == "volcano":
@@ -533,6 +534,7 @@ class Plot:
     def _volcano_scatter(self,
                          ax,
                          x_col,
+                         y_col="neg_log_p_value",
                          marker_size_col=None,
                          marker_shape=".",
                          positive_beta_color="indianred",
@@ -545,45 +547,52 @@ class Plot:
             positive_face_color = "none"
             negative_face_color = "none"
         ax.scatter(x=self.positive_betas[x_col].to_numpy(),
-                   y=self.positive_betas["neg_log_p_value"],
+                   y=self.positive_betas[y_col],
                    s=self.positive_betas[marker_size_col].to_numpy(),
                    edgecolors=positive_beta_color,
                    facecolors=positive_face_color,
                    marker=marker_shape)
         ax.scatter(x=self.negative_betas[x_col].to_numpy(),
-                   y=self.negative_betas["neg_log_p_value"],
+                   y=self.negative_betas[y_col],
                    s=self.negative_betas[marker_size_col].to_numpy(),
                    edgecolor=negative_beta_color,
                    facecolors=negative_face_color,
                    marker=marker_shape)
 
-    # def _volcano_label(self,
-    #                    plot_df,
-    #                    custom_labels=None,
-    #                    y_threshold=None,
-    #                    x_positive_threshold=None,
-    #                    x_negative_threshold=None,):
-    #     data_to_label
-    #     texts = []
-    #     for i in range(len(self.data_to_label)):
-    #         if mc.is_color_like(label_color):
-    #             color = pl.Series(values=[label_color] * len(self.data_to_label))
-    #         else:
-    #             # noinspection PyTypeChecker
-    #             color = self.data_to_label[label_color]
-    #         # noinspection PyTypeChecker
-    #         texts.append(adjustText.plt.text(float(self.data_to_label[x_col][i]),
-    #                                          float(self.data_to_label[y_col][i]),
-    #                                          self._split_text(self.data_to_label[label_text_column][i],
-    #                                                           label_split_threshold),
-    #                                          color=color[i],
-    #                                          size=label_size,
-    #                                          weight=label_weight,
-    #                                          alpha=1))
+    def _volcano_label(self,
+                       plot_df,
+                       x_col="log10_odds_ratio",
+                       y_col="neg_log_p_value",
+                       label_text_column="phecode_string",
+                       label_split_threshold=30,
+                       label_size=8,
+                       label_weight="normal",
+                       custom_labels=None,
+                       y_threshold=None,
+                       x_positive_threshold=None,
+                       x_negative_threshold=None,):
+        data_to_label = plot_df.filter(
+            (
+                    (pl.col(x_col) >= x_positive_threshold) |
+                    (pl.col(x_col) <= x_negative_threshold)
+            ) &
+            pl.col("neg_log_p_value") >= y_threshold
+        )
+        texts = []
+        for i in range(len(data_to_label)):
+            # noinspection PyTypeChecker
+            texts.append(adjustText.plt.text(float(data_to_label[x_col][i]),
+                                             float(data_to_label[y_col][i]),
+                                             self._split_text(self.data_to_label[label_text_column][i],
+                                                              label_split_threshold),
+                                             size=label_size,
+                                             weight=label_weight,
+                                             alpha=1))
 
     def volcano(self,
                 x_col="log10_odds_ratio",
-                x_label=r"$\log_{10}$(OR)",
+                y_col="neg_log_p_value",
+                x_axis_label=r"$\log_{10}$(OR)",
                 exclude_infinity=False,
                 y_threshold=None,
                 x_negative_threshold=None,
@@ -615,7 +624,7 @@ class Plot:
             ax.set_ylim(-0.2, y_limit)
 
         # y axis label
-        ax.set_xlabel(x_label, size=axis_text_size)
+        ax.set_xlabel(x_axis_label, size=axis_text_size)
         ax.set_ylabel(r"$-\log_{10}$(p-value)", size=axis_text_size)
 
         # plot_df
@@ -659,3 +668,7 @@ class Plot:
                     bonferroni_line=bonferroni_line,
                     nominal_significance_line=nominal_significance_line,
                     infinity_line=infinity_line)
+
+        # labels
+        self._volcano_label(plot_df=plot_df, x_col=x_col, y_col=y_col, y_threshold=y_threshold,
+                            x_positive_threshold=x_positive_threshold, x_negative_threshold=x_negative_threshold)
