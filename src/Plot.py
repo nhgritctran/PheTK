@@ -569,7 +569,7 @@ class Plot:
         handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
         legend = ax.legend(
             handles, labels,
-            markerscale=0.5,
+            markerscale=0.25,
             loc="center left",
             bbox_to_anchor=(1, 0.5),
             title="Case Number")
