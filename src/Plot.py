@@ -1,6 +1,7 @@
 from matplotlib.lines import Line2D
 import adjustText
 import matplotlib.colors as mc
+import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
 
@@ -546,18 +547,43 @@ class Plot:
         else:
             positive_face_color = "none"
             negative_face_color = "none"
-        ax.scatter(x=self.positive_betas[x_col].to_numpy(),
-                   y=self.positive_betas[y_col],
-                   s=self.positive_betas[marker_size_col].to_numpy(),
-                   edgecolors=positive_beta_color,
-                   facecolors=positive_face_color,
-                   marker=marker_shape)
-        ax.scatter(x=self.negative_betas[x_col].to_numpy(),
-                   y=self.negative_betas[y_col],
-                   s=self.negative_betas[marker_size_col].to_numpy(),
-                   edgecolor=negative_beta_color,
-                   facecolors=negative_face_color,
-                   marker=marker_shape)
+        pos_df = self.positive_betas[[x_col, y_col, marker_size_col]].with_columns(pl.lit(positive_beta_color)
+                                                                                   .alias("edge_color"))\
+                                                                     .with_columns(pl.lit(positive_face_color)
+                                                                                   .alias("face_color"))
+        neg_df = self.negative_betas[[x_col, y_col, marker_size_col]].with_columns(pl.lit(negative_beta_color)
+                                                                                   .alias("edge_color"))\
+                                                                     .with_columns(pl.lit(negative_face_color)
+                                                                                   .alias("face_color"))
+        full_df = pl.concat([pos_df, neg_df])
+
+        scatter = ax.scatter(
+            x=full_df[x_col].to_numpy(),
+            y=full_df[y_col],
+            s=full_df[marker_size_col].to_numpy(),
+            edgecolors=full_df["edge_color"],
+            facecolors=full_df["face_color"],
+            marker=marker_shape
+        )
+
+        # positive_scatter = ax.scatter(
+        #     x=self.positive_betas[x_col].to_numpy(),
+        #     y=self.positive_betas[y_col],
+        #     s=self.positive_betas[marker_size_col].to_numpy(),
+        #     edgecolors=positive_beta_color,
+        #     facecolors=positive_face_color,
+        #     marker=marker_shape
+        # )
+        # negative_scatter = ax.scatter(
+        #     x=self.negative_betas[x_col].to_numpy(),
+        #     y=self.negative_betas[y_col],
+        #     s=self.negative_betas[marker_size_col].to_numpy(),
+        #     edgecolor=negative_beta_color,
+        #     facecolors=negative_face_color,
+        #     marker=marker_shape
+        # )
+
+        plt.show()
 
     def _volcano_label(self,
                        plot_df,
@@ -599,13 +625,6 @@ class Plot:
             return adjustText.adjust_text(
                 texts, arrowprops=dict(arrowstyle="simple", color="gray", lw=0.5, mutation_scale=2)
             )
-
-    @staticmethod
-    def _volcano_legend(ax, legend_size=6):
-        ax.legend(*ax.scatter.legend_elements("sizes", num=6),
-                  loc="center left",
-                  bbox_to_anchor=(1, 0.5),
-                  fontsize=legend_size)
 
     def volcano(self,
                 x_col="log10_odds_ratio",
@@ -690,5 +709,3 @@ class Plot:
         # labels
         self._volcano_label(plot_df=plot_df, x_col=x_col, y_col=y_col, y_threshold=y_threshold,
                             x_positive_threshold=x_positive_threshold, x_negative_threshold=x_negative_threshold)
-        # legend
-        self._volcano_legend(ax=ax)
