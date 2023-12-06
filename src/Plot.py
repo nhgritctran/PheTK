@@ -270,19 +270,19 @@ class Plot:
 
         return new_s
 
-    def _label(self,
-               plot_df,
-               label_values,
-               label_count,
-               label_categories=None,
-               label_text_column="phecode_string",
-               label_value_threshold=0,
-               label_split_threshold=30,
-               label_color="label_color",
-               label_size=8,
-               label_weight="normal",
-               y_col="neg_log_p_value",
-               x_col="phecode_index"):
+    def _manhattan_label(self,
+                         plot_df,
+                         label_values,
+                         label_count,
+                         label_categories=None,
+                         label_text_column="phecode_string",
+                         label_value_threshold=0,
+                         label_split_threshold=30,
+                         label_color="label_color",
+                         label_size=8,
+                         label_weight="normal",
+                         y_col="neg_log_p_value",
+                         x_col="phecode_index"):
         """
         :param plot_df: plot data
         :param label_values: can take a single phecode, a list of phecodes,
@@ -501,10 +501,10 @@ class Plot:
                     infinity_line=True)
 
         # labeling
-        self._label(plot_df=plot_df, label_values=label_values, label_count=label_count,
-                    label_text_column=label_text_column, label_categories=label_categories,
-                    label_value_threshold=label_value_threshold, label_split_threshold=label_split_threshold,
-                    label_size=label_size, label_color=label_color, label_weight=label_weight)
+        self._manhattan_label(plot_df=plot_df, label_values=label_values, label_count=label_count,
+                              label_text_column=label_text_column, label_categories=label_categories,
+                              label_value_threshold=label_value_threshold, label_split_threshold=label_split_threshold,
+                              label_size=label_size, label_color=label_color, label_weight=label_weight)
 
         # legend
         if show_legend:
@@ -527,10 +527,33 @@ class Plot:
                    c=negative_beta_color,
                    marker=".")
 
+    # def _volcano_label(self,
+    #                    plot_df,
+    #                    custom_labels=None,
+    #                    y_threshold=None,
+    #                    x_positive_threshold=None,
+    #                    x_negative_threshold=None,):
+    #     data_to_label
+    #     texts = []
+    #     for i in range(len(self.data_to_label)):
+    #         if mc.is_color_like(label_color):
+    #             color = pl.Series(values=[label_color] * len(self.data_to_label))
+    #         else:
+    #             # noinspection PyTypeChecker
+    #             color = self.data_to_label[label_color]
+    #         # noinspection PyTypeChecker
+    #         texts.append(adjustText.plt.text(float(self.data_to_label[x_col][i]),
+    #                                          float(self.data_to_label[y_col][i]),
+    #                                          self._split_text(self.data_to_label[label_text_column][i],
+    #                                                           label_split_threshold),
+    #                                          color=color[i],
+    #                                          size=label_size,
+    #                                          weight=label_weight,
+    #                                          alpha=1))
+
     def volcano(self,
                 x_col,
-                label_values=None,
-                label_count=10,
+                exclude_infinity=False,
                 y_threshold=None,
                 x_negative_threshold=None,
                 x_positive_threshold=None,
@@ -565,6 +588,10 @@ class Plot:
         # generate positive & negative betas
         plot_df = self.phewas_result
         self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
+
+        # exclusion
+        if exclude_infinity:
+            plot_df = plot_df.filter(pl.col("neg_log_p_value") != np.inf)
 
         ############
         # PLOTTING #
