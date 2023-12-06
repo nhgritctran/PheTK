@@ -133,7 +133,7 @@ class Plot:
 
         # add marker size if marker_size_by_beta is True
         if marker_size_by_beta:
-            df = df.with_columns((18*pl.col("beta_ind").abs()).alias("marker_size"))
+            df = df.with_columns((18*pl.col("beta_ind").abs()).alias("_marker_size"))
 
         # split to positive and negative beta data
         positive_betas = df.filter(pl.col("beta_ind") >= 0).sort(by="beta_ind", descending=True)
@@ -170,8 +170,8 @@ class Plot:
         """
 
         if marker_size_by_beta:
-            s_positive = self.positive_betas["marker_size"]
-            s_negative = self.negative_betas["marker_size"]
+            s_positive = self.positive_betas["_marker_size"]
+            s_negative = self.negative_betas["_marker_size"]
         else:
             s_positive = None
             s_negative = None
@@ -329,10 +329,10 @@ class Plot:
         self.data_to_label = pl.DataFrame(schema=plot_df.schema)
         positive_betas = self.positive_betas.clone()
         negative_betas = self.negative_betas.clone()
-        if "marker_size" in positive_betas.columns:
-            positive_betas = positive_betas.drop("marker_size")
-        if "marker_size" in negative_betas.columns:
-            negative_betas = negative_betas.drop("marker_size")
+        if "_marker_size" in positive_betas.columns:
+            positive_betas = positive_betas.drop("_marker_size")
+        if "_marker_size" in negative_betas.columns:
+            negative_betas = negative_betas.drop("_marker_size")
 
         for item in label_values:
             if item == "positive_beta":
