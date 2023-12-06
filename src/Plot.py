@@ -566,23 +566,6 @@ class Plot:
             marker=marker_shape
         )
 
-        # positive_scatter = ax.scatter(
-        #     x=self.positive_betas[x_col].to_numpy(),
-        #     y=self.positive_betas[y_col],
-        #     s=self.positive_betas[marker_size_col].to_numpy(),
-        #     edgecolors=positive_beta_color,
-        #     facecolors=positive_face_color,
-        #     marker=marker_shape
-        # )
-        # negative_scatter = ax.scatter(
-        #     x=self.negative_betas[x_col].to_numpy(),
-        #     y=self.negative_betas[y_col],
-        #     s=self.negative_betas[marker_size_col].to_numpy(),
-        #     edgecolor=negative_beta_color,
-        #     facecolors=negative_face_color,
-        #     marker=marker_shape
-        # )
-
     def _volcano_label(self,
                        plot_df,
                        x_col="log10_odds_ratio",
@@ -614,7 +597,7 @@ class Plot:
                                              size=label_size,
                                              weight=label_weight,
                                              bbox=dict(facecolor="white",
-                                                       edgecolor="black",
+                                                       edgecolor="none",
                                                        boxstyle="round",
                                                        alpha=0.75,
                                                        lw=0.5),
