@@ -576,7 +576,7 @@ class Plot:
                     (pl.col(x_col) >= x_positive_threshold) |
                     (pl.col(x_col) <= x_negative_threshold)
             ) &
-            pl.col("neg_log_p_value") >= y_threshold
+            (pl.col("neg_log_p_value") >= y_threshold)
         )
         texts = []
         for i in range(len(data_to_label)):
