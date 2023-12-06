@@ -567,11 +567,10 @@ class Plot:
         )
 
         handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
-        # ax.legend(handles, labels,
-        #           loc="center left",
-        #           bbox_to_anchor=(1, 0.5),
-        #           title="Case Number")
-        plt.legend(*scatter.legend_elements("sizes", num=6))
+        ax.legend(handles, labels,
+                  loc="center left",
+                  bbox_to_anchor=(1, 0.5),
+                  title="Case Number")
 
     def _volcano_label(self,
                        plot_df,
