@@ -585,7 +585,7 @@ class Plot:
             # noinspection PyTypeChecker
             texts.append(adjustText.plt.text(float(data_to_label[x_col][i]),
                                              float(data_to_label[y_col][i]),
-                                             self._split_text(self.data_to_label[label_text_column][i],
+                                             self._split_text(data_to_label[label_text_column][i],
                                                               label_split_threshold),
                                              size=label_size,
                                              weight=label_weight,
