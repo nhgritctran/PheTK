@@ -592,8 +592,8 @@ class Plot:
                                              bbox=dict(facecolor="white",
                                                        edgecolor="black",
                                                        boxstyle="round",
-                                                       alpha=0.5,
-                                                       lw=1),
+                                                       alpha=0.75,
+                                                       lw=0.5),
                                              alpha=1))
         if len(texts) > 0:
             return adjustText.adjust_text(
