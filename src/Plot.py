@@ -567,7 +567,7 @@ class Plot:
         )
 
         handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6, num=5)
-        ax.legend(handles, labels, loc="upper right", title="Sizes")
+        ax.legend(handles, labels, loc="upper right", title="Sizes", fontsize=4)
 
     def _volcano_label(self,
                        plot_df,
