@@ -591,6 +591,7 @@ class Plot:
                 axis_text_size=None,
                 marker_size_col=None,
                 marker_shape=".",
+                fill_marker=True,
                 dpi=150):
 
         # set offset
@@ -623,7 +624,11 @@ class Plot:
         ############
 
         # scatter
-        self._volcano_scatter(ax=ax, x_col=x_col, marker_size_col=marker_size_col, marker_shape=marker_shape)
+        self._volcano_scatter(ax=ax,
+                              x_col=x_col,
+                              marker_size_col=marker_size_col,
+                              marker_shape=marker_shape,
+                              fill_marker=fill_marker)
 
         # lines
         x_positive_threshold_line = False
