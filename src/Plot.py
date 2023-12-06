@@ -590,6 +590,10 @@ class Plot:
                                              size=label_size,
                                              weight=label_weight,
                                              alpha=1))
+        if len(texts) > 0:
+            return adjustText.adjust_text(
+                texts, arrowprops=dict(arrowstyle="simple", color="gray", lw=0.5, mutation_scale=2)
+            )
 
     def volcano(self,
                 x_col="log10_odds_ratio",
