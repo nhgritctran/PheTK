@@ -588,7 +588,7 @@ class Plot:
         # plot_df
         plot_df = self.phewas_result.clone()
         if exclude_infinity:
-            plot_df = plot_df.filter(pl.col("neg_log_p_value") != np.inf)
+            plot_df = plot_df.filter(pl.col("neg_log_p_value") != self.inf_proxy)
         # generate positive & negative betas
         self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
 
