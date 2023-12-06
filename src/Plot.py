@@ -191,9 +191,9 @@ class Plot:
 
     def _lines(self,
                ax,
+               plot_type,
                plot_df,
                x_col,
-               y_threshold=None,
                nominal_significance_line=False,
                bonferroni_line=False,
                infinity_line=False,
@@ -210,11 +210,16 @@ class Plot:
         :param plot_df:
         :return:
         """
+        if plot_type == "manhattan":
+            extra_offset = 1
+        elif plot_type == "volcano":
+            extra_offset = 0.2
+
         # nominal significance line
         if nominal_significance_line:
             ax.hlines(y=-adjustText.np.log10(.05),
                       xmin=plot_df[x_col].min() - self.offset,
-                      xmax=plot_df[x_col].max() + self.offset + 1,
+                      xmax=plot_df[x_col].max() + self.offset + extra_offset,
                       colors="red",
                       lw=1)
 
@@ -222,7 +227,7 @@ class Plot:
         if bonferroni_line:
             ax.hlines(y=self.bonferroni,
                       xmin=plot_df[x_col].min() - self.offset,
-                      xmax=plot_df[x_col].max() + self.offset + 1,
+                      xmax=plot_df[x_col].max() + self.offset + extra_offset,
                       colors="green",
                       lw=1)
 
@@ -232,7 +237,7 @@ class Plot:
                 ax.yaxis.get_major_ticks()[-2].set_visible(False)
                 ax.hlines(y=self.inf_proxy * 0.98,
                           xmin=plot_df[x_col].min() - self.offset,
-                          xmax=plot_df[x_col].max() + self.offset + 1,
+                          xmax=plot_df[x_col].max() + self.offset + extra_offset,
                           colors="blue",
                           linestyle="dashdot",
                           lw=1)
@@ -241,7 +246,7 @@ class Plot:
         if y_threshold_line:
             ax.hlines(y=y_threshold_value,
                       xmin=plot_df[x_col].min() - self.offset,
-                      xmax=plot_df[x_col].max() + self.offset + 1,
+                      xmax=plot_df[x_col].max() + self.offset + extra_offset,
                       colors="gray",
                       linestyles="dashed",
                       lw=1)
@@ -508,6 +513,7 @@ class Plot:
 
         # lines
         self._lines(ax=ax,
+                    plot_type="manhattan",
                     plot_df=plot_df,
                     x_col="phecode_index",
                     nominal_significance_line=True,
@@ -641,6 +647,7 @@ class Plot:
         if y_threshold is not None:
             y_threshold_line = True
         self._lines(ax=ax,
+                    plot_type="volcano",
                     plot_df=plot_df,
                     x_col=x_col,
                     y_threshold_line=y_threshold_line,
