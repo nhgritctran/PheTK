@@ -283,7 +283,7 @@ class Plot:
         for word in words:
             new_s += word
             line_length += len(word)
-            if line_length >= threshold:
+            if line_length >= threshold and word != words[-1]:
                 new_s += "\n"
                 line_length = 0
             else:
