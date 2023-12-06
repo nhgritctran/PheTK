@@ -566,7 +566,7 @@ class Plot:
             marker=marker_shape
         )
 
-        handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
+        handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6, num=5)
         ax.legend(handles, labels, loc="upper right", title="Sizes")
 
     def _volcano_label(self,
