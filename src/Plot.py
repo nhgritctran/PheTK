@@ -566,6 +566,9 @@ class Plot:
             marker=marker_shape
         )
 
+        handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
+        ax.legend(handles, labels, loc="upper right", title="Sizes")
+
     def _volcano_label(self,
                        plot_df,
                        x_col="log10_odds_ratio",
