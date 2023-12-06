@@ -218,7 +218,7 @@ class Plot:
         # nominal significance line
         if nominal_significance_line:
             ax.hlines(y=-adjustText.np.log10(.05),
-                      xmin=plot_df[x_col].min() - self.offset,
+                      xmin=plot_df[x_col].min() - self.offset - extra_offset,
                       xmax=plot_df[x_col].max() + self.offset + extra_offset,
                       colors="red",
                       lw=1)
@@ -226,7 +226,7 @@ class Plot:
         # bonferroni
         if bonferroni_line:
             ax.hlines(y=self.bonferroni,
-                      xmin=plot_df[x_col].min() - self.offset,
+                      xmin=plot_df[x_col].min() - self.offset - extra_offset,
                       xmax=plot_df[x_col].max() + self.offset + extra_offset,
                       colors="green",
                       lw=1)
@@ -236,7 +236,7 @@ class Plot:
             if self.inf_proxy is not None:
                 ax.yaxis.get_major_ticks()[-2].set_visible(False)
                 ax.hlines(y=self.inf_proxy * 0.98,
-                          xmin=plot_df[x_col].min() - self.offset,
+                          xmin=plot_df[x_col].min() - self.offset - extra_offset,
                           xmax=plot_df[x_col].max() + self.offset + extra_offset,
                           colors="blue",
                           linestyle="dashdot",
@@ -245,7 +245,7 @@ class Plot:
         # y threshold line
         if y_threshold_line:
             ax.hlines(y=y_threshold_value,
-                      xmin=plot_df[x_col].min() - self.offset,
+                      xmin=plot_df[x_col].min() - self.offset - extra_offset,
                       xmax=plot_df[x_col].max() + self.offset + extra_offset,
                       colors="gray",
                       linestyles="dashed",
