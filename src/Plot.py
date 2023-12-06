@@ -530,18 +530,25 @@ class Plot:
                          marker_size_col=None,
                          marker_shape=".",
                          positive_beta_color="indianred",
-                         negative_beta_color="darkcyan"):
+                         negative_beta_color="darkcyan",
+                         fill_marker=True):
+        if fill_marker:
+            positive_face_color = positive_beta_color
+            negative_face_color = negative_beta_color
+        else:
+            positive_face_color = "none"
+            negative_face_color = "none"
         ax.scatter(x=self.positive_betas[x_col].to_numpy(),
                    y=self.positive_betas["neg_log_p_value"],
                    s=self.positive_betas[marker_size_col].to_numpy(),
-                   c=positive_beta_color,
-                   facecolors='none',
+                   edgecolors=positive_beta_color,
+                   facecolors=positive_face_color,
                    marker=marker_shape)
         ax.scatter(x=self.negative_betas[x_col].to_numpy(),
                    y=self.negative_betas["neg_log_p_value"],
                    s=self.negative_betas[marker_size_col].to_numpy(),
-                   c=negative_beta_color,
-                   facecolors='none',
+                   edgecolor=negative_beta_color,
+                   facecolors=negative_face_color,
                    marker=marker_shape)
 
     # def _volcano_label(self,
