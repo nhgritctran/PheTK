@@ -583,8 +583,6 @@ class Plot:
         #     marker=marker_shape
         # )
 
-        plt.show()
-
     def _volcano_label(self,
                        plot_df,
                        x_col="log10_odds_ratio",
