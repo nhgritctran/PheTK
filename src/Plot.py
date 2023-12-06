@@ -552,8 +552,8 @@ class Plot:
     #                                          alpha=1))
 
     def volcano(self,
-                x_col="log_odds_ratio",
-                x_label=r"$log_{10}$(OR)",
+                x_col="log10_odds_ratio",
+                x_label=r"$\log_{10}$(OR)",
                 exclude_infinity=False,
                 y_threshold=None,
                 x_negative_threshold=None,
