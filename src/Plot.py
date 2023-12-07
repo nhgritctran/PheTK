@@ -79,6 +79,9 @@ class Plot:
         # offset
         self.offset = 9
 
+        # test
+        self.volcano_label_data = None
+
     @staticmethod
     def _to_polars(df):
         """
@@ -657,6 +660,9 @@ class Plot:
                 [plot_df.top_k(by=x_col, descending=True, k=label_count, nulls_last=True),
                  plot_df.top_k(by=x_col, descending=False, k=label_count, nulls_last=True)]
             ).unique()
+
+        # for testing
+        self.volcano_label_data = data_to_label
 
         texts = []
         for i in range(len(data_to_label)):
