@@ -695,7 +695,7 @@ class Plot:
                 title=None,
                 title_text_size=None,
                 axis_text_size=None,
-                marker_size_col=None,
+                marker_size_col="cases",
                 marker_shape=".",
                 fill_marker=True,
                 dpi=150):
