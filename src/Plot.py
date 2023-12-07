@@ -585,6 +585,7 @@ class Plot:
                                                 new_col="marker_size",
                                                 new_min=10,
                                                 new_max=800)
+                marker_size = full_df["marker_size"].to_numpy()
             else:
                 marker_size = full_df[marker_size_col].to_numpy()
         else:
