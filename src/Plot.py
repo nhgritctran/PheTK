@@ -579,13 +579,16 @@ class Plot:
         # combined into 1 df for plotting
         full_df = pl.concat([pos_df, neg_df])
         if marker_size_col is not None:
+            # by default, size markers by number of cases
             if marker_size_col == "cases":
+                # scale values for better visualization
                 full_df = self.transform_values(df=full_df,
                                                 col="cases",
                                                 new_col="marker_size",
                                                 new_min=10,
                                                 new_max=800)
                 marker_size = full_df["marker_size"].to_numpy()
+            # or use user input column of choice
             else:
                 marker_size = full_df[marker_size_col].to_numpy()
         else:
@@ -682,6 +685,7 @@ class Plot:
 
     def volcano(self,
                 label_list=None,
+                label_count=10,
                 x_col="log10_odds_ratio",
                 y_col="neg_log_p_value",
                 x_axis_label=r"$\log_{10}$(OR)",
@@ -762,5 +766,11 @@ class Plot:
                     infinity_line=infinity_line)
 
         # labels
-        self._volcano_label(phecode_string_list=label_list, plot_df=plot_df, x_col=x_col, y_col=y_col, y_threshold=y_threshold,
-                            x_positive_threshold=x_positive_threshold, x_negative_threshold=x_negative_threshold)
+        self._volcano_label(phecode_string_list=label_list,
+                            plot_df=plot_df,
+                            label_count=label_count,
+                            x_col=x_col,
+                            y_col=y_col,
+                            y_threshold=y_threshold,
+                            x_positive_threshold=x_positive_threshold,
+                            x_negative_threshold=x_negative_threshold)
