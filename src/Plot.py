@@ -555,7 +555,8 @@ class Plot:
                          marker_shape=".",
                          positive_beta_color="indianred",
                          negative_beta_color="darkcyan",
-                         fill_marker=True):
+                         fill_marker=True,
+                         legend=False):
 
         # set marker edge and face colors
         if fill_marker:
@@ -607,14 +608,15 @@ class Plot:
         )
 
         # legend
-        if marker_size_col is not None:
+        if (marker_size_col is not None) and legend:
             handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
             ax.legend(
                 handles, labels,
                 markerscale=0.25,
                 loc="center left",
                 bbox_to_anchor=(1, 0.5),
-                title="Case Number")
+                title="Case Number"
+            )
 
     def _volcano_label(self,
                        plot_df,
@@ -709,6 +711,7 @@ class Plot:
                 marker_size_col="cases",
                 marker_shape=".",
                 fill_marker=True,
+                legend=False,
                 dpi=150):
 
         # set offset
@@ -749,7 +752,8 @@ class Plot:
                               x_col=x_col,
                               marker_size_col=marker_size_col,
                               marker_shape=marker_shape,
-                              fill_marker=fill_marker)
+                              fill_marker=fill_marker,
+                              legend=legend)
 
         # lines
         x_positive_threshold_line = False
