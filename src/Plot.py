@@ -537,11 +537,19 @@ class Plot:
         if show_legend:
             self._manhattan_legend(ax, legend_marker_size)
 
+    @staticmethod
+    def transform_values(df, col, new_col, new_min, new_max):
+        df = df.with_columns(((pl.col(col) - pl.col(col).min())
+                              * (new_max - new_min)
+                              / (pl.col(col).max() - pl.col(col).min())
+                              + new_min).alias(new_col))
+        return df
+
     def _volcano_scatter(self,
                          ax,
                          x_col="log10_odds_ratio",
                          y_col="neg_log_p_value",
-                         marker_size_col=None,
+                         marker_size_col="cases",
                          marker_shape=".",
                          positive_beta_color="indianred",
                          negative_beta_color="darkcyan",
@@ -561,17 +569,24 @@ class Plot:
         else:
             col_list = [x_col, y_col]
         pos_df = self.positive_betas[col_list].with_columns(pl.lit(positive_beta_color)
-                                                                                   .alias("edge_color"))\
-                                                                     .with_columns(pl.lit(positive_face_color)
-                                                                                   .alias("face_color"))
+                                                            .alias("edge_color"))\
+                                              .with_columns(pl.lit(positive_face_color)
+                                                            .alias("face_color"))
         neg_df = self.negative_betas[col_list].with_columns(pl.lit(negative_beta_color)
-                                                                                   .alias("edge_color"))\
-                                                                     .with_columns(pl.lit(negative_face_color)
-                                                                                   .alias("face_color"))
+                                                            .alias("edge_color"))\
+                                              .with_columns(pl.lit(negative_face_color)
+                                                            .alias("face_color"))
         # combined into 1 df for plotting
         full_df = pl.concat([pos_df, neg_df])
         if marker_size_col is not None:
-            marker_size = full_df[marker_size_col].to_numpy()
+            if marker_size_col == "cases":
+                full_df = self.transform_values(df=full_df,
+                                                col="cases",
+                                                new_col="marker_size",
+                                                new_min=10,
+                                                new_max=800)
+            else:
+                marker_size = full_df[marker_size_col].to_numpy()
         else:
             marker_size = None
 
