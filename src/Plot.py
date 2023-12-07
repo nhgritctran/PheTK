@@ -400,7 +400,7 @@ class Plot:
                                              bbox=dict(facecolor="white",
                                                        edgecolor="none",
                                                        boxstyle="round",
-                                                       alpha=0.75,
+                                                       alpha=0.5,
                                                        lw=0.5)))
 
         if len(texts) > 0:
@@ -682,7 +682,7 @@ class Plot:
                                              bbox=dict(facecolor="white",
                                                        edgecolor="none",
                                                        boxstyle="round",
-                                                       alpha=0.75,
+                                                       alpha=0.5,
                                                        lw=0.5),
                                              alpha=1))
         if len(texts) > 0:
