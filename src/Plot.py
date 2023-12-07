@@ -694,7 +694,7 @@ class Plot:
                 label_count=10,
                 x_col="log10_odds_ratio",
                 y_col="neg_log_p_value",
-                x_axis_label=r"$\log_{10}$(OR)",
+                x_axis_label=None,
                 exclude_infinity=False,
                 y_threshold=None,
                 x_negative_threshold=None,
@@ -725,7 +725,11 @@ class Plot:
         if y_limit is not None:
             ax.set_ylim(-0.2, y_limit)
 
-        # y axis label
+        # x, y axis label
+        if x_col == "log10_odds_ratio":
+            x_axis_label = r"$\log_{10}$(OR)"
+        elif (x_col != "log10_odds_ratio") and (x_axis_label is None):
+            x_axis_label = x_col
         ax.set_xlabel(x_axis_label, size=axis_text_size)
         ax.set_ylabel(r"$-\log_{10}$(p-value)", size=axis_text_size)
 
