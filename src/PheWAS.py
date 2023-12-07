@@ -76,6 +76,7 @@ class PheWAS:
         # load covariate data
         # make sure person_id in covariate data has the same type as person_id in phecode count
         self.covariate_df = pl.read_csv(cohort_csv_path)
+        self.covariate_df = self.covariate_df.drop_nulls()
 
         # basic attributes from instantiation
         self.sex_at_birth_col = sex_at_birth_col
