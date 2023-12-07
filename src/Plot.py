@@ -539,9 +539,9 @@ class Plot:
 
     def _volcano_scatter(self,
                          ax,
-                         x_col,
+                         x_col="log10_odds_ratio",
                          y_col="neg_log_p_value",
-                         marker_size_col=None,
+                         marker_size_col="cases",
                          marker_shape=".",
                          positive_beta_color="indianred",
                          negative_beta_color="darkcyan",
