@@ -586,13 +586,14 @@ class Plot:
         )
 
         # legend
-        handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
-        legend = ax.legend(
-            handles, labels,
-            markerscale=0.25,
-            loc="center left",
-            bbox_to_anchor=(1, 0.5),
-            title="Case Number")
+        if marker_size_col is not None:
+            handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
+            legend = ax.legend(
+                handles, labels,
+                markerscale=0.25,
+                loc="center left",
+                bbox_to_anchor=(1, 0.5),
+                title="Case Number")
 
     def _volcano_label(self,
                        plot_df,
