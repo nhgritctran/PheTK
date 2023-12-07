@@ -546,12 +546,16 @@ class Plot:
                          positive_beta_color="indianred",
                          negative_beta_color="darkcyan",
                          fill_marker=True):
+
+        # set marker edge and face colors
         if fill_marker:
             positive_face_color = positive_beta_color
             negative_face_color = negative_beta_color
         else:
             positive_face_color = "none"
             negative_face_color = "none"
+
+        # color values for every points
         pos_df = self.positive_betas[[x_col, y_col, marker_size_col]].with_columns(pl.lit(positive_beta_color)
                                                                                    .alias("edge_color"))\
                                                                      .with_columns(pl.lit(positive_face_color)
@@ -560,8 +564,10 @@ class Plot:
                                                                                    .alias("edge_color"))\
                                                                      .with_columns(pl.lit(negative_face_color)
                                                                                    .alias("face_color"))
+        # combined into 1 df for plotting
         full_df = pl.concat([pos_df, neg_df])
 
+        # plot scatter
         scatter = ax.scatter(
             x=full_df[x_col].to_numpy(),
             y=full_df[y_col],
@@ -571,6 +577,7 @@ class Plot:
             marker=marker_shape
         )
 
+        # legend
         handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
         legend = ax.legend(
             handles, labels,
@@ -581,20 +588,48 @@ class Plot:
 
     def _volcano_label(self,
                        plot_df,
+                       phecode_list=None,
+                       phecode_string_list=None,
                        x_col="log10_odds_ratio",
                        y_col="neg_log_p_value",
+                       label_count=10,
                        label_text_column="phecode_string",
                        label_split_threshold=30,
                        label_size=8,
                        label_weight="normal",
-                       custom_labels=None,
-                       y_threshold=None,
+                       y_threshold=5,
                        x_positive_threshold=None,
-                       x_negative_threshold=None,):
-        data_to_label = plot_df.filter(
-            ((pl.col(x_col) >= x_positive_threshold) | (pl.col(x_col) <= x_negative_threshold)) &
-            (pl.col("neg_log_p_value") >= y_threshold)
-        )
+                       x_negative_threshold=None):
+
+        # get data for labeling, either use a list of phecodes/phecode names of choice, or use x & y thresholds
+        if (phecode_list is not None) or (phecode_string_list is not None):
+            if isinstance(phecode_string_list, str):
+                phecode_string_list = [phecode_string_list]
+            if isinstance(phecode_list, str):
+                phecode_list = [phecode_list]
+            data_to_label = plot_df.filter((pl.col("phecode").is_in(phecode_list)) |
+                                           (pl.col("phecode_string").is_in(phecode_string_list)))
+        elif (y_threshold is not None) or (x_negative_threshold is not None) or (x_positive_threshold is not None):
+            if y_threshold is None:
+                y_threshold = plot_df["neg_log_p_value"].min()
+            if x_negative_threshold is None:
+                x_negative_threshold = plot_df[x_col].min()
+            if x_positive_threshold is None:
+                x_positive_threshold = plot_df[x_col].max()
+            data_to_label = plot_df.filter(
+                ((pl.col(x_col) >= x_positive_threshold) | (pl.col(x_col) <= x_negative_threshold)) &
+                (pl.col("neg_log_p_value") >= y_threshold)
+            )
+            data_to_label = pl.concat(
+                [data_to_label.top_k(by=x_col, descending=True, k=label_count, nulls_last=True),
+                 data_to_label.top_k(by=x_col, descending=False, k=label_count, nulls_last=True)]
+            )
+        else:
+            data_to_label = pl.concat(
+                [plot_df.top_k(by=x_col, descending=True, k=label_count, nulls_last=True),
+                 plot_df.top_k(by=x_col, descending=False, k=label_count, nulls_last=True)]
+            )
+
         texts = []
         for i in range(len(data_to_label)):
             if data_to_label[x_col][i] < 0:
@@ -621,6 +656,7 @@ class Plot:
             )
 
     def volcano(self,
+                label_list=None,
                 x_col="log10_odds_ratio",
                 y_col="neg_log_p_value",
                 x_axis_label=r"$\log_{10}$(OR)",
@@ -701,5 +737,5 @@ class Plot:
                     infinity_line=infinity_line)
 
         # labels
-        self._volcano_label(plot_df=plot_df, x_col=x_col, y_col=y_col, y_threshold=y_threshold,
+        self._volcano_label(phecode_string_list=label_list, plot_df=plot_df, x_col=x_col, y_col=y_col, y_threshold=y_threshold,
                             x_positive_threshold=x_positive_threshold, x_negative_threshold=x_negative_threshold)
