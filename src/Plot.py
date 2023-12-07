@@ -651,13 +651,13 @@ class Plot:
                 (pl.col("neg_log_p_value") >= y_threshold)
             )
             data_to_label = pl.concat(
-                [data_to_label.top_k(by=x_col, descending=True, k=label_count, nulls_last=True),
-                 data_to_label.top_k(by=x_col, descending=False, k=label_count, nulls_last=True)]
+                [data_to_label.top_k(by=x_col, descending=True, k=round(label_count/2), nulls_last=True),
+                 data_to_label.top_k(by=x_col, descending=False, k=round(label_count/2), nulls_last=True)]
             ).unique()
         else:
             data_to_label = pl.concat(
-                [plot_df.top_k(by=x_col, descending=True, k=label_count, nulls_last=True),
-                 plot_df.top_k(by=x_col, descending=False, k=label_count, nulls_last=True)]
+                [plot_df.top_k(by=x_col, descending=True, k=round(label_count/2), nulls_last=True),
+                 plot_df.top_k(by=x_col, descending=False, k=round(label_count/2), nulls_last=True)]
             ).unique()
 
         # label data
