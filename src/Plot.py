@@ -394,7 +394,12 @@ class Plot:
                                              color=color[i],
                                              size=label_size,
                                              weight=label_weight,
-                                             alpha=1))
+                                             alpha=1,
+                                             bbox=dict(facecolor="white",
+                                                       edgecolor="none",
+                                                       boxstyle="round",
+                                                       alpha=0.75,
+                                                       lw=0.5)))
 
         if len(texts) > 0:
             return adjustText.adjust_text(texts,
