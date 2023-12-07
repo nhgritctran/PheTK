@@ -556,22 +556,30 @@ class Plot:
             negative_face_color = "none"
 
         # color values for every points
-        pos_df = self.positive_betas[[x_col, y_col, marker_size_col]].with_columns(pl.lit(positive_beta_color)
+        if marker_size_col is not None:
+            col_list = [x_col, y_col, marker_size_col]
+        else:
+            col_list = [x_col, y_col]
+        pos_df = self.positive_betas[col_list].with_columns(pl.lit(positive_beta_color)
                                                                                    .alias("edge_color"))\
                                                                      .with_columns(pl.lit(positive_face_color)
                                                                                    .alias("face_color"))
-        neg_df = self.negative_betas[[x_col, y_col, marker_size_col]].with_columns(pl.lit(negative_beta_color)
+        neg_df = self.negative_betas[col_list].with_columns(pl.lit(negative_beta_color)
                                                                                    .alias("edge_color"))\
                                                                      .with_columns(pl.lit(negative_face_color)
                                                                                    .alias("face_color"))
         # combined into 1 df for plotting
         full_df = pl.concat([pos_df, neg_df])
+        if marker_size_col is not None:
+            marker_size = full_df[marker_size_col].to_numpy()
+        else:
+            marker_size = None
 
         # plot scatter
         scatter = ax.scatter(
             x=full_df[x_col].to_numpy(),
             y=full_df[y_col],
-            s=full_df[marker_size_col].to_numpy(),
+            s=marker_size,
             edgecolors=full_df["edge_color"],
             facecolors=full_df["face_color"],
             marker=marker_shape
