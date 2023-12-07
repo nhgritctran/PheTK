@@ -643,9 +643,9 @@ class Plot:
             if y_threshold is None:
                 y_threshold = plot_df["neg_log_p_value"].min()
             if x_negative_threshold is None:
-                x_negative_threshold = plot_df[x_col].min()
+                x_negative_threshold = plot_df[x_col].max()
             if x_positive_threshold is None:
-                x_positive_threshold = plot_df[x_col].max()
+                x_positive_threshold = plot_df[x_col].min()
             data_to_label = plot_df.filter(
                 ((pl.col(x_col) >= x_positive_threshold) | (pl.col(x_col) <= x_negative_threshold)) &
                 (pl.col("neg_log_p_value") >= y_threshold)
