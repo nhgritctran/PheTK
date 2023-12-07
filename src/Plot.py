@@ -340,7 +340,7 @@ class Plot:
                         self.data_to_label,
                         positive_betas.filter(pl.col("beta_ind") >= label_value_threshold)
                     ]
-                )
+                ).unique()
                 if label_categories is not None:
                     self.data_to_label = self.data_to_label.filter(
                         pl.col("phecode_category").is_in(label_categories)
@@ -353,7 +353,7 @@ class Plot:
                         self.data_to_label,
                         negative_betas.filter(pl.col("beta_ind") <= label_value_threshold)
                     ]
-                )
+                ).unique()
                 if label_categories is not None:
                     self.data_to_label = self.data_to_label.filter(
                         pl.col("phecode_category").is_in(label_categories)
@@ -367,7 +367,7 @@ class Plot:
                         plot_df.sort(by="p_value")
                                .filter(pl.col("neg_log_p_value") >= label_value_threshold)
                     ]
-                )
+                ).unique()
                 if label_categories is not None:
                     self.data_to_label = self.data_to_label.filter(
                         pl.col("phecode_category").is_in(label_categories)
@@ -376,7 +376,7 @@ class Plot:
                     self.data_to_label = self.data_to_label[:label_count]
             else:
                 self.data_to_label = pl.concat([self.data_to_label,
-                                                plot_df.filter(pl.col("phecode") == item)])
+                                                plot_df.filter(pl.col("phecode") == item)]).unique()
 
         texts = []
         for i in range(len(self.data_to_label)):
@@ -576,7 +576,7 @@ class Plot:
                                               .with_columns(pl.lit(negative_face_color)
                                                             .alias("face_color"))
         # combined into 1 df for plotting
-        full_df = pl.concat([pos_df, neg_df])
+        full_df = pl.concat([pos_df, neg_df]).unique()
         if marker_size_col is not None:
             # by default, size markers by number of cases
             if marker_size_col == "cases":
