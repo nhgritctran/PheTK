@@ -1,7 +1,6 @@
 from matplotlib.lines import Line2D
 import adjustText
 import matplotlib.colors as mc
-import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
 
@@ -607,7 +606,7 @@ class Plot:
         # legend
         if marker_size_col is not None:
             handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
-            legend = ax.legend(
+            ax.legend(
                 handles, labels,
                 markerscale=0.25,
                 loc="center left",
@@ -684,7 +683,8 @@ class Plot:
             )
 
     def volcano(self,
-                label_list=None,
+                phecode_list=None,
+                phecode_string_list=None,
                 label_count=10,
                 x_col="log10_odds_ratio",
                 y_col="neg_log_p_value",
@@ -766,7 +766,8 @@ class Plot:
                     infinity_line=infinity_line)
 
         # labels
-        self._volcano_label(phecode_string_list=label_list,
+        self._volcano_label(phecode_list=phecode_list,
+                            phecode_string_list=phecode_string_list,
                             plot_df=plot_df,
                             label_count=label_count,
                             x_col=x_col,
