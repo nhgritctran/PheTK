@@ -647,15 +647,16 @@ class Plot:
                 ((pl.col(x_col) >= x_positive_threshold) | (pl.col(x_col) <= x_negative_threshold)) &
                 (pl.col("neg_log_p_value") >= y_threshold)
             )
+            # STILL NEED TO CHECK THIS ##########################################################
             data_to_label = pl.concat(
                 [data_to_label.top_k(by=x_col, descending=True, k=label_count, nulls_last=True),
                  data_to_label.top_k(by=x_col, descending=False, k=label_count, nulls_last=True)]
-            )
+            ).unique()
         else:
             data_to_label = pl.concat(
                 [plot_df.top_k(by=x_col, descending=True, k=label_count, nulls_last=True),
                  plot_df.top_k(by=x_col, descending=False, k=label_count, nulls_last=True)]
-            )
+            ).unique()
 
         texts = []
         for i in range(len(data_to_label)):
