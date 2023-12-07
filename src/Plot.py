@@ -79,7 +79,7 @@ class Plot:
         # offset
         self.offset = 9
 
-        # test
+        # volcano plot label data
         self.volcano_label_data = None
 
     @staticmethod
@@ -650,7 +650,6 @@ class Plot:
                 ((pl.col(x_col) >= x_positive_threshold) | (pl.col(x_col) <= x_negative_threshold)) &
                 (pl.col("neg_log_p_value") >= y_threshold)
             )
-            # STILL NEED TO CHECK THIS ##########################################################
             data_to_label = pl.concat(
                 [data_to_label.top_k(by=x_col, descending=True, k=label_count, nulls_last=True),
                  data_to_label.top_k(by=x_col, descending=False, k=label_count, nulls_last=True)]
@@ -661,7 +660,7 @@ class Plot:
                  plot_df.top_k(by=x_col, descending=False, k=label_count, nulls_last=True)]
             ).unique()
 
-        # for testing
+        # label data
         self.volcano_label_data = data_to_label
 
         texts = []
