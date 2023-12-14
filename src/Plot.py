@@ -122,7 +122,7 @@ class Plot:
             df = df.drop("phecode_index")
         df = df.sort(by=["phecode_category", "phecode"])\
                .with_columns(pl.Series("phecode_index", range(1, len(df) + 1)))\
-               .with_columns(15*np.exp(pl.col("beta_ind")).alias("marker_size_by_beta"))
+               .with_columns(15*np.exp(pl.col("beta")).alias("marker_size_by_beta"))
 
         return df
 
@@ -135,11 +135,11 @@ class Plot:
 
         # add marker size if marker_size_by_beta is True
         if marker_size_by_beta:
-            df = df.with_columns((18*pl.col("beta_ind").abs()).alias("_marker_size"))
+            df = df.with_columns((18*pl.col("beta").abs()).alias("_marker_size"))
 
         # split to positive and negative beta data
-        positive_betas = df.filter(pl.col("beta_ind") >= 0).sort(by="beta_ind", descending=True)
-        negative_betas = df.filter(pl.col("beta_ind") < 0).sort(by="beta_ind", descending=False)
+        positive_betas = df.filter(pl.col("beta") >= 0).sort(by="beta", descending=True)
+        negative_betas = df.filter(pl.col("beta") < 0).sort(by="beta", descending=False)
         return positive_betas, negative_betas
 
     @staticmethod
@@ -341,7 +341,7 @@ class Plot:
                 self.data_to_label = pl.concat(
                     [
                         self.data_to_label,
-                        positive_betas.filter(pl.col("beta_ind") >= label_value_threshold)
+                        positive_betas.filter(pl.col("beta") >= label_value_threshold)
                     ]
                 )
                 if label_categories is not None:
@@ -354,7 +354,7 @@ class Plot:
                 self.data_to_label = pl.concat(
                     [
                         self.data_to_label,
-                        negative_betas.filter(pl.col("beta_ind") <= label_value_threshold)
+                        negative_betas.filter(pl.col("beta") <= label_value_threshold)
                     ]
                 )
                 if label_categories is not None:
