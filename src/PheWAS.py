@@ -76,7 +76,6 @@ class PheWAS:
         # load covariate data
         # make sure person_id in covariate data has the same type as person_id in phecode count
         self.covariate_df = pl.read_csv(cohort_csv_path)
-        self.covariate_df = self.covariate_df.drop_nulls()
 
         # basic attributes from instantiation
         self.sex_at_birth_col = sex_at_birth_col
@@ -119,6 +118,7 @@ class PheWAS:
         # keep only relevant columns in covariate_df
         cols_to_keep = list(set(["person_id"] + self.var_cols))
         self.covariate_df = self.covariate_df[cols_to_keep]
+        self.covariate_df = self.covariate_df.drop_nulls()
         self.cohort_size = self.covariate_df.n_unique()
 
         # update phecode_counts to only participants of interest
@@ -242,11 +242,6 @@ class PheWAS:
                 cases = cases.filter(pl.col(self.sex_at_birth_col) == 1)
             elif sex_restriction == "Female":
                 cases = cases.filter(pl.col(self.sex_at_birth_col) == 0)
-        # WIP
-        # else:
-        #     if ((self.single_sex_value == 1 and sex_restriction == "Female") or (
-        #             self.single_sex_value == 0 and sex_restriction == "Male")):
-        #         cases = pl.DataFrame()
 
         # CONTROLS
         # phecode exclusions
@@ -264,14 +259,6 @@ class PheWAS:
                 controls = controls.filter(pl.col(self.sex_at_birth_col) == 1)
             elif sex_restriction == "Female":
                 controls = controls.filter(pl.col(self.sex_at_birth_col) == 0)
-
-        # WIP
-        # else:
-        #     if ((self.single_sex_value == 1 and sex_restriction == "Female") or (
-        #             self.single_sex_value == 0 and sex_restriction == "Male")):
-        #         controls = pl.DataFrame()
-        #     else:
-        #         controls = base_controls
 
         # DUPLICATE CHECK
         # drop duplicates and keep analysis covariate cols only
