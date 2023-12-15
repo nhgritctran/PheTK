@@ -217,7 +217,7 @@ class Plot:
         if plot_type == "manhattan":
             extra_offset = 1
         elif plot_type == "volcano":
-            extra_offset = 0.2
+            extra_offset = 0.05
 
         # nominal significance line
         if nominal_significance_line:
