@@ -556,6 +556,7 @@ class Plot:
                          positive_beta_color="indianred",
                          negative_beta_color="darkcyan",
                          fill_marker=True,
+                         marker_alpha=None,
                          legend=False):
 
         # set marker edge and face colors
@@ -604,7 +605,8 @@ class Plot:
             s=marker_size,
             edgecolors=full_df["edge_color"],
             facecolors=full_df["face_color"],
-            marker=marker_shape
+            marker=marker_shape,
+            alpha=marker_alpha,
         )
 
         # legend
@@ -711,6 +713,7 @@ class Plot:
                 marker_size_col="cases",
                 marker_shape=".",
                 fill_marker=True,
+                marker_alpha=None,
                 legend=False,
                 dpi=150):
 
@@ -753,6 +756,7 @@ class Plot:
                               marker_size_col=marker_size_col,
                               marker_shape=marker_shape,
                               fill_marker=fill_marker,
+                              marker_alpha=marker_alpha,
                               legend=legend)
 
         # lines
