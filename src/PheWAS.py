@@ -23,7 +23,6 @@ class PheWAS:
                  sex_at_birth_col,
                  covariate_cols,
                  independent_var_col,
-                 phecode_reference_folder=None,
                  phecode_to_process="all",
                  min_cases=50,
                  min_phecode_count=2,
@@ -53,21 +52,21 @@ class PheWAS:
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         # load phecode mapping file
-        cwd = os.getcwd()
-        if phecode_reference_folder is None:
-            phecode_reference_folder = f"{cwd}/PyPheWAS/phecode"
-
+        src_dir = os.path.dirname(__file__)
+        phecode_mapping_file_path = f"{src_dir}/../phecode"
         if phecode_version == "X":
+            phecode_mapping_file_path = f"{phecode_mapping_file_path}/phecodeX.csv"
             # noinspection PyTypeChecker
-            self.phecode_df = pl.read_csv(f"{phecode_reference_folder}/phecodeX.csv",
+            self.phecode_df = pl.read_csv(phecode_mapping_file_path,
                                           dtypes={"phecode": str,
                                                   "ICD": str,
                                                   "exclude_range": str,
                                                   "phecode_top": str,
                                                   "code_val": float})
         elif phecode_version == "1.2":
+            phecode_mapping_file_path = f"{phecode_mapping_file_path}/phecode12.csv"
             # noinspection PyTypeChecker
-            self.phecode_df = pl.read_csv(f"{phecode_reference_folder}/phecode12.csv",
+            self.phecode_df = pl.read_csv(phecode_mapping_file_path,
                                           dtypes={"phecode": str,
                                                   "ICD": str,
                                                   "exclude_range": str,
@@ -483,10 +482,6 @@ def main():
                         "--cohort_csv_path",
                         type=str, required=True,
                         help="Path to the cohort csv file.")
-    parser.add_argument("-pf",
-                        "--phecode_reference_folder",
-                        type=str, required=False, default=None,
-                        help="Path to the phecode reference table.")
     parser.add_argument("-pv",
                         "--phecode_version",
                         type=str, required=True, choices=["1.2", 'X'],
@@ -541,8 +536,7 @@ def main():
                     use_exclusion=args.use_exclusion,
                     min_cases=args.min_case,
                     min_phecode_count=args.min_phecode_count,
-                    output_file_name=output_file_name,
-                    phecode_reference_folder=args.phecode_reference_folder)
+                    output_file_name=output_file_name)
     phewas.run(n_threads=args.threads)
 
 
