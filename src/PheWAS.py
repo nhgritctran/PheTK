@@ -23,6 +23,7 @@ class PheWAS:
                  sex_at_birth_col,
                  covariate_cols,
                  independent_var_col,
+                 phecode_reference_folder=None,
                  phecode_to_process="all",
                  min_cases=50,
                  min_phecode_count=2,
@@ -53,9 +54,12 @@ class PheWAS:
 
         # load phecode mapping file
         cwd = os.getcwd()
+        if phecode_reference_folder is None:
+            phecode_reference_folder = cwd
+
         if phecode_version == "X":
             # noinspection PyTypeChecker
-            self.phecode_df = pl.read_csv(f"{cwd}/PyPheWAS/phecode/phecodeX.csv",
+            self.phecode_df = pl.read_csv(f"{phecode_reference_folder}/PyPheWAS/phecode/phecodeX.csv",
                                           dtypes={"phecode": str,
                                                   "ICD": str,
                                                   "exclude_range": str,
@@ -63,7 +67,7 @@ class PheWAS:
                                                   "code_val": float})
         elif phecode_version == "1.2":
             # noinspection PyTypeChecker
-            self.phecode_df = pl.read_csv(f"{cwd}/PyPheWAS/phecode/phecode12.csv",
+            self.phecode_df = pl.read_csv(f"{phecode_reference_folder}/PyPheWAS/phecode/phecode12.csv",
                                           dtypes={"phecode": str,
                                                   "ICD": str,
                                                   "exclude_range": str,
