@@ -541,7 +541,8 @@ def main():
                     use_exclusion=args.use_exclusion,
                     min_cases=args.min_case,
                     min_phecode_count=args.min_phecode_count,
-                    output_file_name=output_file_name)
+                    output_file_name=output_file_name,
+                    phecode_reference_folder=args.phecode_reference_folder)
     phewas.run(n_threads=args.threads)
 
 
