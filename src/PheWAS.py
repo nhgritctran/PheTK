@@ -55,11 +55,11 @@ class PheWAS:
         # load phecode mapping file
         cwd = os.getcwd()
         if phecode_reference_folder is None:
-            phecode_reference_folder = cwd
+            phecode_reference_folder = f"{cwd}/PyPheWAS/phecode"
 
         if phecode_version == "X":
             # noinspection PyTypeChecker
-            self.phecode_df = pl.read_csv(f"{phecode_reference_folder}/PyPheWAS/phecode/phecodeX.csv",
+            self.phecode_df = pl.read_csv(f"{phecode_reference_folder}/phecodeX.csv",
                                           dtypes={"phecode": str,
                                                   "ICD": str,
                                                   "exclude_range": str,
@@ -67,7 +67,7 @@ class PheWAS:
                                                   "code_val": float})
         elif phecode_version == "1.2":
             # noinspection PyTypeChecker
-            self.phecode_df = pl.read_csv(f"{phecode_reference_folder}/PyPheWAS/phecode/phecode12.csv",
+            self.phecode_df = pl.read_csv(f"{phecode_reference_folder}/phecode12.csv",
                                           dtypes={"phecode": str,
                                                   "ICD": str,
                                                   "exclude_range": str,
