@@ -483,6 +483,10 @@ def main():
                         "--cohort_csv_path",
                         type=str, required=True,
                         help="Path to the cohort csv file.")
+    parser.add_argument("-pf",
+                        "--phecode_reference_folder",
+                        type=str, required=False, default=None,
+                        help="Path to the phecode reference table.")
     parser.add_argument("-pv",
                         "--phecode_version",
                         type=str, required=True, choices=["1.2", 'X'],
