@@ -72,7 +72,9 @@ class Cohort:
         import hail as hl
 
         # basic data processing
-        if output_file_name:
+        if output_file_name is not None:
+            if ".csv" in output_file_name:
+                output_file_name = output_file_name.replace(".csv", "")
             output_file_name = f"{output_file_name}.csv"
         else:
             output_file_name = "aou_chr" + \
@@ -342,6 +344,8 @@ class Cohort:
 
         file_name = "cohort"
         if output_file_name is not None:
+            if ".csv" in output_file_name:
+                output_file_name = output_file_name.replace(".csv", "")
             file_name = output_file_name
         final_cohort.write_csv(f"{file_name}.csv")
 

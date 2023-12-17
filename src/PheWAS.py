@@ -1,5 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 from tqdm import tqdm
+import argparse
 import copy
 import numpy as np
 import os
@@ -24,10 +26,11 @@ class PheWAS:
                  phecode_to_process="all",
                  min_cases=50,
                  min_phecode_count=2,
-                 use_exclusion=True,
+                 use_exclusion=False,
                  verbose=False,
                  suppress_warnings=True,
-                 debug_mode=False):
+                 debug_mode=False,
+                 output_file_name=None):
         """
         :param phecode_version: accepts "1.2" or "X"
         :param phecode_count_csv_path: path to phecode count of relevant participants at minimum
@@ -44,6 +47,7 @@ class PheWAS:
         :param suppress_warnings: defaults to True;
                                   if True, ignore common exception warnings such as ConvergenceWarnings, etc.
         :param debug_mode: defaults to False; if True, generate some additional statistics to assist debugging
+        :param output_file_name: if None, defaults to "phewas_{timestamp}.csv"
         """
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
@@ -141,6 +145,15 @@ class PheWAS:
         self.bonferroni = None
         self.phecodes_above_bonferroni = None
         self.above_bonferroni_count = None
+
+        # for saving results
+        if output_file_name is not None:
+            if ".csv" in output_file_name:
+                output_file_name = output_file_name.replace(".csv", "")
+            self.output_file_name = output_file_name + ".csv"
+        else:
+            self._timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.output_file_name = f"phewas_{self._timestamp}.csv"
 
     @staticmethod
     def _to_polars(df):
@@ -434,13 +447,95 @@ class PheWAS:
             self.phecodes_above_bonferroni = self.result.filter(pl.col("neg_log_p_value") > self.bonferroni)
             self.above_bonferroni_count = len(self.phecodes_above_bonferroni)
 
+            # save results
+            self.result.write_csv(self.output_file_name)
+
             print("Number of participants in cohort:", self.cohort_size)
             print("Number of phecodes in cohort:", len(self.phecode_list))
             print(f"Number of phecodes having less than {self.min_cases} cases:", self.not_tested_count)
             print("Number of phecodes tested:", self.tested_count)
             print(u"Suggested Bonferroni correction (-log\u2081\u2080 scale):", self.bonferroni)
             print("Number of phecodes above Bonferroni correction:", self.above_bonferroni_count)
+            print()
+            print("PheWAS results saved to", self.output_file_name)
         else:
-            print("No analysis done.")
+            print("No analysis done. Please check your inputs.")
 
         print()
+
+
+def main():
+    # generate output file name
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_file_name = f"phewas_{timestamp}.csv"
+
+    # parse args
+    parser = argparse.ArgumentParser(description="PheWAS analysis tool.")
+    parser.add_argument("-p",
+                        "--phecode_count_csv_path",
+                        type=str, required=True,
+                        help="Path to the phecode count csv file.")
+    parser.add_argument("-c",
+                        "--cohort_csv_path",
+                        type=str, required=True,
+                        help="Path to the cohort csv file.")
+    parser.add_argument("-pv",
+                        "--phecode_version",
+                        type=str, required=True, choices=["1.2", 'X'],
+                        help="Phecode version.")
+    parser.add_argument("-cv",
+                        "--covariates",
+                        nargs="+",
+                        type=str, required=True,
+                        help="List of covariates to use in PheWAS analysis.")
+    parser.add_argument("-v",
+                        "--variable_of_interest",
+                        type=str, required=True,
+                        help="Independent variable of interest.")
+    parser.add_argument("-s",
+                        "--sex_at_birth_col",
+                        type=str, required=True,
+                        help="Sex at birth column.")
+    parser.add_argument("-pl",
+                        "--phecode_to_process",
+                        nargs="+",
+                        type=str, required=False, default="all",
+                        help="List of specific phecodes to use in PheWAS analysis.")
+    parser.add_argument("-e",
+                        "--use_exclusion",
+                        type=bool, required=False, default=False,
+                        help="Whether to use phecode exclusions. Only applicable for phecode 1.2.")
+    parser.add_argument("-mc",
+                        "--min_case",
+                        type=int, required=False, default=50,
+                        help="Minimum number of cases required to be tested.")
+    parser.add_argument("-mpc",
+                        "--min_phecode_count",
+                        type=int, required=False, default=2,
+                        help="Minimum number of phecode counts required to be considered as case.")
+    parser.add_argument("-t",
+                        "--threads",
+                        type=int, required=False, default=round(os.cpu_count()*2/3),
+                        help="Number of threads to use for parallel.")
+    parser.add_argument("-o",
+                        "--output_file",
+                        type=str, required=False, default="phewas_results.csv")
+    args = parser.parse_args()
+
+    # run PheWAS
+    phewas = PheWAS(phecode_version=args.phecode_version,
+                    phecode_count_csv_path=args.phecode_count_csv_path,
+                    cohort_csv_path=args.cohort_csv_path,
+                    sex_at_birth_col=args.sex_at_birth_col,
+                    covariate_cols=args.covariates,
+                    independent_var_col=args.variable_of_interest,
+                    phecode_to_process=args.phecode_to_process,
+                    use_exclusion=args.use_exclusion,
+                    min_cases=args.min_case,
+                    min_phecode_count=args.min_phecode_count,
+                    output_file_name=output_file_name)
+    phewas.run(n_threads=args.threads)
+
+
+if __name__ == "__main__":
+    main()
