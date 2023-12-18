@@ -1,4 +1,4 @@
-from src.PheTK import _queries, _utils
+from . import _queries, _utils
 import os
 import polars as pl
 import sys
