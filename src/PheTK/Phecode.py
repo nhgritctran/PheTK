@@ -51,6 +51,7 @@ class Phecode:
                                              "ICD": str,
                                              "flag": pl.Int8,
                                              "code_val": float})
+            phecode_df = phecode_df[["phecode", "ICD", "flag"]]
         elif phecode_version == "1.2":
             phecode_mapping_file_path = os.path.join(phecode_mapping_file_path, "phecode12.csv")
             # noinspection PyTypeChecker
@@ -60,6 +61,7 @@ class Phecode:
                                              "flag": pl.Int8,
                                              "exclude_range": str,
                                              "phecode_unrolled": str})
+            phecode_df = phecode_df[["phecode_unrolled", "ICD", "flag"]]
         else:
             print("Unsupported phecode version. Supports phecode \"1.2\" and \"X\".")
             sys.exit(0)
