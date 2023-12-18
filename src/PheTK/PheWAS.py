@@ -52,8 +52,8 @@ class PheWAS:
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         # load phecode mapping file by version
-        src_dir = os.path.dirname(__file__)
-        phecode_mapping_file_path = os.path.join(src_dir, "..", "data", "phecode")
+        phetk_dir = os.path.dirname(__file__)
+        phecode_mapping_file_path = os.path.join(phetk_dir, "phecode")
         if phecode_version == "X":
             phecode_mapping_file_path = os.path.join(phecode_mapping_file_path, "phecodeX.csv")
             # noinspection PyTypeChecker
