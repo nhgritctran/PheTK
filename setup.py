@@ -5,6 +5,6 @@ setup(
     version="0.1.0",
     packages=find_packages(where="src"),
     package_data={
-        "PheTK": ["phecode/*.csv"]
+        "src.PheTK": ["phecode/*.csv"]
     }
 )
