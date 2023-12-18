@@ -41,27 +41,28 @@ class Phecode:
         :return: phecode counts polars dataframe
         """        
         # load phecode mapping file by version
-        if phecode_version.upper() == "X":
+        src_dir = os.path.dirname(__file__)
+        phecode_mapping_file_path = os.path.join(src_dir, "..", "data", "phecode")
+        if phecode_version == "X":
+            phecode_mapping_file_path = os.path.join(phecode_mapping_file_path, "phecodeX.csv")
             # noinspection PyTypeChecker
-            phecode_df = pl.read_csv("PyPheWAS/phecode/phecodeX.csv",
+            phecode_df = pl.read_csv(phecode_mapping_file_path,
                                      dtypes={"phecode": str,
                                              "ICD": str,
                                              "flag": pl.Int8,
-                                             "code_val": float},
-                                     low_memory=True)
-            phecode_df = phecode_df[["phecode", "ICD", "flag"]]
-        elif phecode_version.upper() == "1.2":
+                                             "code_val": float})
+        elif phecode_version == "1.2":
+            phecode_mapping_file_path = os.path.join(phecode_mapping_file_path, "phecode12.csv")
             # noinspection PyTypeChecker
-            phecode_df = pl.read_csv("PyPheWAS/phecode/phecode12.csv",
+            phecode_df = pl.read_csv(phecode_mapping_file_path,
                                      dtypes={"phecode": str,
                                              "ICD": str,
                                              "flag": pl.Int8,
-                                             "phecode_unrolled": str,
-                                             "exclude_range": str},
-                                     low_memory=True)
-            phecode_df = phecode_df[["phecode_unrolled", "ICD", "flag"]]
+                                             "exclude_range": str,
+                                             "phecode_unrolled": str})
         else:
-            return "Invalid phecode version. Please choose either \"1.2\" or \"X\"."
+            print("Unsupported phecode version. Supports phecode \"1.2\" and \"X\".")
+            sys.exit(0)
 
         # make a copy of self.icd_events
         icd_events = self.icd_events.clone()

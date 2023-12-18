@@ -51,24 +51,24 @@ class PheWAS:
         """
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        # load phecode mapping file
+        # load phecode mapping file by version
         src_dir = os.path.dirname(__file__)
-        phecode_mapping_file_path = f"{src_dir}/../phecode"
+        phecode_mapping_file_path = os.path.join(src_dir, "..", "data", "phecode")
         if phecode_version == "X":
-            phecode_mapping_file_path = f"{phecode_mapping_file_path}/phecodeX.csv"
+            phecode_mapping_file_path = os.path.join(phecode_mapping_file_path, "phecodeX.csv")
             # noinspection PyTypeChecker
             self.phecode_df = pl.read_csv(phecode_mapping_file_path,
                                           dtypes={"phecode": str,
                                                   "ICD": str,
-                                                  "exclude_range": str,
-                                                  "phecode_top": str,
+                                                  "flag": pl.Int8,
                                                   "code_val": float})
         elif phecode_version == "1.2":
-            phecode_mapping_file_path = f"{phecode_mapping_file_path}/phecode12.csv"
+            phecode_mapping_file_path = os.path.join(phecode_mapping_file_path, "phecode12.csv")
             # noinspection PyTypeChecker
             self.phecode_df = pl.read_csv(phecode_mapping_file_path,
                                           dtypes={"phecode": str,
                                                   "ICD": str,
+                                                  "flag": pl.Int8,
                                                   "exclude_range": str,
                                                   "phecode_unrolled": str})
         else:
