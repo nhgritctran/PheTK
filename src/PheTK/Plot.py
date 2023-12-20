@@ -462,6 +462,7 @@ class Plot:
                   show_legend=True,
                   legend_marker_size=6,
                   dpi=150,
+                  save_plot=True,
                   output_file_name=None,
                   output_file_type="pdf"):
 
@@ -557,9 +558,10 @@ class Plot:
             self._manhattan_legend(ax, legend_marker_size)
 
         # save plot
-        self.save_plot(plot_type="manhattan",
-                       output_file_name=output_file_name,
-                       output_file_type=output_file_type)
+        if save_plot:
+            self.save_plot(plot_type="manhattan",
+                           output_file_name=output_file_name,
+                           output_file_type=output_file_type)
 
     @staticmethod
     def transform_values(df, col, new_col, new_min, new_max):
@@ -738,6 +740,7 @@ class Plot:
                 marker_alpha=None,
                 legend=False,
                 dpi=150,
+                save_plot=True,
                 output_file_name=None,
                 output_file_type="pdf"):
 
@@ -819,6 +822,7 @@ class Plot:
                             x_negative_threshold=x_negative_threshold)
 
         # save plot
-        self.save_plot(plot_type="volcano",
-                       output_file_name=output_file_name,
-                       output_file_type=output_file_type)
+        if save_plot:
+            self.save_plot(plot_type="volcano",
+                           output_file_name=output_file_name,
+                           output_file_type=output_file_type)
