@@ -142,7 +142,7 @@ class PheWAS:
         self._phecode_summary_statistics = None
         self._cases = None
         self._controls = None
-        self.result = None
+        self.results = None
         self.not_tested_count = 0
         self.tested_count = 0
         self.bonferroni = None
@@ -438,20 +438,20 @@ class PheWAS:
         result_dicts = [result for result in result_dicts if result is not None]
         if result_dicts:
             result_df = pl.from_dicts(result_dicts)
-            self.result = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
-                                         how="left",
-                                         on="phecode")
+            self.results = result_df.join(self.phecode_df[["phecode", "phecode_string", "phecode_category"]].unique(),
+                                          how="left",
+                                          on="phecode")
 
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    PheWAS Completed    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-            self.tested_count = len(self.result)
+            self.tested_count = len(self.results)
             self.not_tested_count = len(self.phecode_list) - self.tested_count
             self.bonferroni = -np.log10(0.05 / self.tested_count)
-            self.phecodes_above_bonferroni = self.result.filter(pl.col("neg_log_p_value") > self.bonferroni)
+            self.phecodes_above_bonferroni = self.results.filter(pl.col("neg_log_p_value") > self.bonferroni)
             self.above_bonferroni_count = len(self.phecodes_above_bonferroni)
 
             # save results
-            self.result.write_csv(self.output_file_name)
+            self.results.write_csv(self.output_file_name)
 
             print("Number of participants in cohort:", self.cohort_size)
             print("Number of phecodes in cohort:", len(self.phecode_list))
