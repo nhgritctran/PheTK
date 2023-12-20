@@ -1,6 +1,8 @@
+from datetime import datetime
 from matplotlib.lines import Line2D
 import adjustText
 import matplotlib.colors as mc
+import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
 
@@ -81,6 +83,16 @@ class Plot:
 
         # volcano plot label data
         self.volcano_label_data = None
+
+    @staticmethod
+    def save_plot(plot_type="plot", output_file_name=None, output_file_type="pdf"):
+        if output_file_name is not None:
+            if "." not in output_file_name:
+                output_file_name = output_file_name + "." + output_file_type
+        else:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_file_name = f"{plot_type}_{timestamp}.{output_file_type}"
+        plt.savefig(output_file_name)
 
     @staticmethod
     def _to_polars(df):
@@ -446,7 +458,9 @@ class Plot:
                   axis_text_size=8,
                   show_legend=True,
                   legend_marker_size=6,
-                  dpi=150):
+                  dpi=150,
+                  output_file_name=None,
+                  output_file_type="pdf"):
 
         ############
         # SETTINGS #
@@ -538,6 +552,11 @@ class Plot:
         # legend
         if show_legend:
             self._manhattan_legend(ax, legend_marker_size)
+
+        # save plot
+        self.save_plot(plot_type="manhattan",
+                       output_file_name=output_file_name,
+                       output_file_type=output_file_type)
 
     @staticmethod
     def transform_values(df, col, new_col, new_min, new_max):
@@ -715,7 +734,9 @@ class Plot:
                 fill_marker=True,
                 marker_alpha=None,
                 legend=False,
-                dpi=150):
+                dpi=150,
+                output_file_name=None,
+                output_file_type="pdf"):
 
         # set offset
         self.offset = 0.1
@@ -793,3 +814,8 @@ class Plot:
                             y_threshold=y_threshold,
                             x_positive_threshold=x_positive_threshold,
                             x_negative_threshold=x_negative_threshold)
+
+        # save plot
+        self.save_plot(plot_type="volcano",
+                       output_file_name=output_file_name,
+                       output_file_type=output_file_type)
