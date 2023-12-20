@@ -92,7 +92,7 @@ class Plot:
         else:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_file_name = f"{plot_type}_{timestamp}.{output_file_type}"
-        plt.savefig(output_file_name)
+        plt.savefig(output_file_name, bbox_inches="tight")
         print()
         print("Plot saved to", output_file_name)
         print()
