@@ -11,27 +11,27 @@ class Cohort:
 
     def __init__(self,
                  db="aou",
-                 db_version=7,
-                 omop_cdr=None):
+                 aou_db_version=7,
+                 aou_omop_cdr=None):
         """
         :param db: database; currently supports "aou" (All of Us)
-        :param db_version: int type, version of database, e.g., 7 for All of Us CDR v7
-        :param omop_cdr: cdr string value, define where to query OMOP data;
+        :param aou_db_version: int type, version of database, e.g., 7 for All of Us CDR v7
+        :param aou_omop_cdr: cdr string value, define where to query OMOP data;
                     if None, it will use current workspace CDR value, i.e., os.getenv("WORKSPACE_CDR")
         """
         if db != "aou":
             print("Unsupported database. Currently supports \"aou\" (All of Us).")
             sys.exit(0)
-        if db_version != 6 and db_version != 7:
+        if aou_db_version != 6 and aou_db_version != 7:
             print("Unsupported database. Currently supports \"aou\" (All of Us) CDR v6 and v7 "
                   "(enter 6 or 7 as parameter value).")
             sys.exit(0)
         self.db = db
-        self.db_version = db_version
-        if omop_cdr is None:
+        self.db_version = aou_db_version
+        if aou_omop_cdr is None:
             self.cdr = os.getenv("WORKSPACE_CDR")
         else:
-            self.cdr = omop_cdr
+            self.cdr = aou_omop_cdr
         self.user_project = os.getenv("GOOGLE_PROJECT")
                      
         # attributes for add_covariate method
