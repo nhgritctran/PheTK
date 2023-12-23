@@ -425,7 +425,7 @@ class PheWAS:
         else:
             if self.verbose:
                 print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls):",
-                      "- Not enough cases or controls. Pass.\n")
+                      "Not enough cases or controls. Pass.\n")
 
     def run(self,
             parallelization="multithreading",
