@@ -481,7 +481,7 @@ class PheWAS:
             print(u"Suggested Bonferroni correction (-log\u2081\u2080 scale):", self.bonferroni)
             print("Number of phecodes above Bonferroni correction:", self.above_bonferroni_count)
             print()
-            print("PheWAS results saved to", self.output_file_name)
+            print("PheWAS results saved to\033[1m", self.output_file_name, "\033[0m")
         else:
             print("No analysis done. Please check your inputs.")
 

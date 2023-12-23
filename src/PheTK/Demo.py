@@ -98,12 +98,12 @@ def run():
     print()
     input("Press enter to continue...")
     print()
-    print("Here is how the cohort data look like:")
+    print("\033[1mHere is how the cohort data look like:\033[0m")
     print(pl.read_csv("example_cohort.csv").head())
     print()
     input("Press enter to continue...")
     print()
-    print("Here is how phenotype profile data look like:")
+    print("\033[1mHere is how phenotype profile data look like:\033[0m")
     print(pl.read_csv("example_phecode_counts.csv", dtypes={"phecode": str}).head())
     print()
     print("\033[1mNow we are ready to run PheWAS!\033[0m")
@@ -119,7 +119,7 @@ def run():
           "--min_phecode_count 2",
           "--output_file_name example_phewas_results.csv")
     print()
-    input("Press enter to run PheWAS!")
+    input("\033[1mPress enter to run PheWAS!\033[0m")
     print()
     phewas = PheWAS.PheWAS(cohort_csv_path="example_cohort.csv",
                            phecode_count_csv_path="example_phecode_counts.csv",
@@ -131,6 +131,8 @@ def run():
                            min_phecode_count=2,
                            output_file_name="example_phewas_results.csv")
     phewas.run()
+    print("\033[1mHere is how the top results from example_phewas_results.csv look like:\033[0m")
+    print(pl.read_csv("example_phewas_results.csv", dtypes={"phecode": str}).head())
     print()
     print("\033[1mThis is the end of the demo! Good luck!\033[0m")
     print()
