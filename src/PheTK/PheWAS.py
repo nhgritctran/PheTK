@@ -312,7 +312,7 @@ class PheWAS:
         cases = cases.unique(subset=duplicate_check_cols)[analysis_var_cols]
         controls = controls.unique(subset=duplicate_check_cols)[analysis_var_cols]
 
-        # KEEP MINIMUM REQUIRED COLUMNS
+        # KEEP ONLY REQUIRED COLUMNS
         cases = cases[analysis_var_cols]
         controls = controls[analysis_var_cols]
 
@@ -476,7 +476,7 @@ class PheWAS:
 
             print("Number of participants in cohort:", self.cohort_size)
             print("Number of phecodes in cohort:", len(self.phecode_list))
-            print(f"Number of phecodes having less than {self.min_cases} cases:", self.not_tested_count)
+            print(f"Number of phecodes having less than {self.min_cases} cases or controls:", self.not_tested_count)
             print("Number of phecodes tested:", self.tested_count)
             print(u"Suggested Bonferroni correction (-log\u2081\u2080 scale):", self.bonferroni)
             print("Number of phecodes above Bonferroni correction:", self.above_bonferroni_count)
