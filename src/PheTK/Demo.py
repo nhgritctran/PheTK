@@ -8,7 +8,7 @@ import sys
 
 
 def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary",
-                      data_has_both_sex=True):
+                      data_has_both_sexes=True):
     # load phecode mapping file to get all phecodes
     phetk_dir = os.path.dirname(__file__)
     phecode_mapping_file_path = os.path.join(phetk_dir, "phecode")
@@ -23,7 +23,7 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary",
     phecodes.remove(phecode)  # exclude target phecode for background data
 
     # mock cohort
-    if data_has_both_sex:
+    if data_has_both_sexes:
         n_sex = 2
     else:
         n_sex = 1
@@ -95,7 +95,7 @@ def _prompt():
     print()
 
 
-def run():
+def run(data_has_both_sexes: bool = True):
     print("\033[1mHello, this is a demo of how to run PheWAS with PheTK.\033[0m")
     print("This demo should take less than 1 minute running without pauses.",
           "Enter \"quit\" in any prompt to quit.")
@@ -106,9 +106,13 @@ def run():
           "This data also contain our variable of interest which can be binary or continuous.",
           "In addition, we will also create an example phenotype profile data for this cohort.")
     var_type = input("Which data type would you like the variable of interest to be? (binary/continuous) ")
-    while (var_type.lower() != "binary") and (var_type.lower() != "continuous"):
+    while (var_type.lower() != "binary") and (var_type.lower() != "continuous") and (var_type.lower() != "quit"):
         var_type = input("Please enter either binary or continuous:")
-    generate_examples(var_type=var_type)
+    if var_type == "quit":
+        print()
+        print("\033[1mGood luck!\033[0m")
+    else:
+        generate_examples(var_type=var_type, data_has_both_sexes=data_has_both_sexes)
     _prompt()
     print("\033[1mHere is how the cohort data look like:\033[0m")
     print(pl.read_csv("example_cohort.csv").head())
