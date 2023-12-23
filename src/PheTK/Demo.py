@@ -4,7 +4,7 @@ import numpy as np
 import polars as pl
 import os
 import random
-import signal
+import sys
 
 
 def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary"):
@@ -86,7 +86,7 @@ def prompt():
     if answer.lower() == "quit":
         print()
         print("\033[1mGood luck!\033[0m")
-        os.kill(os.getpid(), signal.SIGINT)
+        sys.exit(0)
 
 
 def run():
@@ -103,19 +103,13 @@ def run():
     while (var_type.lower() != "binary") and (var_type.lower() != "continuous"):
         var_type = input("Please enter either binary or continuous:")
     generate_examples(var_type=var_type)
-    print()
-    input("Press enter to continue...")
-    print()
+    prompt()
     print("\033[1mHere is how the cohort data look like:\033[0m")
     print(pl.read_csv("example_cohort.csv").head())
-    print()
-    input("Press enter to continue...")
-    print()
+    prompt()
     print("\033[1mHere is how phenotype profile data look like:\033[0m")
     print(pl.read_csv("example_phecode_counts.csv", dtypes={"phecode": str}).head())
-    print()
-    input("Press enter to continue...")
-    print()
+    prompt()
     print("\033[1mNow we are ready to run PheWAS!\033[0m")
     print()
     print("For this demo, we can use the following command to run PheWAS in command line interface:")
