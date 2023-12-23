@@ -103,7 +103,7 @@ def run(data_has_both_sexes: bool = True, covariates_cols=("age", "sex", "pc1", 
     print("\033[1mFirst, let's create some example data.\033[0m")
     print()
     print("We will create an example cohort with covariates age, sex, and 3 PCs.",
-          "This data also contain our variable of interest which can be binary or continuous.",
+          "This data also contains our variable of interest which can be binary or continuous.",
           "In addition, we will also create an example phenotype profile data for this cohort.")
     var_type = input("Which data type would you like the variable of interest to be? (binary/continuous) ")
     while (var_type.lower() != "binary") and (var_type.lower() != "continuous") and (var_type.lower() != "quit"):
