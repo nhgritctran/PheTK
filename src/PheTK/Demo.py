@@ -81,7 +81,9 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary"):
 
 def run():
     print("Hello, this is a demo of how to run PheWAS with PheTK.")
+    print()
     input("Press any key to continue...")
+    print()
     print("First, let's create some example data. We will create an example cohort",
           "with covariates age, sex, and 3 PCs. This data also contain our variable of interest",
           "which can be binary or continuous. In addition, we will also create",
@@ -92,11 +94,18 @@ def run():
     else:
         var_type = input("Please enter either binary or continuous:")
         generate_examples(var_type=var_type)
+    print()
     input("Press any key to continue...")
+    print()
     print("Here is how the cohort data look like:")
-    pl.read_csv("example_cohort_data.csv").head()
+    pl.read_csv("example_cohort.csv").head()
+    print()
     input("Press any key to continue...")
+    print()
     print("Here is how phenotype profile data look like:")
-    pl.read_csv("example_cohort_data.csv", dtypes={"phecode": str}).head()
+    pl.read_csv("example_phecode_counts.csv", dtypes={"phecode": str}).head()
     print("Now we are ready to run PheWAS!")
+    print()
+    input("Press any key to continue...")
+    print()
     print("This is the end of the demo.")
