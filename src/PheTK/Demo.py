@@ -37,7 +37,7 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary"):
         case_ids = cohort.filter(pl.col("var_of_interest") == 1)["person_id"].unique().to_list()
         ctrl_ids = cohort.filter(pl.col("var_of_interest") == 0)["person_id"].unique().to_list()
     elif var_type == "continuous":
-        var_mean = np.mean(cols["var_of_interest"])
+        var_mean = np.mean(cols.get("var_of_interest"))
         case_ids = cohort.filter(pl.col("var_of_interest") >= var_mean)["person_id"].unique().to_list()
         ctrl_ids = cohort.filter(pl.col("var_of_interest") < var_mean)["person_id"].unique().to_list()
     else:
@@ -114,7 +114,7 @@ def run():
           "--phecode_version X",
           "--sex_at_birth_col sex",
           "--covariates age sex pc1 pc2 pc3",
-          "--variable_of_interest variable_of_interest",
+          "--variable_of_interest var_of_interest",
           "--min_case 50",
           "--min_phecode_count 2",
           "--output_file_name example_phewas_results.csv")
@@ -126,7 +126,7 @@ def run():
                            phecode_version="X",
                            sex_at_birth_col="sex",
                            covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
-                           variable_of_interest="variable_of_interest",
+                           variable_of_interest="var_of_interest",
                            min_cases=50,
                            min_phecode_count=2,
                            output_file_name="example_phewas_results.csv")
