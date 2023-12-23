@@ -1,10 +1,10 @@
-from IPython.display import clear_output
 from tqdm import tqdm
 from . import PheWAS
 import numpy as np
 import polars as pl
 import os
 import random
+import signal
 
 
 def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary"):
@@ -80,73 +80,71 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary"):
     )
 
 
+def prompt():
+    print()
+    answer = input("Press enter to continue...")
+    if answer.lower() == "quit":
+        print()
+        print("\033[1mGood luck!\033[0m")
+        os.kill(os.getpid(), signal.SIGINT)
+
+
 def run():
-    repeat = True
-    while repeat:
-        print("\033[1mHello, this is a demo of how to run PheWAS with PheTK.\033[0m")
-        print("This demo should take less than 1 minute running nonstop.")
-        print()
-        input("Press enter to continue...")
-        print()
-        print("\033[1mFirst, let's create some example data.\033[0m")
-        print()
-        print("We will create an example cohort with covariates age, sex, and 3 PCs.",
-              "This data also contain our variable of interest which can be binary or continuous.",
-              "In addition, we will also create an example phenotype profile data for this cohort.")
-        var_type = input("Which data type would you like the variable of interest to be? (binary/continuous) ")
-        while (var_type.lower() != "binary") and (var_type.lower() != "continuous"):
-            var_type = input("Please enter either binary or continuous:")
-        generate_examples(var_type=var_type)
-        print()
-        input("Press enter to continue...")
-        print()
-        print("\033[1mHere is how the cohort data look like:\033[0m")
-        print(pl.read_csv("example_cohort.csv").head())
-        print()
-        input("Press enter to continue...")
-        print()
-        print("\033[1mHere is how phenotype profile data look like:\033[0m")
-        print(pl.read_csv("example_phecode_counts.csv", dtypes={"phecode": str}).head())
-        print()
-        input("Press enter to continue...")
-        print()
-        print("\033[1mNow we are ready to run PheWAS!\033[0m")
-        print()
-        print("For this demo, we can use the following command to run PheWAS in command line interface:")
-        print("PheWAS --cohort_csv_path example_cohort.csv",
-              "--phecode_count_csv_path example_phecode_counts.csv",
-              "--phecode_version X",
-              "--sex_at_birth_col sex",
-              "--covariates age sex pc1 pc2 pc3",
-              "--variable_of_interest var_of_interest",
-              "--min_case 50",
-              "--min_phecode_count 2",
-              "--output_file_name example_phewas_results.csv")
-        print()
-        input("\033[1mPress enter to run PheWAS!\033[0m")
-        print()
-        phewas = PheWAS.PheWAS(cohort_csv_path="example_cohort.csv",
-                               phecode_count_csv_path="example_phecode_counts.csv",
-                               phecode_version="X",
-                               sex_at_birth_col="sex",
-                               covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
-                               variable_of_interest="var_of_interest",
-                               min_cases=50,
-                               min_phecode_count=2,
-                               output_file_name="example_phewas_results.csv")
-        phewas.run()
-        print("\033[1mHere is how example_phewas_results.csv look like:\033[0m")
-        print("In this example, we intentionally generated data with Cystic Fibrosis as a significant hit.")
-        print(pl.read_csv("example_phewas_results.csv", dtypes={"phecode": str}).sort(by="p_value").head())
-        print()
-        print("\033[1mThis is the end of the demo!\033[0m")
-        print()
-        answer = input("Do you want to replay this demo? (yes/no) ")
-        while (answer.lower() != "yes") and (answer.lower() != "no"):
-            answer = input("Please enter yes or no... ")
-        if answer.lower() == "yes":
-            clear_output()
-        elif answer.lower() == "no":
-            repeat = False
-            print()
-            print("\033[1mGood luck!\033[0m")
+    print("\033[1mHello, this is a demo of how to run PheWAS with PheTK.\033[0m")
+    print("This demo should take less than 1 minute running without pauses.",
+          "Enter \"quit\" in any prompt to quit.")
+    prompt()
+    print("\033[1mFirst, let's create some example data.\033[0m")
+    print()
+    print("We will create an example cohort with covariates age, sex, and 3 PCs.",
+          "This data also contain our variable of interest which can be binary or continuous.",
+          "In addition, we will also create an example phenotype profile data for this cohort.")
+    var_type = input("Which data type would you like the variable of interest to be? (binary/continuous) ")
+    while (var_type.lower() != "binary") and (var_type.lower() != "continuous"):
+        var_type = input("Please enter either binary or continuous:")
+    generate_examples(var_type=var_type)
+    print()
+    input("Press enter to continue...")
+    print()
+    print("\033[1mHere is how the cohort data look like:\033[0m")
+    print(pl.read_csv("example_cohort.csv").head())
+    print()
+    input("Press enter to continue...")
+    print()
+    print("\033[1mHere is how phenotype profile data look like:\033[0m")
+    print(pl.read_csv("example_phecode_counts.csv", dtypes={"phecode": str}).head())
+    print()
+    input("Press enter to continue...")
+    print()
+    print("\033[1mNow we are ready to run PheWAS!\033[0m")
+    print()
+    print("For this demo, we can use the following command to run PheWAS in command line interface:")
+    print("PheWAS --cohort_csv_path example_cohort.csv",
+          "--phecode_count_csv_path example_phecode_counts.csv",
+          "--phecode_version X",
+          "--sex_at_birth_col sex",
+          "--covariates age sex pc1 pc2 pc3",
+          "--variable_of_interest var_of_interest",
+          "--min_case 50",
+          "--min_phecode_count 2",
+          "--output_file_name example_phewas_results.csv")
+    print()
+    input("\033[1mPress enter to run PheWAS!\033[0m")
+    print()
+    phewas = PheWAS.PheWAS(cohort_csv_path="example_cohort.csv",
+                           phecode_count_csv_path="example_phecode_counts.csv",
+                           phecode_version="X",
+                           sex_at_birth_col="sex",
+                           covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
+                           variable_of_interest="var_of_interest",
+                           min_cases=50,
+                           min_phecode_count=2,
+                           output_file_name="example_phewas_results.csv")
+    phewas.run()
+    print("\033[1mHere is how example_phewas_results.csv look like:\033[0m")
+    print("In this example, we intentionally generated data with Cystic Fibrosis as a significant hit.")
+    print(pl.read_csv("example_phewas_results.csv", dtypes={"phecode": str}).sort(by="p_value").head())
+    print()
+    print("\033[1mThis is the end of the demo!\033[0m")
+    print()
+    print("\033[1mGood luck!\033[0m")
