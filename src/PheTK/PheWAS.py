@@ -26,10 +26,9 @@ class PheWAS:
                  min_cases=50,
                  min_phecode_count=2,
                  use_exclusion=False,
+                 output_file_name=None,
                  verbose=False,
-                 suppress_warnings=True,
-                 debug_mode=False,
-                 output_file_name=None):
+                 suppress_warnings=True):
         """
         :param phecode_version: accepts "1.2" or "X"
         :param phecode_count_csv_path: path to phecode count of relevant participants at minimum
@@ -42,11 +41,10 @@ class PheWAS:
         :param min_phecode_count: defaults to 2; minimum number of phecode count to qualify as case for PheWAS
         :param use_exclusion: defaults to True for phecode 1.2; always False for phecode X;
                               whether to use additional exclusion range in control for PheWAS
+        :param output_file_name: if None, defaults to "phewas_{timestamp}.csv"
         :param verbose: defaults to False; if True, print brief result of each phecode run
         :param suppress_warnings: defaults to True;
                                   if True, ignore common exception warnings such as ConvergenceWarnings, etc.
-        :param debug_mode: defaults to False; if True, generate some additional statistics to assist debugging
-        :param output_file_name: if None, defaults to "phewas_{timestamp}.csv"
         """
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
@@ -94,7 +92,6 @@ class PheWAS:
         self.min_cases = min_cases
         self.min_phecode_count = min_phecode_count
         self.suppress_warnings = suppress_warnings
-        self.debug_mode = debug_mode
 
         # exclusion:
         # - phecode 1.2: user can choose to use exclusion or not
@@ -319,14 +316,10 @@ class PheWAS:
         cases = cases[analysis_var_cols]
         controls = controls[analysis_var_cols]
 
-        # for debugging
-        if self.debug_mode:
-            self._cases = cases
-            self._controls = controls
-
         return cases, controls, analysis_var_cols
 
-    def _result_prep(self, result, var_of_interest_index):
+    @staticmethod
+    def _result_prep(result, var_of_interest_index):
         """
         Process result from statsmodels
         :param result: logistic regression result
@@ -345,10 +338,6 @@ class PheWAS:
         conf_int_2 = res.iloc[var_of_interest_index]['0.975]']
         odds_ratio = np.exp(beta)
         log10_odds_ratio = np.log10(odds_ratio)
-
-        # for debugging
-        if self.debug_mode:
-            self._phecode_summary_statistics = res
 
         return {"p_value": p_value,
                 "neg_log_p_value": neg_log_p_value,
@@ -429,13 +418,14 @@ class PheWAS:
 
                 # choose to see results on the fly
                 if self.verbose:
-                    print(f"Phecode {phecode}: {result_dict}\n")
+                    print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls): {result_dict}\n")
 
                 return result_dict
 
         else:
             if self.verbose:
-                print(f"Phecode {phecode}: {len(cases)} cases - Not enough cases. Pass.\n")
+                print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls):",
+                      "- Not enough cases or controls. Pass.\n")
 
     def run(self,
             parallelization="multithreading",
