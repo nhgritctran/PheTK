@@ -80,7 +80,7 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary"):
     )
 
 
-def prompt():
+def _prompt():
     print()
     answer = input("Press enter to continue...")
     if answer.lower() == "quit":
@@ -94,7 +94,7 @@ def run():
     print("\033[1mHello, this is a demo of how to run PheWAS with PheTK.\033[0m")
     print("This demo should take less than 1 minute running without pauses.",
           "Enter \"quit\" in any prompt to quit.")
-    prompt()
+    _prompt()
     print("\033[1mFirst, let's create some example data.\033[0m")
     print()
     print("We will create an example cohort with covariates age, sex, and 3 PCs.",
@@ -104,13 +104,13 @@ def run():
     while (var_type.lower() != "binary") and (var_type.lower() != "continuous"):
         var_type = input("Please enter either binary or continuous:")
     generate_examples(var_type=var_type)
-    prompt()
+    _prompt()
     print("\033[1mHere is how the cohort data look like:\033[0m")
     print(pl.read_csv("example_cohort.csv").head())
-    prompt()
+    _prompt()
     print("\033[1mHere is how phenotype profile data look like:\033[0m")
     print(pl.read_csv("example_phecode_counts.csv", dtypes={"phecode": str}).head())
-    prompt()
+    _prompt()
     print("\033[1mNow we are ready to run PheWAS!\033[0m")
     print()
     print("For this demo, we can use the following command to run PheWAS in command line interface:")
@@ -143,3 +143,8 @@ def run():
     print("\033[1mThis is the end of the demo!\033[0m")
     print()
     print("\033[1mGood luck!\033[0m")
+
+
+def __main__():
+    if __name__ == "__main__":
+        run()
