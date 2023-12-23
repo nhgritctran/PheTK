@@ -125,7 +125,7 @@ class PheWAS:
                 print()
             if self.variable_of_interest == self.sex_at_birth_col:
                 print()
-                print(f"Cannot use \"{self.sex_at_birth_col}\" as variable of interest in single sex cohorts.")
+                print(f"Warning: Cannot use \"{self.sex_at_birth_col}\" as variable of interest in single sex cohorts.")
                 print()
                 sys.exit(0)
         else:
@@ -134,7 +134,7 @@ class PheWAS:
             else:
                 if not self.sex_as_covariates:
                     print()
-                    print("Warning: data has both sexes but sex was not chosen as covariate.")
+                    print("Warning: Data has both sexes but sex was not chosen as covariate.")
                     print()
                 self.var_cols = [self.variable_of_interest] + self.covariate_cols + [self.sex_at_birth_col]
 
