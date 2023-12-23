@@ -135,6 +135,8 @@ def run(data_has_both_sexes: bool = True, covariates_cols=("age", "sex", "pc1", 
     print()
     input("\033[1mPress enter to run PheWAS!\033[0m")
     print()
+    if isinstance(covariates_cols, tuple):
+        covariates_cols = list(covariates_cols)
     phewas = PheWAS.PheWAS(cohort_csv_path="example_cohort.csv",
                            phecode_count_csv_path="example_phecode_counts.csv",
                            phecode_version="X",

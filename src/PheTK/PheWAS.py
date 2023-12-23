@@ -121,11 +121,11 @@ class PheWAS:
             self.var_cols = [self.variable_of_interest] + self.covariate_cols
             if sex_in_covariates:
                 print()
-                print(f"{self.sex_at_birth_col} will not be used as there is only one sex in data.")
+                print(f"\"{self.sex_at_birth_col}\" will not be used as there is only one sex in data.")
                 print()
             if self.variable_of_interest == self.sex_at_birth_col:
                 print()
-                print("Cannot use sex as independent variable in single sex cohorts.")
+                print("Cannot use \"sex\" as independent variable in single sex cohorts.")
                 print()
                 sys.exit(0)
         else:
