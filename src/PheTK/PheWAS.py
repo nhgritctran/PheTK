@@ -134,7 +134,8 @@ class PheWAS:
             else:
                 if not self.sex_as_covariates:
                     print()
-                    print("Warning: Data has both sexes but sex was not chosen as covariate.")
+                    print("Warning: Data has both sexes but user did not specify sex as a covariate.")
+                    print("         Running PheWAS without sex as a covariate.")
                     print()
                 self.var_cols = [self.variable_of_interest] + self.covariate_cols + [self.sex_at_birth_col]
 
