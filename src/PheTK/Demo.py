@@ -93,7 +93,7 @@ def run():
               "This data also contain our variable of interest which can be binary or continuous.",
               "In addition, we will also create an example phenotype profile data for this cohort.")
         var_type = input("Which data type would you like the variable of interest to be? (binary/continuous) ")
-        while (var_type != "binary") or (var_type != "continuous"):
+        while (var_type != "binary") and (var_type != "continuous"):
             var_type = input("Please enter either binary or continuous:")
         generate_examples(var_type=var_type)
         print()
@@ -141,7 +141,7 @@ def run():
         print("\033[1mThis is the end of the demo!\033[0m")
         print()
         answer = input("Do you want to replay this demo? (yes/no) ")
-        while (answer != "yes") or (answer != ""):
+        while (answer != "yes") and (answer != "no"):
             answer = input("Please enter yes or no... ")
         if answer == "yes":
             clear_output()
