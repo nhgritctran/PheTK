@@ -114,21 +114,26 @@ class PheWAS:
         # check for sex in data
         self.data_has_single_sex = False
         self.gender_specific_var_cols = [self.variable_of_interest] + self.covariate_cols
-        if self.covariate_df[sex_at_birth_col].n_unique() == 1:
+        self.sex_values = self.covariate_df[sex_at_birth_col].unique().to_list()
+        # when cohort only has 1 sex with 0 or 1 as value
+        if (len(self.sex_values) == 1) and ((0 in self.sex_values) or (1 in self.sex_values)):
             self.data_has_single_sex = True
             self.single_sex_value = self.covariate_df[sex_at_birth_col].unique().to_list()[0]
             self.var_cols = [self.variable_of_interest] + self.covariate_cols
+            # when cohort only has 1 sex, and sex was chosen as a covariate
             if self.sex_as_covariates:
                 print()
                 print(f"Note: \"{self.sex_at_birth_col}\" will not be used as covariate",
                       "since there is only one sex in data.")
                 print()
+            # when cohort only has 1 sex, and variable_of_interest is also sex_at_birth column
             if self.variable_of_interest == self.sex_at_birth_col:
                 print()
                 print(f"Warning: Cannot use \"{self.sex_at_birth_col}\" as variable of interest in single sex cohorts.")
                 print()
                 sys.exit(0)
-        else:
+        # when cohort has 2 sexes
+        elif len(self.sex_values) == 2 and ((0 in self.sex_values) and (1 in self.sex_values)):
             if self.variable_of_interest == self.sex_at_birth_col:
                 self.var_cols = self.covariate_cols + [self.sex_at_birth_col]
             else:
@@ -138,6 +143,11 @@ class PheWAS:
                     print("         Running PheWAS without sex as a covariate.")
                     print()
                 self.var_cols = [self.variable_of_interest] + self.covariate_cols + [self.sex_at_birth_col]
+        # all other cases where sex_at_birth_column not coded probably
+        else:
+            print(f"Warning: Please check column {self.sex_at_birth_col}.")
+            print("          This column should have upto 2 unique values, 0 for female and 1 for male.")
+            sys.exit(0)
 
         # check for string type variables among covariates
         if pl.Utf8 in self.covariate_df[self.var_cols].schema.values():
