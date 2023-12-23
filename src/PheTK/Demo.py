@@ -89,7 +89,7 @@ def run():
     print("We will create an example cohort with covariates age, sex, and 3 PCs.",
           "This data also contain our variable of interest which can be binary or continuous.",
           "In addition, we will also create an example phenotype profile data for this cohort.")
-    var_type = input("Which data type would you like to use, binary or continuous?")
+    var_type = input("Which data type would you like to use, binary or continuous? ")
     if (var_type == "binary") or (var_type == "continuous"):
         generate_examples(var_type=var_type)
     else:
@@ -105,6 +105,8 @@ def run():
     print()
     print("\033[1mHere is how phenotype profile data look like:\033[0m")
     print(pl.read_csv("example_phecode_counts.csv", dtypes={"phecode": str}).head())
+    print()
+    input("Press enter to continue...")
     print()
     print("\033[1mNow we are ready to run PheWAS!\033[0m")
     print()
@@ -131,6 +133,9 @@ def run():
                            min_phecode_count=2,
                            output_file_name="example_phewas_results.csv")
     phewas.run()
+    print()
+    input("Press enter to continue...")
+    print()
     print("\033[1mHere is how example_phewas_results.csv look like:\033[0m")
     print(pl.read_csv("example_phewas_results.csv", dtypes={"phecode": str}).sort(by="p_value").head())
     print()
