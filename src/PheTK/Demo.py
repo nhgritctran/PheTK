@@ -95,7 +95,7 @@ def _prompt():
     print()
 
 
-def run(data_has_both_sexes: bool = True):
+def run(data_has_both_sexes: bool = True, covariates_cols=["age", "sex", "pc1", "pc2", "pc3"]):
     print("\033[1mHello, this is a demo of how to run PheWAS with PheTK.\033[0m")
     print("This demo should take less than 1 minute running without pauses.",
           "Enter \"quit\" in any prompt to quit.")
@@ -139,7 +139,7 @@ def run(data_has_both_sexes: bool = True):
                            phecode_count_csv_path="example_phecode_counts.csv",
                            phecode_version="X",
                            sex_at_birth_col="sex",
-                           covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
+                           covariate_cols=covariates_cols,
                            variable_of_interest="var_of_interest",
                            min_cases=50,
                            min_phecode_count=2,
