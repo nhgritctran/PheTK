@@ -1,5 +1,5 @@
 from tqdm import tqdm
-from PheWAS import PheWAS
+from . import PheWAS
 import numpy as np
 import polars as pl
 import os
@@ -131,15 +131,15 @@ def run():
     print()
     input("\033[1mPress enter to run PheWAS!\033[0m")
     print()
-    phewas = PheWAS(cohort_csv_path="example_cohort.csv",
-                    phecode_count_csv_path="example_phecode_counts.csv",
-                    phecode_version="X",
-                    sex_at_birth_col="sex",
-                    covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
-                    variable_of_interest="var_of_interest",
-                    min_cases=50,
-                    min_phecode_count=2,
-                    output_file_name="example_phewas_results.csv")
+    phewas = PheWAS.PheWAS(cohort_csv_path="example_cohort.csv",
+                           phecode_count_csv_path="example_phecode_counts.csv",
+                           phecode_version="X",
+                           sex_at_birth_col="sex",
+                           covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
+                           variable_of_interest="var_of_interest",
+                           min_cases=50,
+                           min_phecode_count=2,
+                           output_file_name="example_phewas_results.csv")
     phewas.run()
     print("\033[1mHere is how example_phewas_results.csv look like:\033[0m")
     print("In this example, we intentionally generated data with Cystic Fibrosis as a significant hit.")
