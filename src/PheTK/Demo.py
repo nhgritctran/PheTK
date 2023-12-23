@@ -98,13 +98,15 @@ def _prompt():
 def run(data_has_both_sexes: bool = True,
         covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
         variable_of_interest="variable_of_interest"):
-    print("\033[1mHello, this is a demo of how to run PheWAS with PheTK.\033[0m")
-    print("This demo should take less than 1 minute running without pauses.",
+    print("\033[1mHello and welcome to PheTK PheWAS demo.\033[0m")
+    print("This is a demonstration to introduce a basic PheWAS analysis using mock data.",
+          "It should take less than 1 minute running without pauses.",
+          ""
           "Enter \"quit\" in any prompt to quit.")
     _prompt()
     print("\033[1mFirst, let's create some example data.\033[0m")
     print()
-    print("We will create an example cohort with covariates age, sex, and 3 PCs.",
+    print(f"We will create an example cohort with covariates {covariates_cols}.",
           "This data also contains our variable of interest which can be binary or continuous.",
           "In addition, we will also create an example phenotype profile data for this cohort.")
     var_type = input("Which data type would you like the variable of interest to be? (binary/continuous) ")
@@ -144,7 +146,7 @@ def run(data_has_both_sexes: bool = True,
                            phecode_version="X",
                            sex_at_birth_col="sex",
                            covariate_cols=list(covariates_cols),
-                           variable_of_interest="variable_of_interest",
+                           variable_of_interest=variable_of_interest,
                            min_cases=50,
                            min_phecode_count=2,
                            output_file_name="example_phewas_results.csv")
