@@ -136,6 +136,7 @@ class PheWAS:
                     self.var_cols = [self.variable_of_interest] + self.covariate_cols + [self.sex_at_birth_col]
                 else:
                     self.var_cols = [self.variable_of_interest] + self.covariate_cols
+                    print("Warning: data has both sexes but sex was not chosen as covariate.")
 
         # check for string type variables among covariates
         if pl.Utf8 in self.covariate_df[self.var_cols].schema.values():
