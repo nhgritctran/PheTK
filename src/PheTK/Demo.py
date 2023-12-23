@@ -80,14 +80,14 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary"):
 
 
 def run():
-    print("Hello, this is a demo of how to run PheWAS with PheTK.")
+    print("\033[1mHello, this is a demo of how to run PheWAS with PheTK.\033[0m")
     print()
-    input("Press any key to continue...")
+    input("Press enter to continue...")
     print()
-    print("First, let's create some example data. We will create an example cohort",
-          "with covariates age, sex, and 3 PCs. This data also contain our variable of interest",
-          "which can be binary or continuous. In addition, we will also create",
-          "an example phenotype profile data for this cohort.")
+    print("\033[1mFirst, let's create some example data.\033[1m\n",
+          "We will create an example cohort with covariates age, sex, and 3 PCs.",
+          "This data also contain our variable of interest which can be binary or continuous.",
+          "In addition, we will also create an example phenotype profile data for this cohort.")
     var_type = input("Which data type would you like to use, binary or continuous?")
     if (var_type == "binary") or (var_type == "continuous"):
         generate_examples(var_type=var_type)
@@ -95,17 +95,19 @@ def run():
         var_type = input("Please enter either binary or continuous:")
         generate_examples(var_type=var_type)
     print()
-    input("Press any key to continue...")
+    input("Press enter to continue...")
     print()
     print("Here is how the cohort data look like:")
     print(pl.read_csv("example_cohort.csv").head())
     print()
-    input("Press any key to continue...")
+    input("Press enter to continue...")
     print()
     print("Here is how phenotype profile data look like:")
     print(pl.read_csv("example_phecode_counts.csv", dtypes={"phecode": str}).head())
-    print("Now we are ready to run PheWAS!")
     print()
-    input("Press any key to continue...")
+    print("\033[1mNow we are ready to run PheWAS!\033[0m\n",
+          "To run PheWAS, ")
+    print()
+    input("Press enter to continue...")
     print()
     print("This is the end of the demo.")
