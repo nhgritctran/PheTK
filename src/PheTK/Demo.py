@@ -84,6 +84,7 @@ def run():
     repeat = True
     while repeat:
         print("\033[1mHello, this is a demo of how to run PheWAS with PheTK.\033[0m")
+        print("This demo should take less than 1 minute running nonstop.")
         print()
         input("Press enter to continue...")
         print()
@@ -93,7 +94,7 @@ def run():
               "This data also contain our variable of interest which can be binary or continuous.",
               "In addition, we will also create an example phenotype profile data for this cohort.")
         var_type = input("Which data type would you like the variable of interest to be? (binary/continuous) ")
-        while (var_type != "binary") and (var_type != "continuous"):
+        while (var_type.lower() != "binary") and (var_type.lower() != "continuous"):
             var_type = input("Please enter either binary or continuous:")
         generate_examples(var_type=var_type)
         print()
@@ -141,11 +142,11 @@ def run():
         print("\033[1mThis is the end of the demo!\033[0m")
         print()
         answer = input("Do you want to replay this demo? (yes/no) ")
-        while (answer != "yes") and (answer != "no"):
+        while (answer.lower() != "yes") and (answer.lower() != "no"):
             answer = input("Please enter yes or no... ")
-        if answer == "yes":
+        if answer.lower() == "yes":
             clear_output()
-        elif answer == "no":
+        elif answer.lower() == "no":
             repeat = False
             print()
-            print("\033[1mGoodbye & Good luck!\033[0m")
+            print("\033[1mGood luck!\033[0m")
