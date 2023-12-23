@@ -1,5 +1,5 @@
 from tqdm import tqdm
-from . import PheWAS
+from PheWAS import PheWAS
 import numpy as np
 import polars as pl
 import os
@@ -7,7 +7,8 @@ import random
 import sys
 
 
-def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary"):
+def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary",
+                      data_has_both_sex=True):
     # load phecode mapping file to get all phecodes
     phetk_dir = os.path.dirname(__file__)
     phecode_mapping_file_path = os.path.join(phetk_dir, "phecode")
@@ -22,9 +23,13 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary"):
     phecodes.remove(phecode)  # exclude target phecode for background data
 
     # mock cohort
+    if data_has_both_sex:
+        n_sex = 2
+    else:
+        n_sex = 1
     cols = {"person_id": np.array(range(1, cohort_size + 1)),
             "age": np.random.randint(18, 80, cohort_size),
-            "sex": np.random.randint(0, 2, cohort_size),
+            "sex": np.random.randint(0, n_sex, cohort_size),
             "pc1": np.random.uniform(-1, 1, cohort_size),
             "pc2": np.random.uniform(-1, 1, cohort_size),
             "pc3": np.random.uniform(-1, 1, cohort_size)}
@@ -126,15 +131,15 @@ def run():
     print()
     input("\033[1mPress enter to run PheWAS!\033[0m")
     print()
-    phewas = PheWAS.PheWAS(cohort_csv_path="example_cohort.csv",
-                           phecode_count_csv_path="example_phecode_counts.csv",
-                           phecode_version="X",
-                           sex_at_birth_col="sex",
-                           covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
-                           variable_of_interest="var_of_interest",
-                           min_cases=50,
-                           min_phecode_count=2,
-                           output_file_name="example_phewas_results.csv")
+    phewas = PheWAS(cohort_csv_path="example_cohort.csv",
+                    phecode_count_csv_path="example_phecode_counts.csv",
+                    phecode_version="X",
+                    sex_at_birth_col="sex",
+                    covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
+                    variable_of_interest="var_of_interest",
+                    min_cases=50,
+                    min_phecode_count=2,
+                    output_file_name="example_phewas_results.csv")
     phewas.run()
     print("\033[1mHere is how example_phewas_results.csv look like:\033[0m")
     print("In this example, we intentionally generated data with Cystic Fibrosis as a significant hit.")
