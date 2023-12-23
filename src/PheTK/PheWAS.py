@@ -10,7 +10,6 @@ import polars as pl
 import statsmodels
 import statsmodels.api as sm
 import sys
-import time
 import warnings
 
 
@@ -107,9 +106,9 @@ class PheWAS:
             self.use_exclusion = False
 
         # remove sex_at_birth column from covariates if it is included, just for processing purpose
-        sex_in_covariates = False
+        self.sex_as_covariates = False
         if self.sex_at_birth_col in self.covariate_cols:
-            sex_in_covariates = True
+            self.sex_as_covariates = True
             self.covariate_cols.remove(self.sex_at_birth_col)
 
         # check for sex in data
@@ -119,24 +118,24 @@ class PheWAS:
             self.data_has_single_sex = True
             self.single_sex_value = self.covariate_df[sex_at_birth_col].unique().to_list()[0]
             self.var_cols = [self.variable_of_interest] + self.covariate_cols
-            if sex_in_covariates:
+            if self.sex_as_covariates:
                 print()
-                print(f"\"{self.sex_at_birth_col}\" will not be used as there is only one sex in data.")
+                print(f"Note: \"{self.sex_at_birth_col}\" will not be used as there is only one sex in data.")
                 print()
             if self.variable_of_interest == self.sex_at_birth_col:
                 print()
-                print("Cannot use \"sex\" as independent variable in single sex cohorts.")
+                print(f"Cannot use \"{self.sex_at_birth_col}\" as independent variable in single sex cohorts.")
                 print()
                 sys.exit(0)
         else:
             if self.variable_of_interest == self.sex_at_birth_col:
                 self.var_cols = self.covariate_cols + [self.sex_at_birth_col]
             else:
-                if sex_in_covariates:
-                    self.var_cols = [self.variable_of_interest] + self.covariate_cols + [self.sex_at_birth_col]
-                else:
-                    self.var_cols = [self.variable_of_interest] + self.covariate_cols
+                if not self.sex_as_covariates:
+                    print()
                     print("Warning: data has both sexes but sex was not chosen as covariate.")
+                    print()
+                self.var_cols = [self.variable_of_interest] + self.covariate_cols + [self.sex_at_birth_col]
 
         # check for string type variables among covariates
         if pl.Utf8 in self.covariate_df[self.var_cols].schema.values():
@@ -263,7 +262,7 @@ class PheWAS:
             return pl.DataFrame(), pl.DataFrame(), []
 
         # ANALYSIS VAR COLS
-        if sex_restriction == "Both":
+        if sex_restriction == "Both" and self.sex_as_covariates:
             analysis_var_cols = var_cols
         else:
             analysis_var_cols = gender_specific_var_cols
@@ -370,15 +369,11 @@ class PheWAS:
         if gender_specific_var_cols is None:
             gender_specific_var_cols = copy.deepcopy(self.gender_specific_var_cols)
 
-        case_start_time = time.time()
         cases, controls, analysis_var_cols = self._case_control_prep(phecode,
                                                                      phecode_counts=phecode_counts,
                                                                      covariate_df=covariate_df,
                                                                      var_cols=var_cols,
                                                                      gender_specific_var_cols=gender_specific_var_cols)
-        case_end_time = time.time()
-        if self.verbose:
-            print(f"Phecode {phecode} cases & controls created in {case_end_time - case_start_time} seconds\n")
 
         # only run regression if number of cases > min_cases
         if (len(cases) >= self.min_cases) and (len(controls) > self.min_cases):

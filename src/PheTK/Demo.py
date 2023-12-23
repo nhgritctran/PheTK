@@ -156,6 +156,5 @@ def run(data_has_both_sexes: bool = True, covariates_cols=("age", "sex", "pc1", 
     print("\033[1mGood luck!\033[0m")
 
 
-def __main__():
-    if __name__ == "__main__":
-        run()
+if __name__ == "__main__":
+    run()
