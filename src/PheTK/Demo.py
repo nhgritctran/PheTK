@@ -156,7 +156,7 @@ def run(data_has_both_sexes: bool = True,
                            verbose=verbose)
     phewas.run()
     print("\033[1mHere is how example_phewas_results.csv look like:\033[0m")
-    if variable_of_interest == "variable_of_interest":
+    if variable_of_interest == "variable_of_interest" and phecode_to_process == "all":
         print("In this example, we intentionally generated data with Cystic Fibrosis as a significant hit.")
     print(pl.read_csv("example_phewas_results.csv", dtypes={"phecode": str}).sort(by="p_value").head())
     print()
