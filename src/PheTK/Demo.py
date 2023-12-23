@@ -132,5 +132,5 @@ def run():
                            output_file_name="example_phewas_results.csv")
     phewas.run()
     print()
-    print("This is the end of the demo! Good luck!")
+    print("\033[1mThis is the end of the demo! Good luck!\033[0m")
     print()
