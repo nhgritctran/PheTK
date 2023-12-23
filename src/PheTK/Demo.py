@@ -87,6 +87,7 @@ def prompt():
         print()
         print("\033[1mGood luck!\033[0m")
         sys.exit(0)
+    print()
 
 
 def run():
