@@ -117,18 +117,20 @@ def run():
           "--variable_of_interest variable_of_interest",
           "--min_case 50",
           "--min_phecode_count 2",
-          "--output_file example_phewas_results.csv")
+          "--output_file_name example_phewas_results.csv")
     print()
     input("Press enter to run PheWAS!")
     print()
     phewas = PheWAS.PheWAS(cohort_csv_path="example_cohort.csv",
                            phecode_count_csv_path="example_phecode_counts.csv",
+                           phecode_version="X",
                            sex_at_birth_col="sex",
                            covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
                            variable_of_interest="variable_of_interest",
                            min_cases=50,
                            min_phecode_count=2,
-                           output_file="example_phewas_results.csv")
+                           output_file_name="example_phewas_results.csv")
+    phewas.run()
     print()
     print("This is the end of the demo! Good luck!")
     print()
