@@ -97,7 +97,8 @@ def _prompt():
 
 def run(data_has_both_sexes: bool = True,
         covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
-        variable_of_interest="variable_of_interest"):
+        variable_of_interest="variable_of_interest",
+        verbose=False):
     print("\033[1mHello and welcome to PheTK PheWAS demo.\033[0m")
     print("This is a demonstration to introduce a basic PheWAS analysis using mock data.",
           "It should take less than 1 minute running without pauses.",
@@ -149,7 +150,8 @@ def run(data_has_both_sexes: bool = True,
                            variable_of_interest=variable_of_interest,
                            min_cases=50,
                            min_phecode_count=2,
-                           output_file_name="example_phewas_results.csv")
+                           output_file_name="example_phewas_results.csv",
+                           verbose=verbose)
     phewas.run()
     print("\033[1mHere is how example_phewas_results.csv look like:\033[0m")
     if variable_of_interest == "variable_of_interest":
