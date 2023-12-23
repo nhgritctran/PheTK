@@ -98,6 +98,7 @@ def _prompt():
 def run(data_has_both_sexes: bool = True,
         covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
         variable_of_interest="variable_of_interest",
+        phecode_to_process="all",
         verbose=False):
     print("\033[1mHello and welcome to PheTK PheWAS demo.\033[0m")
     print("This is a demonstration to introduce a basic PheWAS analysis using mock data.",
@@ -146,6 +147,7 @@ def run(data_has_both_sexes: bool = True,
                            phecode_count_csv_path="example_phecode_counts.csv",
                            phecode_version="X",
                            sex_at_birth_col="sex",
+                           phecode_to_process=phecode_to_process,
                            covariate_cols=list(covariates_cols),
                            variable_of_interest=variable_of_interest,
                            min_cases=50,
