@@ -68,7 +68,7 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary"):
             phecode_counts = df
         else:
             phecode_counts = pl.concat([phecode_counts, df])
-    phecode_counts = phecode_counts.unique(["person_id", "phecode"])
+    phecode_counts = phecode_counts.unique(["person_id", "phecode"]).sort(by="person_id")
 
     # save data
     cohort.write_csv("example_cohort.csv")
@@ -84,8 +84,9 @@ def run():
     print()
     input("Press enter to continue...")
     print()
-    print("\033[1mFirst, let's create some example data.\033[1m\n",
-          "We will create an example cohort with covariates age, sex, and 3 PCs.",
+    print("\033[1mFirst, let's create some example data.\033[0m")
+    print()
+    print("We will create an example cohort with covariates age, sex, and 3 PCs.",
           "This data also contain our variable of interest which can be binary or continuous.",
           "In addition, we will also create an example phenotype profile data for this cohort.")
     var_type = input("Which data type would you like to use, binary or continuous?")
@@ -105,9 +106,29 @@ def run():
     print("Here is how phenotype profile data look like:")
     print(pl.read_csv("example_phecode_counts.csv", dtypes={"phecode": str}).head())
     print()
-    print("\033[1mNow we are ready to run PheWAS!\033[0m\n",
-          "To run PheWAS, ")
+    print("\033[1mNow we are ready to run PheWAS!\033[0m")
     print()
-    input("Press enter to continue...")
+    print("For this demo, we can use the following command to run PheWAS in command line interface:")
+    print("PheWAS --cohort_csv_path example_cohort.csv",
+          "--phecode_count_csv_path example_phecode_counts.csv",
+          "--phecode_version X",
+          "--sex_at_birth_col sex",
+          "--covariates age sex pc1 pc2 pc3",
+          "--variable_of_interest variable_of_interest",
+          "--min_case 50",
+          "--min_phecode_count 2",
+          "--output_file example_phewas_results.csv")
     print()
-    print("This is the end of the demo.")
+    input("Press enter to run PheWAS!")
+    print()
+    phewas = PheWAS.PheWAS(cohort_csv_path="example_cohort.csv",
+                           phecode_count_csv_path="example_phecode_counts.csv",
+                           sex_at_birth_col="sex",
+                           covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
+                           variable_of_interest="variable_of_interest",
+                           min_cases=50,
+                           min_phecode_count=2,
+                           output_file="example_phewas_results.csv")
+    print()
+    print("This is the end of the demo! Good luck!")
+    print()

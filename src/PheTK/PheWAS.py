@@ -22,7 +22,7 @@ class PheWAS:
                  cohort_csv_path,
                  sex_at_birth_col,
                  covariate_cols,
-                 independent_var_col,
+                 variable_of_interest,
                  phecode_to_process="all",
                  min_cases=50,
                  min_phecode_count=2,
@@ -37,7 +37,7 @@ class PheWAS:
         :param cohort_csv_path: path to cohort data with covariates of interest
         :param sex_at_birth_col: gender/sex column of interest, by default, male = 1, female = 0
         :param covariate_cols: name of covariate columns; excluding independent var of interest
-        :param independent_var_col: binary "case" column to specify participants with/without variant of interest
+        :param variable_of_interest: binary "case" column to specify participants with/without variant of interest
         :param phecode_to_process: defaults to "all"; otherwise, a list of phecodes must be provided
         :param min_cases: defaults to 50; minimum number of cases for each phecode to be considered for PheWAS
         :param min_phecode_count: defaults to 2; minimum number of phecode count to qualify as case for PheWAS
@@ -86,8 +86,11 @@ class PheWAS:
 
         # basic attributes from instantiation
         self.sex_at_birth_col = sex_at_birth_col
-        self.covariate_cols = covariate_cols
-        self.independent_var_col = independent_var_col
+        if isinstance(covariate_cols, str):
+            self.covariate_cols = [covariate_cols]
+        elif isinstance(covariate_cols, list):
+            self.covariate_cols = covariate_cols
+        self.variable_of_interest = variable_of_interest
         self.verbose = verbose
         self.min_cases = min_cases
         self.min_phecode_count = min_phecode_count
@@ -103,18 +106,36 @@ class PheWAS:
         elif phecode_version == "X":
             self.use_exclusion = False
 
+        # remove sex_at_birth column from covariates if it is included, just for processing purpose
+        sex_in_covariates = False
+        if self.sex_at_birth_col in self.covariate_cols:
+            sex_in_covariates = True
+            self.covariate_cols.remove(self.sex_at_birth_col)
+
         # check for sex in data
         self.data_has_single_sex = False
-        self.gender_specific_var_cols = [self.independent_var_col] + self.covariate_cols
+        self.gender_specific_var_cols = [self.variable_of_interest] + self.covariate_cols
         if self.covariate_df[sex_at_birth_col].n_unique() == 1:
             self.data_has_single_sex = True
             self.single_sex_value = self.covariate_df[sex_at_birth_col].unique().to_list()[0]
-            self.var_cols = [self.independent_var_col] + self.covariate_cols
+            self.var_cols = [self.variable_of_interest] + self.covariate_cols
+            if sex_in_covariates:
+                print()
+                print(f"{self.sex_at_birth_col} will not be used as there is only one sex in data.")
+                print()
+            if self.variable_of_interest == self.sex_at_birth_col:
+                print()
+                print("Cannot use sex as independent variable in single sex cohorts.")
+                print()
+                sys.exit(0)
         else:
-            if self.independent_var_col == self.sex_at_birth_col:
+            if self.variable_of_interest == self.sex_at_birth_col:
                 self.var_cols = self.covariate_cols + [self.sex_at_birth_col]
             else:
-                self.var_cols = [self.independent_var_col] + self.covariate_cols + [self.sex_at_birth_col]
+                if sex_in_covariates:
+                    self.var_cols = [self.variable_of_interest] + self.covariate_cols + [self.sex_at_birth_col]
+                else:
+                    self.var_cols = [self.variable_of_interest] + self.covariate_cols
 
         # check for string type variables among covariates
         if pl.Utf8 in self.covariate_df[self.var_cols].schema.values():
@@ -368,8 +389,8 @@ class PheWAS:
             # merge cases & controls
             regressors = cases.vstack(controls)
 
-            # get index of independent_var_col
-            var_index = regressors[analysis_var_cols].columns.index(self.independent_var_col)
+            # get index of variable of interest
+            var_index = regressors[analysis_var_cols].columns.index(self.variable_of_interest)
 
             # logistic regression
             if self.suppress_warnings:
@@ -531,7 +552,7 @@ def main():
                     cohort_csv_path=args.cohort_csv_path,
                     sex_at_birth_col=args.sex_at_birth_col,
                     covariate_cols=args.covariates,
-                    independent_var_col=args.variable_of_interest,
+                    variable_of_interest=args.variable_of_interest,
                     phecode_to_process=args.phecode_to_process,
                     use_exclusion=args.use_exclusion,
                     min_cases=args.min_case,
