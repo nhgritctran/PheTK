@@ -1,6 +1,6 @@
+from .PheWAS import PheWAS
 from tqdm import tqdm
 import numpy as np
-import PheWAS
 import polars as pl
 import os
 import random
@@ -146,17 +146,17 @@ def run(data_has_both_sexes: bool = True,
     print()
     if isinstance(covariates_cols, tuple):
         covariates_cols = list(covariates_cols)
-    phewas = PheWAS.PheWAS(cohort_csv_path="example_cohort.csv",
-                           phecode_count_csv_path="example_phecode_counts.csv",
-                           phecode_version="X",
-                           sex_at_birth_col="sex",
-                           phecode_to_process=phecode_to_process,
-                           covariate_cols=list(covariates_cols),
-                           variable_of_interest=variable_of_interest,
-                           min_cases=50,
-                           min_phecode_count=2,
-                           output_file_name="example_phewas_results.csv",
-                           verbose=verbose)
+    phewas = PheWAS(cohort_csv_path="example_cohort.csv",
+                    phecode_count_csv_path="example_phecode_counts.csv",
+                    phecode_version="X",
+                    sex_at_birth_col="sex",
+                    phecode_to_process=phecode_to_process,
+                    covariate_cols=list(covariates_cols),
+                    variable_of_interest=variable_of_interest,
+                    min_cases=50,
+                    min_phecode_count=2,
+                    output_file_name="example_phewas_results.csv",
+                    verbose=verbose)
     phewas.run()
     print("\033[1mHere is how example_phewas_results.csv look like:\033[0m")
     if variable_of_interest == "variable_of_interest" and phecode_to_process == "all":
