@@ -101,9 +101,9 @@ def run(data_has_both_sexes: bool = True,
         phecode_to_process="all",
         verbose=False):
     print("\033[1mHello and welcome to PheTK PheWAS demo.\033[0m")
-    print("This is a demonstration to introduce a basic PheWAS analysis using mock data.",
+    print("This is a quick demonstration to introduce a basic PheWAS analysis using mock data.",
           "It should take less than 1 minute running without pauses.",
-          ""
+          "For a detailed tutorial, please check out the included jupyter notebooks.",
           "Enter \"quit\" in any prompt to quit.")
     _prompt()
     print("\033[1mFirst, let's create some example data.\033[0m")
@@ -132,7 +132,7 @@ def run(data_has_both_sexes: bool = True,
     print("\033[1mNow we are ready to run PheWAS!\033[0m")
     print()
     print("For this demo, we can use the following command to run PheWAS in command line interface:")
-    print("\033[1mPheWAS --cohort_csv_path\033[0m example_cohort.csv",
+    print("\033[1mpython3 PheWAS --cohort_csv_path\033[0m example_cohort.csv",
           "\033[1m--phecode_count_csv_path\033[0m example_phecode_counts.csv",
           "\033[1m--phecode_version\033[0m X",
           "\033[1m--sex_at_birth_col\033[0m sex",
