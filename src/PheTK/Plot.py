@@ -444,7 +444,7 @@ class Plot:
                   fontsize=legend_marker_size)
 
     def manhattan(self,
-                  label_values="positive_beta",
+                  label_values="p_value",
                   label_value_threshold=0,
                   label_count=10,
                   label_size=8,
