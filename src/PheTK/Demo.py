@@ -1,6 +1,6 @@
 from tqdm import tqdm
-from . import PheWAS
 import numpy as np
+import PheWAS
 import polars as pl
 import os
 import random

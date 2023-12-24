@@ -1,4 +1,5 @@
-from . import _queries, _utils
+import _queries
+import _utils
 import os
 import polars as pl
 import sys
