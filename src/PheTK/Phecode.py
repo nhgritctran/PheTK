@@ -1,5 +1,4 @@
-import _queries
-import _utils
+from PheTK import _queries, _utils
 import os
 import polars as pl
 import sys

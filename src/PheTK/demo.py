@@ -1,4 +1,4 @@
-from .PheWAS import PheWAS
+from PheTK.PheWAS import PheWAS
 from tqdm import tqdm
 import numpy as np
 import polars as pl
