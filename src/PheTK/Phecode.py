@@ -1,3 +1,4 @@
+# noinspection PyUnresolvedReferences,PyProtectedMember
 from PheTK import _queries, _utils
 import os
 import polars as pl

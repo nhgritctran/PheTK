@@ -1,3 +1,4 @@
+# noinspection PyUnresolvedReferences
 from PheTK.PheWAS import PheWAS
 from tqdm import tqdm
 import numpy as np
@@ -124,10 +125,10 @@ def run(data_has_both_sexes: bool = True,
         generate_examples(var_type=var_type, data_has_both_sexes=data_has_both_sexes)
     _prompt()
     print("\033[1mWe created a cohort of 500 people and here is how the cohort data look like:\033[0m")
-    print(pl.read_csv("example_cohort.csv").head(10))
+    print(pl.read_csv("example_cohort.csv").head())
     _prompt()
     print("\033[1mHere is how phenotype profile data look like:\033[0m")
-    print(pl.read_csv("example_phecode_counts.csv", dtypes={"phecode": str}).head(10))
+    print(pl.read_csv("example_phecode_counts.csv", dtypes={"phecode": str}).head())
     _prompt()
     print("\033[1mNow we are ready to run PheWAS!\033[0m")
     print()
