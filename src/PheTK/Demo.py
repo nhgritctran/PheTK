@@ -109,8 +109,11 @@ def run(data_has_both_sexes: bool = True,
     print("\033[1mFirst, let's create some example data.\033[0m")
     print()
     print(f"We will create an example cohort with covariates {covariates_cols}.",
-          "This data also contains our variable of interest which can be binary or continuous.",
-          "In addition, we will also create an example phenotype profile data for this cohort.")
+          "This data also contains our variable of interest which can be binary or continuous.")
+    print()
+    print("In addition, we will also create an example phenotype profile data for this cohort.",
+          "This table contains all phecodes mapped from ICD codes from each person's EHR and their counts.")
+    print()
     var_type = input("Which data type would you like the variable of interest to be? (binary/continuous) ")
     while (var_type.lower() != "binary") and (var_type.lower() != "continuous") and (var_type.lower() != "quit"):
         var_type = input("Please enter either binary or continuous:")
@@ -129,15 +132,15 @@ def run(data_has_both_sexes: bool = True,
     print("\033[1mNow we are ready to run PheWAS!\033[0m")
     print()
     print("For this demo, we can use the following command to run PheWAS in command line interface:")
-    print("PheWAS --cohort_csv_path example_cohort.csv",
-          "--phecode_count_csv_path example_phecode_counts.csv",
-          "--phecode_version X",
-          "--sex_at_birth_col sex",
-          "--covariates age sex pc1 pc2 pc3",
-          "--variable_of_interest variable_of_interest",
-          "--min_case 50",
-          "--min_phecode_count 2",
-          "--output_file_name example_phewas_results.csv")
+    print("\033[1mPheWAS --cohort_csv_path\033[0m example_cohort.csv",
+          "\033[1m--phecode_count_csv_path\033[0m example_phecode_counts.csv",
+          "\033[1m--phecode_version\033[0m X",
+          "\033[1m--sex_at_birth_col\033[0m sex",
+          "\033[1m--covariates\033[0m age sex pc1 pc2 pc3",
+          "\033[1m--variable_of_interest\033[0m variable_of_interest",
+          "\033[1m--min_case\033[0m 50",
+          "\033[1m--min_phecode_count\033[0m 2",
+          "\033[1m--output_file_name\033[0m example_phewas_results.csv")
     print()
     input("\033[1mPress enter to run PheWAS!\033[0m")
     print()
