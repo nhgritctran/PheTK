@@ -84,9 +84,9 @@ class PheWAS:
         # basic attributes from instantiation
         self.sex_at_birth_col = sex_at_birth_col
         if isinstance(covariate_cols, str):
-            self.covariate_cols = [covariate_cols]
+            self.covariate_cols = [copy.deepcopy(covariate_cols)]
         elif isinstance(covariate_cols, list):
-            self.covariate_cols = covariate_cols
+            self.covariate_cols = copy.deepcopy(covariate_cols)
         self.variable_of_interest = variable_of_interest
         self.verbose = verbose
         self.min_cases = min_cases
