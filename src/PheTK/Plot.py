@@ -631,7 +631,7 @@ class Plot:
 
         # legend
         if (marker_size_col is not None) and show_legend:
-            handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
+            handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6, num=5)
             ax.legend(
                 handles, labels,
                 markerscale=legend_marker_scale,
