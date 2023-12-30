@@ -638,7 +638,6 @@ class Plot:
             full_df[marker_size_col].min() + margin + (i * step_size) for i in range(5)
         ]
         legend_labels = [round(i, -1) for i in legend_labels]
-        print(legend_labels)
         if (marker_size_col is not None) and show_legend:
             handles, labels = scatter.legend_elements(prop="sizes", alpha=0.5, num=5)
             ax.legend(
