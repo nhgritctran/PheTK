@@ -634,6 +634,7 @@ class Plot:
         legend_labels = [
             full_df.filter(pl.col("_marker_size") == i)[marker_size_col].mean() for i in legend_proxies
         ]
+        print(legend_labels)
         if (marker_size_col is not None) and show_legend:
             handles, labels = scatter.legend_elements(prop="sizes", alpha=0.5, num=5)
             ax.legend(
