@@ -582,6 +582,7 @@ class Plot:
                          fill_marker=True,
                          marker_alpha=0.5,
                          legend_marker_scale=0.5,
+                         legend_label_count=5,
                          show_legend=False):
 
         # set marker edge and face colors
@@ -630,16 +631,17 @@ class Plot:
         )
 
         # legend
+        k = 0.05
         min_size = full_df[marker_size_col].min()
         max_size = full_df[marker_size_col].max()
-        margin = (max_size - min_size) * 0.05
-        step_size = (max_size - min_size) * 0.8 / 4
+        margin = (max_size - min_size) * k
+        step_size = (max_size - min_size) * (1-(2*k)) / (legend_label_count - 1)
         legend_labels = [
-            full_df[marker_size_col].min() + margin + (i * step_size) for i in range(5)
+            full_df[marker_size_col].min() + margin + (i * step_size) for i in range(legend_label_count)
         ]
         legend_labels = [round(i, -1) for i in legend_labels]
         if (marker_size_col is not None) and show_legend:
-            handles, labels = scatter.legend_elements(prop="sizes", alpha=0.5, num=5)
+            handles, labels = scatter.legend_elements(prop="sizes", alpha=0.5, num=legend_labels)
             ax.legend(
                 handles=handles,
                 labels=legend_labels,  # override with original values
@@ -745,6 +747,7 @@ class Plot:
                 marker_alpha=0.5,
                 show_legend=False,
                 legend_marker_scale=0.5,
+                legend_label_count=5,
                 dpi=150,
                 save_plot=True,
                 output_file_name=None,
@@ -791,6 +794,7 @@ class Plot:
                               fill_marker=fill_marker,
                               marker_alpha=marker_alpha,
                               legend_marker_scale=legend_marker_scale,
+                              legend_label_count=legend_label_count,
                               show_legend=show_legend)
 
         # lines
