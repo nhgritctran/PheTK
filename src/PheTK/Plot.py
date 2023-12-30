@@ -630,14 +630,8 @@ class Plot:
         )
 
         # legend
-        legend_proxies = [200, 400, 600, 800, 1000]
-        legend_labels = [
-            round(
-                full_df.filter(
-                    (pl.col("_marker_size") >= 0.8*i) & (pl.col("_marker_size") <= 1.2*i)
-                )[marker_size_col].mean()
-            ) for i in legend_proxies
-        ]
+        legend_labels = full_df.qcut(quantiles=[0.2, 0.4, 0.6, 0.8, 1])["break_point"].unique().to_list()
+        legend_labels = [round(i, -2) for i in legend_labels]
         print(legend_labels)
         if (marker_size_col is not None) and show_legend:
             handles, labels = scatter.legend_elements(prop="sizes", alpha=0.5, num=5)
