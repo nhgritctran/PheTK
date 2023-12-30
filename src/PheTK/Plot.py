@@ -737,7 +737,7 @@ class Plot:
                 marker_size_col="cases",
                 marker_shape=".",
                 fill_marker=True,
-                marker_alpha=None,
+                marker_alpha=0.5,
                 legend=False,
                 dpi=150,
                 save_plot=True,
