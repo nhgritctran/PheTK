@@ -634,7 +634,7 @@ class Plot:
         legend_labels = [
             round(
                 full_df.filter(
-                    (pl.col("_marker_size") >= 0.8*i) | (pl.col("_marker_size") <= 1.2*i)
+                    (pl.col("_marker_size") >= 0.8*i) & (pl.col("_marker_size") <= 1.2*i)
                 )[marker_size_col].mean()
             ) for i in legend_proxies
         ]
