@@ -632,7 +632,9 @@ class Plot:
         # legend
         legend_proxies = [200, 400, 600, 800, 1000]
         legend_labels = [
-            full_df.filter(pl.col("_marker_size") == i)[marker_size_col].mean() for i in legend_proxies
+            round(
+                full_df.filter((pl.col("_marker_size") >= 0.8*i) | (pl.col("_marker_size") <= 1.2*i))
+            )[marker_size_col].mean() for i in legend_proxies
         ]
         print(legend_labels)
         if (marker_size_col is not None) and show_legend:
