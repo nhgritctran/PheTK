@@ -612,8 +612,8 @@ class Plot:
             full_df = self.transform_values(df=full_df,
                                             col=marker_size_col,
                                             new_col="_marker_size",
-                                            new_min=10,
-                                            new_max=800)
+                                            new_min=100,
+                                            new_max=1000)
             marker_size = full_df["_marker_size"].to_numpy()
         else:
             marker_size = None
