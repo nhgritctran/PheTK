@@ -637,11 +637,11 @@ class Plot:
         margin = (max_size - min_size) * k
         step_size = (max_size - min_size) * (1-(2*k)) / (legend_label_count - 1)
         legend_labels = [
-            full_df[marker_size_col].min() + margin + (i * step_size) for i in range(legend_label_count)
+            min_size + margin + (i * step_size) for i in range(legend_label_count)
         ]
         legend_labels = [round(i, -1) for i in legend_labels]
         if (marker_size_col is not None) and show_legend:
-            handles, labels = scatter.legend_elements(prop="sizes", alpha=0.5, num=legend_labels)
+            handles, labels = scatter.legend_elements(prop="sizes", alpha=0.5, num=legend_label_count)
             ax.legend(
                 handles=handles,
                 labels=legend_labels,  # override with original values
