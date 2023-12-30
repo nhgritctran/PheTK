@@ -639,7 +639,7 @@ class Plot:
         legend_labels = [
             min_size + margin + (i * step_size) for i in range(legend_label_count)
         ]
-        legend_labels = [round(i, -1) for i in legend_labels]
+        legend_labels = [round(i, -2) for i in legend_labels]
         if (marker_size_col is not None) and show_legend:
             handles, labels = scatter.legend_elements(prop="sizes", alpha=0.5, num=legend_label_count)
             ax.legend(
