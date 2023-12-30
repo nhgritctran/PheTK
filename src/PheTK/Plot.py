@@ -581,7 +581,7 @@ class Plot:
                          negative_beta_color="darkcyan",
                          fill_marker=True,
                          marker_alpha=0.5,
-                         legend_marker_scale=1,
+                         legend_marker_scale=0.5,
                          show_legend=False):
 
         # set marker edge and face colors
@@ -631,7 +631,9 @@ class Plot:
 
         # legend
         legend_proxies = [200, 400, 600, 800, 1000]
-        legend_labels = [full_df.filter(pl.col("_marker_size") == i)[marker_size_col].mean() for i in legend_proxies]
+        legend_labels = [
+            round(full_df.filter(pl.col("_marker_size") == i)[marker_size_col].mean()) for i in legend_proxies
+        ]
         if (marker_size_col is not None) and show_legend:
             handles, labels = scatter.legend_elements(prop="sizes", alpha=0.5, num=5)
             ax.legend(
