@@ -630,9 +630,12 @@ class Plot:
         )
 
         # legend
-        step_size = (full_df[marker_size_col].max() - full_df[marker_size_col].min()) / 4
+        min_size = full_df[marker_size_col].min()
+        max_size = full_df[marker_size_col].max()
+        margin = (max_size - min_size) / 10
+        step_size = (max_size - min_size) * 0.8 / 4
         legend_labels = [
-            full_df[marker_size_col].min() + (i * step_size) for i in range(5)
+            full_df[marker_size_col].min() + margin + (i * step_size) for i in range(5)
         ]
         legend_labels = [round(i, -1) for i in legend_labels]
         print(legend_labels)
