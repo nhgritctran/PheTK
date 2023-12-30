@@ -580,8 +580,9 @@ class Plot:
                          positive_beta_color="indianred",
                          negative_beta_color="darkcyan",
                          fill_marker=True,
-                         marker_alpha=None,
-                         legend=False):
+                         marker_alpha=0.5,
+                         legend_marker_scale=1,
+                         show_legend=False):
 
         # set marker edge and face colors
         if fill_marker:
@@ -607,18 +608,13 @@ class Plot:
         # combined into 1 df for plotting
         full_df = pl.concat([pos_df, neg_df]).unique()
         if marker_size_col is not None:
-            # by default, size markers by number of cases
-            if marker_size_col == "cases":
-                # scale values for better visualization
-                full_df = self.transform_values(df=full_df,
-                                                col="cases",
-                                                new_col="marker_size",
-                                                new_min=10,
-                                                new_max=800)
-                marker_size = full_df["marker_size"].to_numpy()
-            # or use user input column of choice
-            else:
-                marker_size = full_df[marker_size_col].to_numpy()
+            # scale values for better visualization
+            full_df = self.transform_values(df=full_df,
+                                            col=marker_size_col,
+                                            new_col="_marker_size",
+                                            new_min=10,
+                                            new_max=800)
+            marker_size = full_df["_marker_size"].to_numpy()
         else:
             marker_size = None
 
@@ -634,14 +630,14 @@ class Plot:
         )
 
         # legend
-        if (marker_size_col is not None) and legend:
+        if (marker_size_col is not None) and show_legend:
             handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
             ax.legend(
                 handles, labels,
-                markerscale=1,
+                markerscale=legend_marker_scale,
                 loc="center left",
                 bbox_to_anchor=(1, 0.5),
-                title="Case Number"
+                title=marker_size_col
             )
 
     def _volcano_label(self,
@@ -738,7 +734,8 @@ class Plot:
                 marker_shape=".",
                 fill_marker=True,
                 marker_alpha=0.5,
-                legend=False,
+                show_legend=False,
+                legend_marker_scale=1,
                 dpi=150,
                 save_plot=True,
                 output_file_name=None,
@@ -784,7 +781,8 @@ class Plot:
                               marker_shape=marker_shape,
                               fill_marker=fill_marker,
                               marker_alpha=marker_alpha,
-                              legend=legend)
+                              legend_marker_scale=legend_marker_scale,
+                              show_legend=show_legend)
 
         # lines
         x_positive_threshold_line = False
