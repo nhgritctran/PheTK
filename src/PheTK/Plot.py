@@ -632,7 +632,7 @@ class Plot:
         # legend
         legend_proxies = [200, 400, 600, 800, 1000]
         legend_labels = [
-            round(full_df.filter(pl.col("_marker_size") == i)[marker_size_col].mean()) for i in legend_proxies
+            full_df.filter(pl.col("_marker_size") == i)[marker_size_col].mean() for i in legend_proxies
         ]
         if (marker_size_col is not None) and show_legend:
             handles, labels = scatter.legend_elements(prop="sizes", alpha=0.5, num=5)
