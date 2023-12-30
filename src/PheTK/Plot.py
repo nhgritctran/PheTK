@@ -735,7 +735,7 @@ class Plot:
                 fill_marker=True,
                 marker_alpha=0.5,
                 show_legend=False,
-                legend_marker_scale=1,
+                legend_marker_scale=0.5,
                 dpi=150,
                 save_plot=True,
                 output_file_name=None,
