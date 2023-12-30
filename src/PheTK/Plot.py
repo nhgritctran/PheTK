@@ -632,9 +632,9 @@ class Plot:
         # legend
         step_size = (full_df[marker_size_col].max() - full_df[marker_size_col].min()) / 4
         legend_labels = [
-            full_df[marker_size_col].min() + i * step_size for i in range(5)
+            full_df[marker_size_col].min() + i * step_size for i in range(1, 6)
         ]
-        legend_labels = [round(i, -2) for i in legend_labels]
+        legend_labels = [round(i, -1) for i in legend_labels]
         print(legend_labels)
         if (marker_size_col is not None) and show_legend:
             handles, labels = scatter.legend_elements(prop="sizes", alpha=0.5, num=5)
