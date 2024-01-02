@@ -102,6 +102,16 @@ class PheWAS:
         elif phecode_version == "X":
             self.use_exclusion = False
 
+        # check if variable_of_interest is included in covariate_cols
+        self.variable_of_interest_in_covariates = False
+        if self.variable_of_interest in self.covariate_cols:
+            self.variable_of_interest_in_covariates = True
+            self.covariate_cols.remove(self.variable_of_interest)
+            print()
+            print(f"Note: \"{self.variable_of_interest}\" will not be used as covariate",
+                  "since it was already specified as variable of interest.")
+            print()
+
         # remove sex_at_birth column from covariates if it is included, just for processing purpose
         self.sex_as_covariates = False
         if self.sex_at_birth_col in self.covariate_cols:
