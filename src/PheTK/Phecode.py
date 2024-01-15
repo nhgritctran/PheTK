@@ -1,8 +1,8 @@
-# noinspection PyUnresolvedReferences,PyProtectedMember
-from PheTK import _queries, _utils
 import os
 import polars as pl
 import sys
+# noinspection PyUnresolvedReferences,PyProtectedMember
+from PheTK import _queries, _utils
 
 
 class Phecode:
@@ -35,37 +35,21 @@ class Phecode:
             print("Invalid database. Parameter db only accepts \"aou\" (All of Us) or \"custom\".")
             sys.exit(0)
 
-    def count_phecode(self, phecode_version="X"):
+    def count_phecode(self, phecode_version="X", icd_version="US", phecode_map_file_path=None):
         """
-        Extract phecode counts for a biobank database
+        Generate phecode counts from ICD counts
         :param phecode_version: defaults to "X"; other option is "1.2"
+        :param icd_version: defaults to "US"; other option are "WHO" and "custom";
+                            if "custom", user need to provide phecode_map_path
+        :param phecode_map_file_path: path to custom phecode map table
         :return: phecode counts polars dataframe
         """        
-        # load phecode mapping file by version
-        phetk_dir = os.path.dirname(__file__)
-        phecode_mapping_file_path = os.path.join(phetk_dir, "phecode")
-        if phecode_version == "X":
-            phecode_mapping_file_path = os.path.join(phecode_mapping_file_path, "phecodeX.csv")
-            # noinspection PyTypeChecker
-            phecode_df = pl.read_csv(phecode_mapping_file_path,
-                                     dtypes={"phecode": str,
-                                             "ICD": str,
-                                             "flag": pl.Int8,
-                                             "code_val": float})
-            phecode_df = phecode_df[["phecode", "ICD", "flag"]]
-        elif phecode_version == "1.2":
-            phecode_mapping_file_path = os.path.join(phecode_mapping_file_path, "phecode12.csv")
-            # noinspection PyTypeChecker
-            phecode_df = pl.read_csv(phecode_mapping_file_path,
-                                     dtypes={"phecode": str,
-                                             "ICD": str,
-                                             "flag": pl.Int8,
-                                             "exclude_range": str,
-                                             "phecode_unrolled": str})
-            phecode_df = phecode_df[["phecode_unrolled", "ICD", "flag"]]
-        else:
-            print("Unsupported phecode version. Supports phecode \"1.2\" and \"X\".")
-            sys.exit(0)
+        # load phecode mapping file by version or by custom path
+        phecode_df = _utils.get_phecode_mapping_table(
+            phecode_version=phecode_version,
+            icd_version=icd_version,
+            phecode_map_file_path=phecode_map_file_path
+        )
 
         # make a copy of self.icd_events
         icd_events = self.icd_events.clone()

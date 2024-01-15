@@ -11,6 +11,8 @@ import statsmodels
 import statsmodels.api as sm
 import sys
 import warnings
+# noinspection PyUnresolvedReferences,PyProtectedMember
+from PheTK import _utils
 
 
 class PheWAS:
@@ -22,6 +24,8 @@ class PheWAS:
                  sex_at_birth_col,
                  covariate_cols,
                  variable_of_interest,
+                 icd_version="US",
+                 phecode_map_file_path=None,
                  phecode_to_process="all",
                  min_cases=50,
                  min_phecode_count=2,
@@ -36,6 +40,9 @@ class PheWAS:
         :param sex_at_birth_col: gender/sex column of interest, by default, male = 1, female = 0
         :param covariate_cols: name of covariate columns; excluding independent var of interest
         :param variable_of_interest: binary "case" column to specify participants with/without variant of interest
+        :param icd_version: defaults to "US"; other option are "WHO" and "custom";
+                            if "custom", user need to provide phecode_map_path
+        :param phecode_map_file_path: path to custom phecode map table
         :param phecode_to_process: defaults to "all"; otherwise, a list of phecodes must be provided
         :param min_cases: defaults to 50; minimum number of cases for each phecode to be considered for PheWAS
         :param min_phecode_count: defaults to 2; minimum number of phecode count to qualify as case for PheWAS
@@ -48,29 +55,12 @@ class PheWAS:
         """
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        # load phecode mapping file by version
-        phetk_dir = os.path.dirname(__file__)
-        phecode_mapping_file_path = os.path.join(phetk_dir, "phecode")
-        if phecode_version == "X":
-            phecode_mapping_file_path = os.path.join(phecode_mapping_file_path, "phecodeX.csv")
-            # noinspection PyTypeChecker
-            self.phecode_df = pl.read_csv(phecode_mapping_file_path,
-                                          dtypes={"phecode": str,
-                                                  "ICD": str,
-                                                  "flag": pl.Int8,
-                                                  "code_val": float})
-        elif phecode_version == "1.2":
-            phecode_mapping_file_path = os.path.join(phecode_mapping_file_path, "phecode12.csv")
-            # noinspection PyTypeChecker
-            self.phecode_df = pl.read_csv(phecode_mapping_file_path,
-                                          dtypes={"phecode": str,
-                                                  "ICD": str,
-                                                  "flag": pl.Int8,
-                                                  "exclude_range": str,
-                                                  "phecode_unrolled": str})
-        else:
-            print("Unsupported phecode version. Supports phecode \"1.2\" and \"X\".")
-            sys.exit(0)
+        # load phecode mapping file by version or by custom path
+        self.phecode_df = _utils.get_phecode_mapping_table(
+            phecode_version=phecode_version,
+            icd_version=icd_version,
+            phecode_map_file_path=phecode_map_file_path
+        )
 
         # load phecode counts data for all participants
         # noinspection PyTypeChecker
