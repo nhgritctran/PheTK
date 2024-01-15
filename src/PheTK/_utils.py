@@ -31,13 +31,14 @@ def polars_gbq(query):
     return df
 
 
-def get_phecode_mapping_table(phecode_version, icd_version, phecode_map_file_path):
+def get_phecode_mapping_table(phecode_version, icd_version, phecode_map_file_path, keep_all_columns=True):
     """
     Load phecode mapping table
     :param phecode_version: defaults to "X"; other option is "1.2"
     :param icd_version: defaults to "US"; other option are "WHO" and "custom";
                         if "custom", user need to provide phecode_map_path
     :param phecode_map_file_path: path to custom phecode map table
+    :param keep_all_columns: defaults to True
     :return: phecode mapping table as polars dataframe
     """
     # load phecode mapping file by version or by custom path
@@ -66,7 +67,8 @@ def get_phecode_mapping_table(phecode_version, icd_version, phecode_map_file_pat
                                          "ICD": str,
                                          "flag": pl.Int8,
                                          "code_val": float})
-        phecode_df = phecode_df[["phecode", "ICD", "flag"]]
+        if not keep_all_columns:
+            phecode_df = phecode_df[["phecode", "ICD", "flag"]]
     elif phecode_version == "1.2":
         if icd_version == "US":
             path_suffix = "phecode12.csv"
@@ -88,7 +90,8 @@ def get_phecode_mapping_table(phecode_version, icd_version, phecode_map_file_pat
                                          "flag": pl.Int8,
                                          "exclude_range": str,
                                          "phecode_unrolled": str})
-        phecode_df = phecode_df[["phecode_unrolled", "ICD", "flag"]]
+        if not keep_all_columns:
+            phecode_df = phecode_df[["phecode_unrolled", "ICD", "flag"]]
     else:
         print("Unsupported phecode version. Supports phecode \"1.2\" and \"X\".")
         sys.exit(0)

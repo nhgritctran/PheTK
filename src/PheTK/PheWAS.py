@@ -59,7 +59,8 @@ class PheWAS:
         self.phecode_df = _utils.get_phecode_mapping_table(
             phecode_version=phecode_version,
             icd_version=icd_version,
-            phecode_map_file_path=phecode_map_file_path
+            phecode_map_file_path=phecode_map_file_path,
+            keep_all_columns=True
         )
 
         # load phecode counts data for all participants

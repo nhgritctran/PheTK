@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="PheTK",
-    version="0.1.8",
+    version="0.1.9",
     author="Tran, Tam",
     description="PheTK - Phenotype Toolkit",
     long_description=open("README.md").read(),
