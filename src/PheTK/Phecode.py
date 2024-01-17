@@ -54,12 +54,17 @@ class Phecode:
 
         # make a copy of self.icd_events
         icd_events = self.icd_events.clone()
-        icd_events = icd_events.with_columns(pl.when(pl.col("vocabulary_id") == "ICD9CM")
-                                             .then(9)
-                                             .otherwise(10)
-                                             .alias("flag")
-                                             .cast(pl.Int8))
-        icd_events = icd_events.drop(["date", "vocabulary_id"])
+        if "flag" not in icd_events.columns:
+            icd_events = icd_events.with_columns(pl.when((pl.col("vocabulary_id") == "ICD9") |
+                                                         (pl.col("vocabulary_id") == "ICD9CM"))
+                                                 .then(9)
+                                                 .when((pl.col("vocabulary_id") == "ICD10") |
+                                                       (pl.col("vocabulary_id") == "ICD910M"))
+                                                 .then(10)
+                                                 .otherwise(0)
+                                                 .alias("flag")
+                                                 .cast(pl.Int8))
+        icd_events = icd_events[["ICD", "flag"]]
 
         print()
         print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
