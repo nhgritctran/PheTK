@@ -66,7 +66,7 @@ class Phecode:
                                                  .cast(pl.Int8))
         else:
             icd_events = icd_events.with_columns(pl.col("flag").cast(pl.Int8))
-        icd_events = icd_events[["ICD", "flag"]]
+        icd_events = icd_events[["person_id", "ICD", "flag"]]
 
         print()
         print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
