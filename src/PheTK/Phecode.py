@@ -35,13 +35,15 @@ class Phecode:
             print("Invalid database. Parameter db only accepts \"aou\" (All of Us) or \"custom\".")
             sys.exit(0)
 
-    def count_phecode(self, phecode_version="X", icd_version="US", phecode_map_file_path=None):
+    def count_phecode(self, phecode_version="X", icd_version="US",
+                      phecode_map_file_path=None, output_file_name=None):
         """
         Generate phecode counts from ICD counts
         :param phecode_version: defaults to "X"; other option is "1.2"
         :param icd_version: defaults to "US"; other option are "WHO" and "custom";
                             if "custom", user need to provide phecode_map_path
         :param phecode_map_file_path: path to custom phecode map table
+        :param output_file_name: user specified output file name
         :return: phecode counts polars dataframe
         """        
         # load phecode mapping file by version or by custom path
@@ -88,13 +90,17 @@ class Phecode:
 
         # report result
         if not phecode_counts.is_empty() or phecode_counts is not None:
-            if self.db == "aou":
-                db_val = "All of Us"
-            elif self.db == "custom":
-                db_val = "custom"
+            if output_file_name is None:
+                if self.db == "aou":
+                    db_val = "All of Us"
+                elif self.db == "custom":
+                    db_val = "custom"
+                else:
+                    db_val = None
+                file_name = "{0}_{1}_phecode{2}_counts.csv".format(self.db, icd_version,
+                                                                   phecode_version.upper().replace(".", ""))
             else:
-                db_val = None
-            file_name = self.db + "_phecode" + phecode_version.upper().replace(".", "") + "_counts.csv"
+                file_name = output_file_name
             phecode_counts.write_csv(file_name)
             print(f"\033[1mSuccessfully generated phecode {phecode_version} counts for {db_val} participants!\n"
                   f"\033[1mSaved to {file_name}!\033[0m")
