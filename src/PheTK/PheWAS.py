@@ -23,7 +23,7 @@ class PheWAS:
                  cohort_csv_path,
                  sex_at_birth_col,
                  covariate_cols,
-                 variable_of_interest,
+                 independent_variable_of_interest,
                  icd_version="US",
                  phecode_map_file_path=None,
                  phecode_to_process="all",
@@ -39,7 +39,7 @@ class PheWAS:
         :param cohort_csv_path: path to cohort data with covariates of interest
         :param sex_at_birth_col: gender/sex column of interest, by default, male = 1, female = 0
         :param covariate_cols: name of covariate columns; excluding independent var of interest
-        :param variable_of_interest: binary "case" column to specify participants with/without variant of interest
+        :param independent_variable_of_interest: binary "case" column to specify participants with/without variant of interest
         :param icd_version: defaults to "US"; other option are "WHO" and "custom";
                             if "custom", user need to provide phecode_map_path
         :param phecode_map_file_path: path to custom phecode map table
@@ -78,7 +78,7 @@ class PheWAS:
             self.covariate_cols = [copy.deepcopy(covariate_cols)]
         elif isinstance(covariate_cols, list):
             self.covariate_cols = copy.deepcopy(covariate_cols)
-        self.variable_of_interest = variable_of_interest
+        self.independent_variable_of_interest = independent_variable_of_interest
         self.verbose = verbose
         self.min_cases = min_cases
         self.min_phecode_count = min_phecode_count
@@ -95,11 +95,11 @@ class PheWAS:
 
         # check if variable_of_interest is included in covariate_cols
         self.variable_of_interest_in_covariates = False
-        if self.variable_of_interest in self.covariate_cols:
+        if self.independent_variable_of_interest in self.covariate_cols:
             self.variable_of_interest_in_covariates = True
-            self.covariate_cols.remove(self.variable_of_interest)
+            self.covariate_cols.remove(self.independent_variable_of_interest)
             print()
-            print(f"Note: \"{self.variable_of_interest}\" will not be used as covariate",
+            print(f"Note: \"{self.independent_variable_of_interest}\" will not be used as covariate",
                   "since it was already specified as variable of interest.")
             print()
 
@@ -111,13 +111,13 @@ class PheWAS:
 
         # check for sex in data
         self.data_has_single_sex = False
-        self.gender_specific_var_cols = [self.variable_of_interest] + self.covariate_cols
+        self.gender_specific_var_cols = [self.independent_variable_of_interest] + self.covariate_cols
         self.sex_values = self.covariate_df[sex_at_birth_col].unique().to_list()
         # when cohort only has 1 sex with 0 or 1 as value
         if (len(self.sex_values) == 1) and ((0 in self.sex_values) or (1 in self.sex_values)):
             self.data_has_single_sex = True
             self.single_sex_value = self.covariate_df[sex_at_birth_col].unique().to_list()[0]
-            self.var_cols = [self.variable_of_interest] + self.covariate_cols
+            self.var_cols = [self.independent_variable_of_interest] + self.covariate_cols
             # when cohort only has 1 sex, and sex was chosen as a covariate
             if self.sex_as_covariates:
                 print()
@@ -125,14 +125,14 @@ class PheWAS:
                       "since there is only one sex in data.")
                 print()
             # when cohort only has 1 sex, and variable_of_interest is also sex_at_birth column
-            if self.variable_of_interest == self.sex_at_birth_col:
+            if self.independent_variable_of_interest == self.sex_at_birth_col:
                 print()
                 print(f"Warning: Cannot use \"{self.sex_at_birth_col}\" as variable of interest in single sex cohorts.")
                 print()
                 sys.exit(0)
         # when cohort has 2 sexes
         elif len(self.sex_values) == 2 and ((0 in self.sex_values) and (1 in self.sex_values)):
-            if self.variable_of_interest == self.sex_at_birth_col:
+            if self.independent_variable_of_interest == self.sex_at_birth_col:
                 self.var_cols = self.covariate_cols + [self.sex_at_birth_col]
             else:
                 if not self.sex_as_covariates:
@@ -140,7 +140,7 @@ class PheWAS:
                     print("Warning: Data has both sexes but user did not specify sex as a covariate.")
                     print("         Running PheWAS without sex as a covariate.")
                     print()
-                self.var_cols = [self.variable_of_interest] + self.covariate_cols + [self.sex_at_birth_col]
+                self.var_cols = [self.independent_variable_of_interest] + self.covariate_cols + [self.sex_at_birth_col]
         # all other cases where sex_at_birth_column not coded probably
         else:
             print(f"Warning: Please check column {self.sex_at_birth_col}.")
@@ -388,7 +388,7 @@ class PheWAS:
             regressors = cases.vstack(controls)
 
             # get index of variable of interest
-            var_index = regressors[analysis_var_cols].columns.index(self.variable_of_interest)
+            var_index = regressors[analysis_var_cols].columns.index(self.independent_variable_of_interest)
 
             # logistic regression
             if self.suppress_warnings:
@@ -513,8 +513,8 @@ def main():
                         nargs="+",
                         type=str, required=True,
                         help="List of covariates to use in PheWAS analysis.")
-    parser.add_argument("-v",
-                        "--variable_of_interest",
+    parser.add_argument("-i",
+                        "--independent_variable_of_interest",
                         type=str, required=True,
                         help="Independent variable of interest.")
     parser.add_argument("-s",
@@ -553,7 +553,7 @@ def main():
                     cohort_csv_path=args.cohort_csv_path,
                     sex_at_birth_col=args.sex_at_birth_col,
                     covariate_cols=args.covariates,
-                    variable_of_interest=args.variable_of_interest,
+                    independent_variable_of_interest=args.independent_variable_of_interest,
                     phecode_to_process=args.phecode_to_process,
                     use_exclusion=args.use_exclusion,
                     min_cases=args.min_case,

@@ -35,18 +35,18 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary",
             "pc2": np.random.uniform(-1, 1, cohort_size),
             "pc3": np.random.uniform(-1, 1, cohort_size)}
     if var_type == "binary":
-        cols["variable_of_interest"] = np.random.randint(0, 2, cohort_size)
+        cols["independent_variable_of_interest"] = np.random.randint(0, 2, cohort_size)
     elif var_type == "continuous":
-        cols["variable_of_interest"] = np.random.uniform(0.1, 10, cohort_size)
+        cols["independent_variable_of_interest"] = np.random.uniform(0.1, 10, cohort_size)
 
     cohort = pl.from_dict(cols)
     if var_type == "binary":
-        case_ids = cohort.filter(pl.col("variable_of_interest") == 1)["person_id"].unique().to_list()
-        ctrl_ids = cohort.filter(pl.col("variable_of_interest") == 0)["person_id"].unique().to_list()
+        case_ids = cohort.filter(pl.col("independent_variable_of_interest") == 1)["person_id"].unique().to_list()
+        ctrl_ids = cohort.filter(pl.col("independent_variable_of_interest") == 0)["person_id"].unique().to_list()
     elif var_type == "continuous":
-        var_mean = np.mean(cols.get("variable_of_interest"))
-        case_ids = cohort.filter(pl.col("variable_of_interest") >= var_mean)["person_id"].unique().to_list()
-        ctrl_ids = cohort.filter(pl.col("variable_of_interest") < var_mean)["person_id"].unique().to_list()
+        var_mean = np.mean(cols.get("independent_variable_of_interest"))
+        case_ids = cohort.filter(pl.col("independent_variable_of_interest") >= var_mean)["person_id"].unique().to_list()
+        ctrl_ids = cohort.filter(pl.col("independent_variable_of_interest") < var_mean)["person_id"].unique().to_list()
     else:
         print("Error: var_type can only be \"binary\" or \"continuous\".")
         return
@@ -98,7 +98,7 @@ def _prompt():
 
 def run(data_has_both_sexes: bool = True,
         covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
-        variable_of_interest="variable_of_interest",
+        independent_variable_of_interest="independent_variable_of_interest",
         phecode_to_process="all",
         verbose=False):
     print("\033[1mHello and welcome to PheTK PheWAS demo.\033[0m")
@@ -138,7 +138,7 @@ def run(data_has_both_sexes: bool = True,
           "\033[1m--phecode_version\033[0m X",
           "\033[1m--sex_at_birth_col\033[0m sex",
           "\033[1m--covariates\033[0m age sex pc1 pc2 pc3",
-          "\033[1m--variable_of_interest\033[0m variable_of_interest",
+          "\033[1m--independent_variable_of_interest\033[0m independent_variable_of_interest",
           "\033[1m--min_case\033[0m 50",
           "\033[1m--min_phecode_count\033[0m 2",
           "\033[1m--output_file_name\033[0m example_phewas_results.csv")
@@ -153,14 +153,14 @@ def run(data_has_both_sexes: bool = True,
                     sex_at_birth_col="sex",
                     phecode_to_process=phecode_to_process,
                     covariate_cols=list(covariates_cols),
-                    variable_of_interest=variable_of_interest,
+                    independent_variable_of_interest=independent_variable_of_interest,
                     min_cases=50,
                     min_phecode_count=2,
                     output_file_name="example_phewas_results.csv",
                     verbose=verbose)
     phewas.run()
     print("\033[1mHere is how example_phewas_results.csv look like:\033[0m")
-    if variable_of_interest == "variable_of_interest" and phecode_to_process == "all":
+    if independent_variable_of_interest == "independent_variable_of_interest" and phecode_to_process == "all":
         print("In this example, we intentionally generated data with Cystic Fibrosis as a significant hit.")
     print(pl.read_csv("example_phewas_results.csv", dtypes={"phecode": str}).sort(by="p_value").head())
     print()
