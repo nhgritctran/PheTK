@@ -133,7 +133,7 @@ def run(data_has_both_sexes: bool = True,
     print("\033[1mNow we are ready to run PheWAS!\033[0m")
     print()
     print("If run in command line interface, the analysis below can be run with the following command:")
-    print("\033[1mpython3 PheWAS --cohort_csv_path\033[0m example_cohort.csv",
+    print("\033[1mpython3 -m PheTK.PheWAS --cohort_csv_path\033[0m example_cohort.csv",
           "\033[1m--phecode_count_csv_path\033[0m example_phecode_counts.csv",
           "\033[1m--phecode_version\033[0m X",
           "\033[1m--sex_at_birth_col\033[0m sex",
