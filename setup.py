@@ -15,6 +15,7 @@ setup(
     },
     install_requires=["adjusttext",
                       "connectorx",
+                      "google-cloud-bigquery",
                       "matplotlib",
                       "numpy",
                       "pandas",
