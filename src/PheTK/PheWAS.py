@@ -24,6 +24,7 @@ class PheWAS:
                  sex_at_birth_col,
                  covariate_cols,
                  independent_variable_of_interest,
+                 male_as_one=True,
                  icd_version="US",
                  phecode_map_file_path=None,
                  phecode_to_process="all",
@@ -37,9 +38,12 @@ class PheWAS:
         :param phecode_version: accepts "1.2" or "X"
         :param phecode_count_csv_path: path to phecode count of relevant participants at minimum
         :param cohort_csv_path: path to cohort data with covariates of interest
-        :param sex_at_birth_col: gender/sex column of interest, by default, male = 1, female = 0
+        :param sex_at_birth_col: gender/sex column of interest, by default, male = 1, female = 0;
+                                 can use male_as_one parameter to specify the value assigned to male
         :param covariate_cols: name of covariate columns; excluding independent var of interest
-        :param independent_variable_of_interest: binary "case" column to specify participants with/without variant of interest
+        :param independent_variable_of_interest: independent variable of interest column name
+        :param male_as_one: defaults to True; if True, male=1 and female=0; if False, male=0 and female=1;
+                            use this to match how males and females are coded in sex_at_birth column;
         :param icd_version: defaults to "US"; other option are "WHO" and "custom";
                             if "custom", user need to provide phecode_map_path
         :param phecode_map_file_path: path to custom phecode map table
@@ -83,6 +87,14 @@ class PheWAS:
         self.min_cases = min_cases
         self.min_phecode_count = min_phecode_count
         self.suppress_warnings = suppress_warnings
+
+        # assign 1 & 0 to male & female based on male_as_one parameter
+        if male_as_one:
+            self.male_value = 1
+            self.female_value = 0
+        else:
+            self.male_value = 0
+            self.female_value = 1
 
         # exclusion:
         # - phecode 1.2: user can choose to use exclusion or not
@@ -286,9 +298,9 @@ class PheWAS:
         # select data based on phecode "sex", e.g., male/female only or both
         if not self.data_has_single_sex:
             if sex_restriction == "Male":
-                cases = cases.filter(pl.col(self.sex_at_birth_col) == 1)
+                cases = cases.filter(pl.col(self.sex_at_birth_col) == self.male_value)
             elif sex_restriction == "Female":
-                cases = cases.filter(pl.col(self.sex_at_birth_col) == 0)
+                cases = cases.filter(pl.col(self.sex_at_birth_col) == self.female_value)
 
         # CONTROLS
         # phecode exclusions
@@ -303,9 +315,9 @@ class PheWAS:
         controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
         if not self.data_has_single_sex:
             if sex_restriction == "Male":
-                controls = controls.filter(pl.col(self.sex_at_birth_col) == 1)
+                controls = controls.filter(pl.col(self.sex_at_birth_col) == self.male_value)
             elif sex_restriction == "Female":
-                controls = controls.filter(pl.col(self.sex_at_birth_col) == 0)
+                controls = controls.filter(pl.col(self.sex_at_birth_col) == self.female_value)
 
         # DUPLICATE CHECK
         # drop duplicates and keep analysis covariate cols only
@@ -521,6 +533,10 @@ def main():
                         "--sex_at_birth_col",
                         type=str, required=True,
                         help="Sex at birth column.")
+    parser.add_argument("-mso",
+                        "--male_as_one",
+                        type=bool, required=False,
+                        help="Whether male was assigned as 1 in data.")
     parser.add_argument("-pl",
                         "--phecode_to_process",
                         nargs="+",
@@ -552,6 +568,7 @@ def main():
                     phecode_count_csv_path=args.phecode_count_csv_path,
                     cohort_csv_path=args.cohort_csv_path,
                     sex_at_birth_col=args.sex_at_birth_col,
+                    male_as_one=args.male_as_one,
                     covariate_cols=args.covariates,
                     independent_variable_of_interest=args.independent_variable_of_interest,
                     phecode_to_process=args.phecode_to_process,
