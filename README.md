@@ -30,6 +30,8 @@ utilizing both phecode 1.2 and phecodeX 1.0.
 
 ### PheWAS workflow and PheTK modules
 ![PheWAS workflow and PheTK modules](img/readme/PheTK_flowchart.png)
+Standard PheWAS workflow. Green texts are PheTK module names. Black and gray components are steps supported or 
+not supported by PheTK currently.
 
 ### PheTK module descriptions
 This table will be updated as we update PheTK.
