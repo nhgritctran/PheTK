@@ -561,7 +561,7 @@ def main():
                         type=int, required=False, default=round(os.cpu_count()*2/3),
                         help="Number of threads to use for parallel.")
     parser.add_argument("-o",
-                        "--output_file",
+                        "--output_file_name",
                         type=str, required=False, default="phewas_results.csv")
     args = parser.parse_args()
 
