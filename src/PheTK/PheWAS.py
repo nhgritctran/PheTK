@@ -193,8 +193,7 @@ class PheWAS:
         self.above_bonferroni_count = None
 
         # for saving results
-        self.output_file_name = output_file_name
-        if self.output_file_name is not None:
+        if output_file_name is not None:
             if ".csv" in output_file_name:
                 output_file_name = output_file_name.replace(".csv", "")
             self.output_file_name = output_file_name + ".csv"
@@ -505,9 +504,6 @@ class PheWAS:
 
 
 def main():
-    # generate output file name
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_file_name = f"phewas_{timestamp}.csv"
 
     # parse args
     parser = argparse.ArgumentParser(description="PheWAS analysis tool.")
@@ -578,7 +574,7 @@ def main():
                     use_exclusion=args.use_exclusion,
                     min_cases=args.min_case,
                     min_phecode_count=args.min_phecode_count,
-                    output_file_name=output_file_name)
+                    output_file_name=args.output_file_name)
     phewas.run(n_threads=args.threads)
 
 
