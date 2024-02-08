@@ -28,10 +28,10 @@ Demo.run()
 PheTK is a fast and efficient python library for Phenome Wide Association Studies (PheWAS) and other analyses 
 utilizing both phecode 1.2 and phecodeX 1.0.
 
-#### PheWAS workflow and PheTK modules
+### PheWAS workflow and PheTK modules
 ![PheWAS workflow and PheTK modules](img/readme/PheTK_flowchart.png)
 
-#### PheTK module descriptions
+### PheTK module descriptions
 This table will be updated as we update PheTK.
 
 CLI = Command line interface
