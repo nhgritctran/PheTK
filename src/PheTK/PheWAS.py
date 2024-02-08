@@ -290,10 +290,17 @@ class PheWAS:
             analysis_var_cols = gender_specific_var_cols
 
         # FILTER COVARIATE DATA BY PHECODE SEX RESTRICTION
-        if sex_restriction == "Male":
-            covariate_df = covariate_df.filter(pl.col(self.sex_at_birth_col) == self.male_value)
-        elif sex_restriction == "Female":
-            covariate_df = covariate_df.filter(pl.col(self.sex_at_birth_col) == self.female_value)
+        if not self.data_has_single_sex:
+            if sex_restriction == "Male":
+                covariate_df = covariate_df.filter(pl.col(self.sex_at_birth_col) == self.male_value)
+            elif sex_restriction == "Female":
+                covariate_df = covariate_df.filter(pl.col(self.sex_at_birth_col) == self.female_value)
+        else:
+            if (
+                (sex_restriction == "Male" and self.male_value not in self.sex_values)
+                or (sex_restriction == "Male") and (self.male_value not in self.sex_values)
+            ):
+                return pl.DataFrame(), pl.DataFrame(), []
 
         # GENERATE CASES & CONTROLS
         if len(covariate_df) > 0:
