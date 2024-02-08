@@ -12,25 +12,29 @@ class Phecode:
     For other databases, user is expected to provide an ICD code table for all participants in cohort of interest.
     """
 
-    def __init__(self, db="aou", icd_df_path=None):
+    def __init__(self, platform="aou", icd_df_path=None):
         """
         Instantiate based on parameter db
-        :param db: supports:
+        :param platform: supports:
             "aou": All of Us OMOP database
             "custom": other databases; icd_df must be not None if db = "custom"
         :param icd_df_path: path to ICD table csv file; required columns are "person_id", "ICD", and "vocabulary_id";
             "vocabulary_id" values should be "ICD9CM" or "ICD10CM"
         """
-        self.db = db
-        if db == "aou":
+        self.platform = platform
+        if platform == "aou":
             self.cdr = os.getenv("WORKSPACE_CDR")
             self.icd_query = _queries.phecode_icd_query(self.cdr)
             print("\033[1mStart querying ICD codes...")
             self.icd_events = _utils.polars_gbq(self.icd_query)
             print("\033[1mDone!")
-        elif db == "custom":
-            self.icd_events = pl.read_csv(icd_df_path,
-                                          dtypes={"ICD": str})
+        elif platform == "custom":
+            if icd_df_path is not None:
+                self.icd_events = pl.read_csv(icd_df_path,
+                                              dtypes={"ICD": str})
+            else:
+                print("icd_df_path is required for custom database.")
+                sys.exit(0)
         else:
             print("Invalid database. Parameter db only accepts \"aou\" (All of Us) or \"custom\".")
             sys.exit(0)
@@ -91,13 +95,13 @@ class Phecode:
         # report result
         if not phecode_counts.is_empty() or phecode_counts is not None:
             if output_file_name is None:
-                if self.db == "aou":
+                if self.platform == "aou":
                     db_val = "All of Us"
-                elif self.db == "custom":
+                elif self.platform == "custom":
                     db_val = "custom"
                 else:
                     db_val = None
-                file_name = "{0}_{1}_phecode{2}_counts.csv".format(self.db, icd_version,
+                file_name = "{0}_{1}_phecode{2}_counts.csv".format(self.platform, icd_version,
                                                                    phecode_version.upper().replace(".", ""))
             else:
                 file_name = output_file_name

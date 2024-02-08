@@ -32,11 +32,25 @@ utilizing both phecode 1.2 and phecodeX 1.0.
 ![PheWAS workflow and PheTK modules](data/readme/PheTK_flowchart.png)
 
 #### PheTK module descriptions
-![PheTK module descriptions](data/readme/PheTK_module_descriptions.png)
+This table will be updated as we update PheTK.
+
+CLI = Command line interface
+
+| Module  | Class   | Method(s)     | Requirements                                                               | CLI |
+|---------|---------|---------------|----------------------------------------------------------------------------|-----|
+| Cohort  | Cohort  | by_genotype   | Can be used on any platform with Hail Matrix Table.                        | No  |
+|         |         | add_covariate | Google BigQuery OMOP database. Currently optimized for All of Us.          | No  |
+| Phecode | Phecode | count_phecode | Map ICD code data to phecode 1.2 or phecodeX 1.0.                          | No  |
+|         |         |               | Must be instantiated with user's cohort ICD code data for custom platform. |     |
+|         |         |               | User can provide their own ICD-to-phecode mapping table.                   |     |
+| PheWAS  | PheWAS  | all methods   | Can be run on any platform.                                                | Yes |
+| Plot    | Plot    | all methods   | Can be run on any platform.                                                | No  |
+| Demo    |         | all methods   | Can be run on any platform.                                                | Yes |
+
 
 ## Usage
 As shown in module descriptions, some features of Cohort and Phecode modules are customized to support the data 
-structure the All of Us Researcher Workbench. PheWAS and Plot modules can be run on any platform.
+structure of the All of Us Research Program. PheWAS and Plot modules can be run on any platform.
 
 ### PheWAS module
 PheWAS module can be used in both Linux command line interface and Python environment.
@@ -72,3 +86,11 @@ example_phewas = PheWAS(
 )
 example_phewas.run()
 ```
+
+## Contact: 
+
+PheTK@mail.nih.gov
+
+## Citation: 
+
+TBD

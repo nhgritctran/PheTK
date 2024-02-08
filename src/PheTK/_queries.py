@@ -1,7 +1,7 @@
-def phecode_icd_query(cdr):
+def phecode_icd_query(db):
     """
     This method is exclusively for All of Us platform
-    :param cdr: All of Us Curated Data Repository
+    :param db: Google BigQuery database containing OMOP data tables
     :return: a SQL query that would generate a table contains participant IDs and their ICD codes from unique dates
     """
     query: str = f"""
@@ -16,9 +16,9 @@ def phecode_icd_query(cdr):
                     c.vocabulary_id AS vocabulary_id,
                     c.concept_code AS ICD
                 FROM
-                    {cdr}.condition_occurrence AS co
+                    {db}.condition_occurrence AS co
                 INNER JOIN
-                    {cdr}.concept AS c
+                    {db}.concept AS c
                 ON
                     co.condition_source_value = c.concept_code
                 WHERE
@@ -32,9 +32,9 @@ def phecode_icd_query(cdr):
                     c.vocabulary_id AS vocabulary_id,
                     c.concept_code AS ICD
                 FROM
-                    {cdr}.condition_occurrence AS co
+                    {db}.condition_occurrence AS co
                 INNER JOIN
-                    {cdr}.concept AS c
+                    {db}.concept AS c
                 ON
                     co.condition_source_concept_id = c.concept_id
                 WHERE
@@ -48,9 +48,9 @@ def phecode_icd_query(cdr):
                     c.vocabulary_id AS vocabulary_id,
                     c.concept_code AS ICD
                 FROM
-                    {cdr}.observation AS o
+                    {db}.observation AS o
                 INNER JOIN
-                    {cdr}.concept as c
+                    {db}.concept as c
                 ON
                     o.observation_source_value = c.concept_code
                 WHERE
@@ -64,9 +64,9 @@ def phecode_icd_query(cdr):
                     c.vocabulary_id AS vocabulary_id,
                     c.concept_code AS ICD
                 FROM
-                    {cdr}.observation AS o
+                    {db}.observation AS o
                 INNER JOIN
-                    {cdr}.concept as c
+                    {db}.concept as c
                 ON
                     o.observation_source_concept_id = c.concept_id
                 WHERE
@@ -78,10 +78,10 @@ def phecode_icd_query(cdr):
     return query
 
 
-def natural_age_query(cdr, participant_ids):
+def natural_age_query(db, participant_ids):
     """
     This method is exclusively for All of Us platform
-    :param cdr: All of Us Curated Data Repository
+    :param db: Google BigQuery database containing OMOP data tables
     :param participant_ids: list of participant IDs to query
     :return: a SQL query that would generate a table
             contains participant IDs and their natural age
@@ -95,9 +95,9 @@ def natural_age_query(cdr, participant_ids):
                 DAY
             )/365.2425 AS natural_age
         FROM
-            {cdr}.person AS p
+            {db}.person AS p
         LEFT JOIN
-            {cdr}.death AS d
+            {db}.death AS d
         ON
             p.person_id = d.person_id
         WHERE
@@ -107,12 +107,12 @@ def natural_age_query(cdr, participant_ids):
     return query
 
 
-def ehr_dx_code_query(cdr, participant_ids):
+def ehr_dx_code_query(db, participant_ids):
     """
     This method is exclusively for All of Us platform.
     In condition occurrence table, diagnosis codes belongs to ICD9CM, ICD10CM and SNOMED, are counted.
     In observation table, diagnosis codes belongs to ICD9CM and ICD10CM are counted.
-    :param cdr: All of Us Curated Data Repository
+    :param db: Google BigQuery database containing OMOP data tables
     :param participant_ids: list of participant IDs to query
     :return: a SQL query that would generate a table contains participant IDs and
             their ehr length (days), diagnosis code count(ICD & SNOMED), and age at last event
@@ -132,9 +132,9 @@ def ehr_dx_code_query(cdr, participant_ids):
                     co.condition_start_date AS date,
                     c.concept_code AS code
                 FROM
-                    {cdr}.condition_occurrence AS co
+                    {db}.condition_occurrence AS co
                 INNER JOIN
-                    {cdr}.concept AS c
+                    {db}.concept AS c
                 ON
                     co.condition_source_value = c.concept_code
                 WHERE
@@ -149,9 +149,9 @@ def ehr_dx_code_query(cdr, participant_ids):
                     co.condition_start_date AS date,
                     c.concept_code AS code
                 FROM
-                    {cdr}.condition_occurrence AS co
+                    {db}.condition_occurrence AS co
                 INNER JOIN
-                    {cdr}.concept AS c
+                    {db}.concept AS c
                 ON
                     co.condition_source_concept_id = c.concept_id
                 WHERE
@@ -166,9 +166,9 @@ def ehr_dx_code_query(cdr, participant_ids):
                     o.observation_date AS date,
                     c.concept_code AS code
                 FROM
-                    {cdr}.observation AS o
+                    {db}.observation AS o
                 INNER JOIN
-                    {cdr}.concept AS c
+                    {db}.concept AS c
                 ON
                     o.observation_source_value = c.concept_code
                 WHERE
@@ -183,9 +183,9 @@ def ehr_dx_code_query(cdr, participant_ids):
                     o.observation_date AS date,
                     c.concept_code AS code
                 FROM
-                    {cdr}.observation AS o
+                    {db}.observation AS o
                 INNER JOIN
-                    {cdr}.concept AS c
+                    {db}.concept AS c
                 ON
                     o.observation_source_concept_id = c.concept_id
                 WHERE
@@ -200,7 +200,7 @@ def ehr_dx_code_query(cdr, participant_ids):
                     person_id, 
                     EXTRACT(DATE FROM DATETIME(birth_datetime)) AS birthday
                 FROM
-                    {cdr}.person
+                    {db}.person
                 WHERE
                     person_id IN {participant_ids}
             ) AS df2
@@ -213,10 +213,10 @@ def ehr_dx_code_query(cdr, participant_ids):
     return query
 
 
-def sex_at_birth(cdr, participant_ids):
+def sex_at_birth(db, participant_ids):
     """
     This method is exclusively for All of Us platform
-    :param cdr: All of Us Curated Data Repository
+    :param db: Google BigQuery database containing OMOP data tables
     :param participant_ids: list of participant IDs to query
     :return: a SQL query that would generate a table contains participant IDs and
             their sex at birth; male = 1, female = 0
@@ -231,7 +231,7 @@ def sex_at_birth(cdr, participant_ids):
                     person_id,
                     1 AS sex_at_birth
                 FROM
-                    {cdr}.person
+                    {db}.person
                 WHERE
                     sex_at_birth_source_concept_id = 1585846
                 AND
@@ -243,7 +243,7 @@ def sex_at_birth(cdr, participant_ids):
                     person_id,
                     0 AS sex_at_birth
                 FROM
-                    {cdr}.person
+                    {db}.person
                 WHERE
                     sex_at_birth_source_concept_id = 1585847
                 AND

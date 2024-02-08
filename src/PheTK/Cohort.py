@@ -11,23 +11,23 @@ import sys
 class Cohort:
 
     def __init__(self,
-                 db="aou",
+                 platform="aou",
                  aou_db_version=7,
                  aou_omop_cdr=None):
         """
-        :param db: database; currently supports "aou" (All of Us)
+        :param platform: database; currently supports "aou" (All of Us) or "custom".
         :param aou_db_version: int type, version of database, e.g., 7 for All of Us CDR v7
         :param aou_omop_cdr: cdr string value, define where to query OMOP data;
                     if None, it will use current workspace CDR value, i.e., os.getenv("WORKSPACE_CDR")
         """
-        if db != "aou":
-            print("Unsupported database. Currently supports \"aou\" (All of Us).")
+        if platform.lower() != "aou" or platform.lower() != "custom":
+            print("Unsupported database. Currently supports \"aou\" (All of Us) or \"custom\".")
             sys.exit(0)
-        if aou_db_version != 6 and aou_db_version != 7:
-            print("Unsupported database. Currently supports \"aou\" (All of Us) CDR v6 and v7 "
+        if platform.lower() == "aou" and aou_db_version != 6 and aou_db_version != 7:
+            print("Unsupported database. Currently supports All of Us CDR v6 and v7 "
                   "(enter 6 or 7 as parameter value).")
             sys.exit(0)
-        self.db = db
+        self.platform = platform.lower()
         self.db_version = aou_db_version
         if aou_omop_cdr is None:
             self.cdr = os.getenv("WORKSPACE_CDR")
@@ -36,12 +36,12 @@ class Cohort:
         self.user_project = os.getenv("GOOGLE_PROJECT")
                      
         # attributes for add_covariate method
-        self.natural_age = True
-        self.age_at_last_event = True
-        self.sex_at_birth = True
-        self.ehr_length = True
-        self.dx_code_occurrence_count = True
-        self.dx_condition_count = True
+        self.natural_age = False
+        self.age_at_last_event = False
+        self.sex_at_birth = False
+        self.ehr_length = False
+        self.dx_code_occurrence_count = False
+        self.dx_condition_count = False
         self.genetic_ancestry = False
         self.first_n_pcs = 0
 
@@ -71,6 +71,16 @@ class Cohort:
 
         # import hail and assign hail_init attribute if needed
         import hail as hl
+
+        # set database path
+        if self.platform == "aou":
+            if mt_path is None and self.db_version == 6:
+                mt_path = _paths.cdr6_mt_path
+            elif mt_path is None and self.db_version == 7:
+                mt_path = _paths.cdr7_mt_path
+        elif self.platform == "custom" and mt_path is None:
+            print("For custom platform, mt_path must not be None.")
+            sys.exit(0)
 
         # basic data processing
         if output_file_name is not None:
@@ -108,13 +118,6 @@ class Cohort:
                 raise
             else:
                 print("Hail Initialization skipped as Hail has already been initialized.")
-
-        # set database path
-        if self.db == "aou":
-            if mt_path is None and self.db_version == 6:
-                mt_path = _paths.cdr6_mt_path
-            elif mt_path is None and self.db_version == 7:
-                mt_path = _paths.cdr7_mt_path
 
         # hail variant struct
         variant = hl.parse_variant(variant_string, reference_genome=reference_genome)
