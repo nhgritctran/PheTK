@@ -96,8 +96,7 @@ def _prompt():
     print()
 
 
-def run(data_has_both_sexes: bool = True,
-        covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
+def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
         independent_variable_of_interest="independent_variable_of_interest",
         phecode_to_process="all",
         verbose=False):
@@ -118,11 +117,24 @@ def run(data_has_both_sexes: bool = True,
     var_type = input("Which data type would you like the variable of interest to be? (binary/continuous) ")
     while (var_type.lower() != "binary") and (var_type.lower() != "continuous") and (var_type.lower() != "quit"):
         var_type = input("Please enter either binary or continuous:")
-    if var_type == "quit":
+    if var_type.lower() == "quit":
         print()
         print("\033[1mGood luck!\033[0m")
     else:
-        generate_examples(var_type=var_type, data_has_both_sexes=data_has_both_sexes)
+        data_has_both_sexes = input("Would you like data to have both sexes? (yes/no) ")
+        while (data_has_both_sexes.lower() != "yes") \
+                and (data_has_both_sexes.lower() != "no") \
+                and (data_has_both_sexes.lower() != "quit"):
+            data_has_both_sexes = input("Please enter either yes or no:")
+        if data_has_both_sexes.lower() == "quit":
+            print()
+            print("\033[1mGood luck!\033[0m")
+        else:
+            if data_has_both_sexes.lower() == "yes":
+                data_has_both_sexes = True
+            else:
+                data_has_both_sexes = False
+            generate_examples(var_type=var_type, data_has_both_sexes=data_has_both_sexes)
     _prompt()
     print("\033[1mWe created a cohort of 500 people and here is how the cohort data look like:\033[0m")
     print(pl.read_csv("example_cohort.csv").head())
