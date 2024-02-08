@@ -193,6 +193,7 @@ class PheWAS:
         self.above_bonferroni_count = None
 
         # for saving results
+        self.output_file_name = output_file_name
         if output_file_name is not None:
             if ".csv" in output_file_name:
                 output_file_name = output_file_name.replace(".csv", "")
