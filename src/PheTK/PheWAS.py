@@ -194,7 +194,7 @@ class PheWAS:
 
         # for saving results
         self.output_file_name = output_file_name
-        if output_file_name is not None:
+        if self.output_file_name is not None:
             if ".csv" in output_file_name:
                 output_file_name = output_file_name.replace(".csv", "")
             self.output_file_name = output_file_name + ".csv"
