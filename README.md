@@ -16,7 +16,7 @@ User can run the quick 1-minute PheWAS demo with the following command in a term
 python3 -m PheTK.Demo
 ```
 
-Or in a Python environment, e.g., Jupyter Notebook:
+Or in Jupyter Notebook:
 
 ```
 from PheTK import Demo
@@ -69,7 +69,7 @@ python3 -m PheTK.PheWAS \
 --output_file_name example_phewas_results.csv
 ```
 
-#### Python environment example:
+#### Jupyter Notebook example:
 ```
 from PheTK.PheWAS import PheWAS
 
