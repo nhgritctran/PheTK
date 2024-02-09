@@ -28,12 +28,15 @@ class Cohort:
                   "(enter 6 or 7 as parameter value).")
             sys.exit(0)
         self.platform = platform.lower()
-        self.db_version = aou_db_version
-        if aou_omop_cdr is None:
-            self.cdr = os.getenv("WORKSPACE_CDR")
-        else:
-            self.cdr = aou_omop_cdr
-        self.user_project = os.getenv("GOOGLE_PROJECT")
+
+        # generate attributes for AoU class instance
+        if self.platform == "aou":
+            self.db_version = aou_db_version
+            if aou_omop_cdr is None:
+                self.cdr = os.getenv("WORKSPACE_CDR")
+            else:
+                self.cdr = aou_omop_cdr
+            self.user_project = os.getenv("GOOGLE_PROJECT")
                      
         # attributes for add_covariate method
         self.natural_age = False

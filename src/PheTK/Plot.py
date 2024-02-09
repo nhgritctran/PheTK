@@ -222,12 +222,6 @@ class Plot:
                x_negative_threshold_line=False,
                x_negative_threshold_value=None):
 
-        """
-        Generate bonferroni, nominal significance and infinity lines
-        :param ax: plot object
-        :param plot_df:
-        :return:
-        """
         extra_offset = 0
         if plot_type == "manhattan":
             extra_offset = 1
