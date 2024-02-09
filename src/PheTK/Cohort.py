@@ -20,7 +20,7 @@ class Cohort:
         :param aou_omop_cdr: cdr string value, define where to query OMOP data;
                     if None, it will use current workspace CDR value, i.e., os.getenv("WORKSPACE_CDR")
         """
-        if platform.lower() != "aou" or platform.lower() != "custom":
+        if platform.lower() != "aou" and platform.lower() != "custom":
             print("Unsupported database. Currently supports \"aou\" (All of Us) or \"custom\".")
             sys.exit(0)
         if platform.lower() == "aou" and aou_db_version != 6 and aou_db_version != 7:
