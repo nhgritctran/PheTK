@@ -8,7 +8,21 @@ PheTK can be installed using pip install command in a terminal (Python 3.7 or ne
 pip install PheTK
 ```
 
-## 2. 1-MINUTE PHEWAS DEMO
+## 2. SYSTEM REQUIREMENTS
+As PheTK utilizes multithreading to speed up computational processes, the more CPUs/cores the system has, 
+the faster it would run.
+Memory requirement would vary based on user actual workflow and how efficient it is.
+
+In our test, a PheWAS for a cohort of 400,000+ participants and 12 covariates successfully completed on a 
+MacBook Pro M2 Pro 12 CPU cores 32GB RAM in ; 
+PheWAS for the same cohort took ~12 minutes with a cloud instance of 96 CPUs 370GB RAM 
+(memory choice here is mainly for redundancy and for comparison with other tests that we did).
+
+CPU/RAM configurations and pipeline runtime also vary by computing platforms and operating systems.
+
+In short, the more CPUs the better and RAM should be adequate for user workflow.
+
+## 3. 1-MINUTE PHEWAS DEMO
 
 User can run the quick 1-minute PheWAS demo with the following command in a terminal:
 
@@ -24,16 +38,16 @@ from PheTK import Demo
 Demo.run()
 ```
 
-## 3. DESCRIPTIONS
+## 4. DESCRIPTIONS
 PheTK is a fast and efficient python library for Phenome Wide Association Studies (PheWAS) and other analyses 
 utilizing both phecode 1.2 and phecodeX 1.0.
 
-### 3.1. PheWAS workflow and PheTK modules
+### 4.1. PheWAS workflow and PheTK modules
 ![PheWAS workflow and PheTK modules](img/readme/PheTK_flowchart.png)
 Standard PheWAS workflow. Green texts are PheTK module names. Black and gray components are steps supported or 
 not supported by PheTK currently.
 
-### 3.2. PheTK module descriptions
+### 4.2. PheTK module descriptions
 This table will be updated as we update PheTK.
 
 | Module  | Class   | Method(s)     | Platform  | Requirements/Notes                                                           |
@@ -52,15 +66,15 @@ This table will be updated as we update PheTK.
 
 All of Us: the All of Us Research Program (https://allofus.nih.gov/)
 
-## 4. USAGE
+## 5. USAGE
 As shown in module descriptions, some features of Cohort and Phecode modules are optimized to support the data 
 structure of the All of Us Research Program. 
 PheWAS, Plot, and Demo modules can be run on any platform.
 
-### 4.1. Cohort module
+### 5.1. Cohort module
 Cohort module can be used for generating genetic cohort and add certain covariates to a cohort.
 
-#### 4.1.1. by_genotype
+#### 5.1.1. by_genotype
 
 This function takes genetic variant information as input, 
 and generates cohort with matching genotypes as an output csv file.
@@ -113,7 +127,7 @@ cohort.by_genotype(
 )
 ```
 
-#### 4.1.2. add_covariates
+#### 5.1.2. add_covariates
 This function is currently customized for the All of Us Research Platform. 
 t takes a cohort csv file and covariate selection as input, 
 and generate a new cohort csv file with covariate data added as output. 
@@ -162,7 +176,7 @@ cohort.add_covariates(
 )
 ```
 
-### 4.2. Phecode module
+### 5.2. Phecode module
 Phecode module is used to retrieve ICD code data of participants, map ICD codes to phecode 1.2 or phecodeX 1.0, 
 and aggregate the counts for each phecode of each participant.
 
@@ -210,7 +224,7 @@ phecode.count_phecode(
 
 In both examples, users can provide their own phecode mapping file by adding a csv file path to phecode_map_file_path.
 
-### 4.3. PheWAS module
+### 5.3. PheWAS module
 For new users, it is recommended to run Demo example above and have a look at example cohort and phecode counts file to 
 be familiar with input data format. The example files should be generated in user's current working directory.
 
@@ -249,10 +263,10 @@ example_phewas = PheWAS(
 example_phewas.run()
 ```
 
-## 5. CONTACT
+## 6. CONTACT
 
 PheTK@mail.nih.gov
 
-## 6. CITATION
+## 7. CITATION
 
 TBD
