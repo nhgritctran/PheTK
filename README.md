@@ -24,7 +24,7 @@ from PheTK import Demo
 Demo.run()
 ```
 
-## 3. DESCRIPTION
+## 3. DESCRIPTIONS
 PheTK is a fast and efficient python library for Phenome Wide Association Studies (PheWAS) and other analyses 
 utilizing both phecode 1.2 and phecodeX 1.0.
 
