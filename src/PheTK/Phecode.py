@@ -95,18 +95,12 @@ class Phecode:
         # report result
         if not phecode_counts.is_empty() or phecode_counts is not None:
             if output_file_name is None:
-                if self.platform == "aou":
-                    db_val = "All of Us"
-                elif self.platform == "custom":
-                    db_val = "custom"
-                else:
-                    db_val = None
                 file_name = "{0}_{1}_phecode{2}_counts.csv".format(self.platform, icd_version,
                                                                    phecode_version.upper().replace(".", ""))
             else:
                 file_name = output_file_name
             phecode_counts.write_csv(file_name)
-            print(f"\033[1mSuccessfully generated phecode {phecode_version} counts for {db_val} participants!\n"
+            print(f"\033[1mSuccessfully generated phecode {phecode_version} counts for cohort participants!\n"
                   f"\033[1mSaved to {file_name}!\033[0m")
             print()
 
