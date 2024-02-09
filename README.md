@@ -36,8 +36,6 @@ not supported by PheTK currently.
 ### 3.2. PheTK module descriptions
 This table will be updated as we update PheTK.
 
-CLI = Command line interface
-
 | Module  | Class   | Method(s)     | Platform  | Requirements/Notes                                                           |
 |---------|---------|---------------|-----------|------------------------------------------------------------------------------|
 | Cohort  | Cohort  | by_genotype   | All of Us | None                                                                         |
@@ -64,7 +62,7 @@ Below are usage examples of PheTK modules.
 Generate cohort for _CFTR_ variant chr7-117559590-ATCT-A with heterozygous (0/1 genotype) participants as cases and 
 homozygous reference (0/0 genotype) participants as controls.
 
-##### Jupyter Notebook example for All of US Researcher Workbench:
+#### Jupyter Notebook example for All of US Researcher Workbench:
 For All of Us data version 7, the default Hail matrix table is the ACAF table.
 User can use a different table by providing table location in the mt_path parameter.
 ```
@@ -87,7 +85,7 @@ cohort.by_genotype(
 )
 ```
 
-##### Jupyter Notebook example for other platforms:
+#### Jupyter Notebook example for other platforms:
 For other platforms, user need to provide the location of Hail matrix table file for mt_path parameter.
 ```
 from PheTK.Cohort import Cohort
@@ -118,7 +116,7 @@ These options were set to True (or 10 in case of first_n_pcs).
 The covariates shown in this example are currently supported by PheTK. Users should only change parameter value to True 
 for covariates to be used in subsequent PheWAS.
 
-##### Jupyter Notebook example for All of US Researcher Workbench:
+#### Jupyter Notebook example for All of US Researcher Workbench:
 ```
 # user can skip the import and instantiation steps if running continuously from previous by_genotype example,
 # i.e., skip directly to add covariates step.
