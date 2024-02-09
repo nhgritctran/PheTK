@@ -193,10 +193,10 @@ example_phewas = PheWAS(
 example_phewas.run()
 ```
 
-## 5. Contact: 
+## 5. Contact 
 
 PheTK@mail.nih.gov
 
-## 6. Citation: 
+## 6. Citation 
 
 TBD
