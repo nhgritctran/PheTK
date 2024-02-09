@@ -111,21 +111,23 @@ cohort.by_genotype(
 This function is currently optimized for the All of Us Research Platform.
 
 In this example, we are adding age at last diagnosis event, sex at birth and 10 genetic PCs (provided by All of Us).
-These options were set to True (or 10 in case of first_n_pcs).
+These options were set to True (or 10 in case of first_n_pcs). These covariates will be added as new columns to exiting
+cohort data in input csv file, which must have at least "person_id" column.
 
 The covariates shown in this example are currently supported by PheTK. Users should only change parameter value to True 
-for covariates to be used in subsequent PheWAS.
+for covariates to be used in subsequent PheWAS. All parameters are set to False by default, i.e., user only need to 
+specify parameters of interest.
 
 #### Jupyter Notebook example for All of US Researcher Workbench:
 ```
-# user can skip the import and instantiation steps if running continuously from previous by_genotype example,
-# i.e., skip directly to add covariates step.
+# user can skip the import and instantiation steps if running continuously 
+# from previous by_genotype example, i.e., skip directly to add covariates step.
 from PheTK.Cohort import Cohort
 
 # instantiate class Cohort object for All of Us database version 7
 cohort = Cohort(platform="aou", aou_db_version=7)
 
-# add covariates to existing cohort
+# add covariates - long version, including all currently supported covariate options
 cohort.add_covariates(
     cohort_csv_path="aou_chr7_117559590_ATCT_A.csv",
     natural_age=False,
@@ -135,6 +137,15 @@ cohort.add_covariates(
     dx_code_occurrence_count=False,
     dx_condition_count=False,
     genetic_ancestry=False,
+    first_n_pcs=10,
+    drop_nulls=True
+)
+
+# add covariates - short version, i.e., users do not need to list unused covariates
+cohort.add_covariates(
+    cohort_csv_path="aou_chr7_117559590_ATCT_A.csv",
+    age_at_last_event=True,
+    sex_at_birth=True,
     first_n_pcs=10,
     drop_nulls=True
 )
