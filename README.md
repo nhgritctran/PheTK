@@ -108,7 +108,7 @@ cohort.by_genotype(
     case_gt="0/1",
     control_gt="0/0",
     reference_genome="GRCh38",
-    mt_path="path/to/hail_matrix_table.mt",
+    mt_path="/path/to/hail_matrix_table.mt",
     output_file_name="cftr_cohort.csv"
 )
 ```
