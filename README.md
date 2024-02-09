@@ -8,6 +8,11 @@ PheTK can be installed using pip install command in a terminal (Python 3.7 or ne
 pip install PheTK
 ```
 
+or Jupyter Notebook (restart kernel after installation and prior to importing):
+```
+!pip install PheTK
+```
+
 ## 2. SYSTEM REQUIREMENTS
 As PheTK utilizes multithreading to speed up computational processes, the more CPUs/cores the system has, 
 the faster it would run.
