@@ -50,20 +50,26 @@ This table will be updated as we update PheTK.
 | Plot    | Plot    | all methods   | Any       | None                                                                         |
 | Demo    |         | all methods   | Any       | None                                                                         |
 
+All of Us: the All of Us Research Program (https://allofus.nih.gov/)
+
 ## 4. USAGE
 As shown in module descriptions, some features of Cohort and Phecode modules are optimized to support the data 
-structure of the All of Us Research Program. PheWAS, and Plot modules can be run on any platform.
-
-Below are usage examples of PheTK modules.
+structure of the All of Us Research Program. 
+PheWAS, Plot, and Demo modules can be run on any platform.
 
 ### 4.1. Cohort module
+Cohort module can be used for generating genetic cohort and add certain covariates to a cohort.
 
 #### 4.1.1. by_genotype
-Generate cohort for _CFTR_ variant chr7-117559590-ATCT-A with heterozygous (0/1 genotype) participants as cases and 
-homozygous reference (0/0 genotype) participants as controls.
+
+This function takes genetic variant information as input, 
+and generates cohort with matching genotypes as an output csv file.
+
+For example, we generate cohort for _CFTR_ variant chr7-117559590-ATCT-A with 
+heterozygous (0/1 genotype) participants as cases and homozygous reference (0/0 genotype) participants as controls.
 
 #### Jupyter Notebook example for All of US Researcher Workbench:
-For All of Us data version 7, the default Hail matrix table is the ACAF table.
+For All of Us data version 7, the default Hail matrix table is the ACAF (common variant) table.
 User can use a different table by providing table location in the mt_path parameter.
 ```
 from PheTK.Cohort import Cohort
@@ -108,11 +114,13 @@ cohort.by_genotype(
 ```
 
 #### 4.1.2. add_covariates
-This function is currently optimized for the All of Us Research Platform.
+This function is currently customized for the All of Us Research Platform. 
+t takes a cohort csv file and covariate selection as input, 
+and generate a new cohort csv file with covariate data added as output. 
+Input cohort data which must have at least "person_id" column.
 
 In this example, we are adding age at last diagnosis event, sex at birth and 10 genetic PCs (provided by All of Us).
-These options were set to True (or 10 in case of first_n_pcs). These covariates will be added as new columns to exiting
-cohort data in input csv file, which must have at least "person_id" column.
+These options were set to True (or 10 in case of first_n_pcs).
 
 The covariates shown in this example are currently supported by PheTK. Users should only change parameter value to True 
 for covariates to be used in subsequent PheWAS. All parameters are set to False by default, i.e., user only need to 
@@ -153,6 +161,54 @@ cohort.add_covariates(
     output_file_name="cohort_with_covariates.csv"
 )
 ```
+
+### 4.2. Phecode module
+Phecode module is used to retrieve ICD code data of participants, map ICD codes to phecode 1.2 or phecodeX 1.0, 
+and aggregate the counts for each phecode of each participant.
+
+The ICD code retrieval is done automatically for All of Us platform when users instantiate class Phecode.
+For other platforms, users must provide your own ICD code data.
+
+Example of ICD code data: 
+- Each row must be unique, i.e., there should not be 2 instances of 1 ICD codes in the same day.
+- Data must have these exact column names. Date column is not used for later ICD-to-phecode mapping, 
+but should be included to make sure ICD events occurred on unique dates.
+
+| person_id | date      | vocabulary_id | ICD   |
+|-----------|-----------|---------------|-------|
+| 13579     | 1-11-2010 | ICD9CM        | 786.2 |
+| 13579     | 1-31-2010 | ICD9CM        | 786.2 |
+| 13579     | 12-4-2017 | ICD10CM       | R05.1 |
+| 24680     | 3-12-2012 | ICD9CM        | 659.2 |
+| 24680     | 4-18-2018 | ICD10CM       | R50   |
+
+#### Jupyter Notebook example for All of Us:
+```
+from PheTK.Phecode import Phecode
+
+phecode = Phecode(platform="aou")
+phecode.count_phecode(
+    phecode_version="X", 
+    icd_version="US",
+    phecode_map_file_path=None, 
+    output_file_name="my_phecode_counts.csv"
+)
+```
+
+#### Jupyter Notebook example for other platforms
+```
+from PheTK.Phecode import Phecode
+
+phecode = Phecode(platform="custom", icd_file_path="/path/to/my_icd_data.csv")
+phecode.count_phecode(
+    phecode_version="X", 
+    icd_version="US", 
+    phecode_map_file_path=None,
+    output_file_name="my_phecode_counts.csv"
+)
+```
+
+In both examples, users can provide their own phecode mapping file by adding a csv file path to phecode_map_file_path.
 
 ### 4.3. PheWAS module
 For new users, it is recommended to run Demo example above and have a look at example cohort and phecode counts file to 
