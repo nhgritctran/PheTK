@@ -1,14 +1,14 @@
 # PheTK - The Phenotype Toolkit
 The official repository of PheTK.
 
-## 1. Installation
+## 1. INSTALLATION
 PheTK can be installed using pip install command in a terminal (Python 3.7 or newer):
 
 ```
 pip install PheTK
 ```
 
-## 2. Quick PheWAS demo
+## 2. 1-MINUTE PHEWAS DEMO
 
 User can run the quick 1-minute PheWAS demo with the following command in a terminal:
 
@@ -24,7 +24,7 @@ from PheTK import Demo
 Demo.run()
 ```
 
-## 3. Description
+## 3. DESCRIPTION
 PheTK is a fast and efficient python library for Phenome Wide Association Studies (PheWAS) and other analyses 
 utilizing both phecode 1.2 and phecodeX 1.0.
 
@@ -50,7 +50,7 @@ This table will be updated as we update PheTK.
 | Plot    | Plot    | all methods   | Any       | None                                                                         |
 | Demo    |         | all methods   | Any       | None                                                                         |
 
-## 4. Usage
+## 4. USAGE
 As shown in module descriptions, some features of Cohort and Phecode modules are optimized to support the data 
 structure of the All of Us Research Program. PheWAS, and Plot modules can be run on any platform.
 
@@ -193,10 +193,10 @@ example_phewas = PheWAS(
 example_phewas.run()
 ```
 
-## 5. Contact 
+## 5. CONTACT
 
 PheTK@mail.nih.gov
 
-## 6. Citation 
+## 6. CITATION
 
 TBD
