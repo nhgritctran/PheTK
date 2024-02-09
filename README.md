@@ -127,6 +127,7 @@ from PheTK.Cohort import Cohort
 # instantiate class Cohort object for All of Us database version 7
 cohort = Cohort(platform="aou", aou_db_version=7)
 
+# RUN EITHER LONG OR SHORT VERSION BELOW
 # add covariates - long version, including all currently supported covariate options
 cohort.add_covariates(
     cohort_csv_path="aou_chr7_117559590_ATCT_A.csv",
@@ -138,7 +139,8 @@ cohort.add_covariates(
     dx_condition_count=False,
     genetic_ancestry=False,
     first_n_pcs=10,
-    drop_nulls=True
+    drop_nulls=True,
+    output_file_name="cohort_with_covariates.csv"
 )
 
 # add covariates - short version, i.e., users do not need to list unused covariates
@@ -147,11 +149,12 @@ cohort.add_covariates(
     age_at_last_event=True,
     sex_at_birth=True,
     first_n_pcs=10,
-    drop_nulls=True
+    drop_nulls=True,
+    output_file_name="cohort_with_covariates.csv"
 )
 ```
 
-### PheWAS module
+### 4.3. PheWAS module
 For new users, it is recommended to run Demo example above and have a look at example cohort and phecode counts file to 
 be familiar with input data format. The example files should be generated in user's current working directory.
 
@@ -190,10 +193,10 @@ example_phewas = PheWAS(
 example_phewas.run()
 ```
 
-## Contact: 
+## 5. Contact: 
 
 PheTK@mail.nih.gov
 
-## Citation: 
+## 6. Citation: 
 
 TBD
