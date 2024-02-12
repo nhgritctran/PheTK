@@ -242,7 +242,7 @@ python3 -m PheTK.PheWAS \
 --cohort_csv_path example_cohort.csv \
 --phecode_count_csv_path example_phecode_counts.csv \
 --sex_at_birth_col sex \
---covariates age sex pc1 pc2 pc3 
+--covariates age sex pc1 pc2 pc3 \
 --independent_variable_of_interest independent_variable_of_interest \
 --min_case 50 \
 --min_phecode_count 2 \
