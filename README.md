@@ -52,21 +52,21 @@ Black components are supported while gray ones are not supported by PheTK curren
 ### 4.2. PheTK module descriptions
 This table will be updated as we update PheTK.
 
-| Module  | Class   | Method(s)     | Platform  | Requirements/Notes                                                           |
-|---------|---------|---------------|-----------|------------------------------------------------------------------------------|
-| Cohort  | Cohort  | by_genotype   | All of Us | None                                                                         |
-|         |         |               | Other     | Variant data stored in Hail matrix table                                     |
-|         |         | add_covariate | All of Us | None                                                                         |
-|         |         |               | Other     | Google BigQuery OMOP database                                                |
-|         |         |               |           | Required tables: person, condition_occurrence, observation, death, & concept |
-| Phecode | Phecode | count_phecode | All of Us | None                                                                         | 
-|         |         |               | Other     | User provided cohort ICD code data                                           |
-|         |         |               |           | User can use custom ICD-to-phecode mapping table.                            |
-| PheWAS  | PheWAS  | all methods   | Any       | None                                                                         |
-| Plot    | Plot    | all methods   | Any       | None                                                                         |
-| Demo    |         | all methods   | Any       | None                                                                         |
+| Module  | Class   | Method(s)     | Platform    | Requirements/Notes                                                           |
+|---------|---------|---------------|-------------|------------------------------------------------------------------------------|
+| Cohort  | Cohort  | by_genotype   | _All of Us_ | None                                                                         |
+|         |         |               | Other       | Variant data stored in Hail matrix table                                     |
+|         |         | add_covariate | _All of Us_ | None                                                                         |
+|         |         |               | Other       | Google BigQuery OMOP database                                                |
+|         |         |               |             | Required tables: person, condition_occurrence, observation, death, & concept |
+| Phecode | Phecode | count_phecode | _All of Us_ | None                                                                         | 
+|         |         |               | Other       | User provided cohort ICD code data                                           |
+|         |         |               |             | User can use custom ICD-to-phecode mapping table.                            |
+| PheWAS  | PheWAS  | all methods   | Any         | None                                                                         |
+| Plot    | Plot    | all methods   | Any         | None                                                                         |
+| Demo    |         | all methods   | Any         | None                                                                         |
 
-All of Us: the All of Us Research Program (https://allofus.nih.gov/)
+_All of Us_: the _All of Us_ Research Program (https://allofus.nih.gov/)
 
 ## 5. USAGE
 
@@ -81,13 +81,13 @@ and generates cohort with matching genotypes as an output csv file.
 For example, we generate cohort for _CFTR_ variant chr7-117559590-ATCT-A with 
 heterozygous (0/1 genotype) participants as cases and homozygous reference (0/0 genotype) participants as controls.
 
-#### Jupyter Notebook example for All of US Researcher Workbench:
-For All of Us data version 7, the default Hail matrix table is the ACAF (common variant) table.
+#### Jupyter Notebook example for _All of US_ Researcher Workbench:
+For _All of Us_ data version 7, the default Hail matrix table is the ACAF (common variant) table.
 User can use a different table by providing table location in the mt_path parameter.
 ```
 from PheTK.Cohort import Cohort
 
-# instantiate class Cohort object for All of Us database version 7
+# instantiate class Cohort object for _All of Us_ database version 7
 cohort = Cohort(platform="aou", aou_db_version=7)
 
 # generate cohort by genotype
@@ -109,7 +109,7 @@ For other platforms, user need to provide the location of Hail matrix table file
 ```
 from PheTK.Cohort import Cohort
 
-# instantiate class Cohort object for All of Us database version 7
+# instantiate class Cohort object for _All of Us_ database version 7
 cohort = Cohort(platform="custom")
 
 # generate cohort by genotype
@@ -127,25 +127,25 @@ cohort.by_genotype(
 ```
 
 #### 5.1.2. add_covariates
-This function is currently customized for the All of Us Research Platform. 
+This function is currently customized for the _All of Us_ Research Platform. 
 It takes a cohort csv file and covariate selection as input, 
 and generate a new cohort csv file with covariate data added as output. 
 Input cohort data which must have at least "person_id" column.
 
-In this example, we are adding age at last diagnosis event, sex at birth and 10 genetic PCs (provided by All of Us).
+In this example, we are adding age at last diagnosis event, sex at birth and 10 genetic PCs (provided by _All of Us_).
 These options were set to True (or 10 in case of first_n_pcs).
 
 The covariates shown in this example are currently supported by PheTK. Users should only change parameter value to True 
 for covariates to be used in subsequent PheWAS. All parameters are set to False by default, i.e., user only need to 
 specify parameters of interest.
 
-#### Jupyter Notebook example for All of US Researcher Workbench:
+#### Jupyter Notebook example for _All of US_ Researcher Workbench:
 ```
 # user can skip the import and instantiation steps if running continuously 
 # from previous by_genotype example, i.e., skip directly to add covariates step.
 from PheTK.Cohort import Cohort
 
-# instantiate class Cohort object for All of Us database version 7
+# instantiate class Cohort object for _All of Us_ database version 7
 cohort = Cohort(platform="aou", aou_db_version=7)
 
 # RUN EITHER LONG OR SHORT VERSION BELOW
@@ -179,7 +179,7 @@ cohort.add_covariates(
 Phecode module is used to retrieve ICD code data of participants, map ICD codes to phecode 1.2 or phecodeX 1.0, 
 and aggregate the counts for each phecode of each participant.
 
-The ICD code retrieval is done automatically for All of Us platform when users instantiate class Phecode.
+The ICD code retrieval is done automatically for _All of Us_ platform when users instantiate class Phecode.
 For other platforms, users must provide your own ICD code data.
 
 Example of ICD code data: 
@@ -195,7 +195,7 @@ but should be included to make sure ICD events occurred on unique dates.
 | 24680     | 3-12-2012 | ICD9CM        | 659.2 |
 | 24680     | 4-18-2018 | ICD10CM       | R50   |
 
-#### Jupyter Notebook example for All of Us:
+#### Jupyter Notebook example for _All of Us_:
 ```
 from PheTK.Phecode import Phecode
 
@@ -231,6 +231,11 @@ PheWAS class is instantiated with paths to csv files of cohort data and phecode 
 in addition to other parameters as shown in the examples below.
 It can be used in both Linux command line interface (CLI) and any Python environment, e.g., 
 Jupyter Notebook/Lab.
+
+In these example, we would like to run PheWAS with phecodeX with age, sex and 3 genetic PCs as covariates,
+and an independent variable of interest (for which PheWAS summary statistics will be generated).
+For each phecode, a participant must have a minimum count of 2 phecode events to be considered a case.
+There must be at least 50 cases and 50 controls for the phecode to be tested.
 
 #### CLI example:
 ```
@@ -279,6 +284,8 @@ p.manhattpan(label_values="p_value", label_count=1, save_plot=True)
 The above code example generates this Manhattan plot figure:
 
 ![Example Manhattan plot](img/readme/example_manhattan.png)
+
+Details on plot customization options will be provided in a separate document in the near future.
 
 ## 6. CONTACT
 
