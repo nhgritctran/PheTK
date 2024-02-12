@@ -72,9 +72,6 @@ This table will be updated as we update PheTK.
 All of Us: the All of Us Research Program (https://allofus.nih.gov/)
 
 ## 5. USAGE
-As shown in module descriptions, some features of Cohort and Phecode modules are optimized to support the data 
-structure of the All of Us Research Program. 
-PheWAS, Plot, and Demo modules can be run on any platform.
 
 ### 5.1. Cohort module
 Cohort module can be used for generating genetic cohort and add certain covariates to a cohort.
@@ -230,10 +227,12 @@ phecode.count_phecode(
 In both examples, users can provide their own phecode mapping file by adding a csv file path to phecode_map_file_path.
 
 ### 5.3. PheWAS module
-For new users, it is recommended to run Demo example above and have a look at example cohort and phecode counts file to 
+It is recommended to run Demo example above and have a look at example cohort and phecode counts file to 
 be familiar with input data format. The example files should be generated in user's current working directory.
 
-PheWAS module can be used in both Linux command line interface (CLI) and any Python environment, e.g., 
+PheWAS class is instantiated with paths to csv files of cohort data and phecode counts data,
+in addition to other parameters as shown in the examples below.
+It can be used in both Linux command line interface (CLI) and any Python environment, e.g., 
 Jupyter Notebook/Lab.
 
 #### CLI example:
@@ -267,6 +266,22 @@ example_phewas = PheWAS(
 )
 example_phewas.run()
 ```
+
+### 5.4. Plot module
+Plot class is instantiated with path to PheWAS result csv file.
+After that, a plot type method can be called to generate a plot, 
+e.g., calling manhattan() method to make Manhattan plot.
+
+#### Jupyter Notebook example:
+```
+from PheTK.Plot import Plot
+
+p = Plot("example_phewas_results.csv")
+p.manhattpan(label_values="p_value", label_count=1, save_plot=True)
+```
+The above code example generates this Manhattan plot figure:
+
+![Example Manhattan plot](img/readme/example_manhattan.png)
 
 ## 6. CONTACT
 

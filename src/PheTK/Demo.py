@@ -139,7 +139,7 @@ def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
     print("\033[1mWe created a cohort of 500 people and here is how the cohort data look like:\033[0m")
     print(pl.read_csv("example_cohort.csv").head())
     _prompt()
-    print("\033[1mHere is how phenotype profile data look like:\033[0m")
+    print("\033[1mHere is how the phecode count data look like:\033[0m")
     print(pl.read_csv("example_phecode_counts.csv", dtypes={"phecode": str}).head())
     _prompt()
     print("\033[1mNow we are ready to run PheWAS!\033[0m")

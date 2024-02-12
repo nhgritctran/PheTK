@@ -5,6 +5,18 @@ import pyarrow as pa
 import sys
 
 
+def to_polars(df):
+    """
+    Check and convert pandas dataframe object to polars dataframe, if applicable
+    :param df: dataframe object
+    :return: polars dataframe
+    """
+    if not isinstance(df, pl.DataFrame):
+        return pl.from_pandas(df)
+    else:
+        return df
+
+
 def spark_to_polars(spark_df):
     """
     Convert spark df to polars df

@@ -9,19 +9,19 @@ import polars as pl
 
 class Plot:
     def __init__(self,
-                 phewas_result,
+                 phewas_result_csv_path,
                  bonferroni=None,
                  phecode_version=None,
                  color_palette=None):
         """
-        :param phewas_result: phewas result data; this will be converted to polars dataframe if not already is
+        :param phewas_result_csv_path: path to PheWAS result csv file, generated from PheWAS module.
         :param bonferroni: defaults to None; if None, calculate base on number of phecode tested
         :param phecode_version: defaults to None; if None, use phecode X; else phecode 1.2
         :param color_palette: defaults to None; if None, use internal color palette
         """
 
-        # sort and add index column for phecode order
-        self.phewas_result = self._to_polars(phewas_result)
+        # load PheWAS results
+        self.phewas_result = pl.read_csv(phewas_result_csv_path, dtypes={"phecode": str})
 
         # assign a proxy value for infinity neg_log_p_value
         max_non_inf_neg_log = self.phewas_result.filter(pl.col("neg_log_p_value") != np.inf) \
@@ -96,18 +96,6 @@ class Plot:
         print()
         print("Plot saved to", output_file_name)
         print()
-
-    @staticmethod
-    def _to_polars(df):
-        """
-        Check and convert pandas dataframe object to polars dataframe, if applicable
-        :param df: dataframe object
-        :return: polars dataframe
-        """
-        if not isinstance(df, pl.DataFrame):
-            return pl.from_pandas(df)
-        else:
-            return df
 
     @staticmethod
     def _filter_by_phecode_categories(df, phecode_categories=None):
