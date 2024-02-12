@@ -13,6 +13,11 @@ or Jupyter Notebook (restart kernel after installation and prior to importing):
 !pip install PheTK
 ```
 
+If and older version of PheTK was installed previously, it is best to uninstall it before new installation
+```
+pip uninstall PheTK -y && pip install PheTK
+```
+
 ## 2. SYSTEM REQUIREMENTS
 As PheTK utilizes multithreading to speed up computational processes, the more CPUs/cores the system has, 
 the faster it would run.
