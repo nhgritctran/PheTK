@@ -195,6 +195,8 @@ but should be included to make sure ICD events occurred on unique dates.
 | 24680     | 3-12-2012 | ICD9CM        | 659.2 |
 | 24680     | 4-18-2018 | ICD10CM       | R50   |
 
+In these examples, we will map US ICD codes (ICD-9-CM & ICD-10-CM) to phecodeX for _All of Us_ and custom platforms.
+
 #### Jupyter Notebook example for _All of Us_:
 ```
 from PheTK.Phecode import Phecode
@@ -273,6 +275,8 @@ example_phewas.run()
 Plot class is instantiated with path to PheWAS result csv file.
 After that, a plot type method can be called to generate a plot, 
 e.g., calling manhattan() method to make Manhattan plot.
+
+In this example, we are generating a Manhattan plot for the PheWAS results created by module Demo.
 
 #### Jupyter Notebook example:
 ```
