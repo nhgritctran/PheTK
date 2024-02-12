@@ -81,7 +81,7 @@ and generates cohort with matching genotypes as an output csv file.
 For example, we generate cohort for _CFTR_ variant chr7-117559590-ATCT-A with 
 heterozygous (0/1 genotype) participants as cases and homozygous reference (0/0 genotype) participants as controls.
 
-#### Jupyter Notebook example for _All of US_ Researcher Workbench:
+#### Jupyter Notebook example for _All of Us_ Researcher Workbench:
 For _All of Us_ data version 7, the default Hail matrix table is the ACAF (common variant) table.
 User can use a different table by providing table location in the mt_path parameter.
 ```
@@ -139,7 +139,7 @@ The covariates shown in this example are currently supported by PheTK. Users sho
 for covariates to be used in subsequent PheWAS. All parameters are set to False by default, i.e., user only need to 
 specify parameters of interest.
 
-#### Jupyter Notebook example for _All of US_ Researcher Workbench:
+#### Jupyter Notebook example for _All of Us_ Researcher Workbench:
 ```
 # user can skip the import and instantiation steps if running continuously 
 # from previous by_genotype example, i.e., skip directly to add covariates step.
