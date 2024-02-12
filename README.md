@@ -245,6 +245,7 @@ python3 -m PheTK.PheWAS \
 --cohort_csv_path example_cohort.csv \
 --phecode_count_csv_path example_phecode_counts.csv \
 --sex_at_birth_col sex \
+--male_as_one True \
 --covariates age sex pc1 pc2 pc3 \
 --independent_variable_of_interest independent_variable_of_interest \
 --min_case 50 \
@@ -261,6 +262,7 @@ example_phewas = PheWAS(
     phecode_count_csv_path="example_phecode_counts.csv",
     cohort_csv_path="example_cohort.csv",
     sex_at_birth_col="sex",
+    male_as_one=True,
     covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
     independent_variable_of_interest="independent_variable_of_interest",
     min_cases=50,
@@ -269,6 +271,13 @@ example_phewas = PheWAS(
 )
 example_phewas.run()
 ```
+
+Note:
+- Each entry in sex_at_birth column should be either 0 or 1 for female or male. The default is male = 1 and female = 0.
+- User can use male_as_one to specify where male was coded as 1 (male_as_one=True) or 0 (male_as_one=False).
+- In the above example, "sex" column was declared twice, once in sex_at_birth_col and once in covariate_cols.
+sex_at_birth_col is always required as certain phecodes are sex restricted.
+If user would like to use sex as a covariate, sex column must be included in covariate_cols. 
 
 ### 5.4. Plot module
 Plot class is instantiated with path to PheWAS result csv file.
