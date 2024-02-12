@@ -132,7 +132,7 @@ It takes a cohort csv file and covariate selection as input,
 and generate a new cohort csv file with covariate data added as output. 
 Input cohort data which must have at least "person_id" column.
 
-For non-_All of Us_ platforms, a Google BigQuery database name must be provided.
+For non-_All of Us_ platforms, a Google BigQuery dataset ID must be provided.
 
 In this example, we are adding age at last diagnosis event, sex at birth and 10 genetic PCs (provided by _All of Us_).
 These options were set to True (or 10 in case of first_n_pcs).
@@ -184,13 +184,13 @@ These are only useful if user would like to filter data by genetic ancestries.
 Genetic PCs (from first_n_pcs parameter) is the better option for genetic ancestry adjustment in PheWAS.
 
 #### Jupyter Notebook example for other platforms with OMOP data stored in Google BigQuery:
-The only difference in this case is that user need to provide database name for custom_db parameter.
+The only difference in this case is that user need to provide dataset ID for gbq_dataset_id parameter.
 The rest should be the same as above example.
 Please make sure the custom database meet the requirements in section 4.2.
 ```
 from PheTK.Cohort import Cohort
 
-cohort = Cohort(platform="custom", custom_db="Google_BigQuery_database_name")
+cohort = Cohort(platform="custom", gbq_dataset_id="Google_BigQuery_dataset_id")
 ```
 
 ### 5.2. Phecode module
