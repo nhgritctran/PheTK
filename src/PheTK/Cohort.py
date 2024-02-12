@@ -13,12 +13,14 @@ class Cohort:
     def __init__(self,
                  platform="aou",
                  aou_db_version=7,
-                 aou_omop_cdr=None):
+                 aou_omop_cdr=None,
+                 custom_db=None):
         """
         :param platform: database; currently supports "aou" (All of Us) or "custom".
         :param aou_db_version: int type, version of database, e.g., 7 for All of Us CDR v7
         :param aou_omop_cdr: cdr string value, define where to query OMOP data;
                     if None, it will use current workspace CDR value, i.e., os.getenv("WORKSPACE_CDR")
+        :param custom_db: Google BigQuery database name for custom platforms.
         """
         if platform.lower() != "aou" and platform.lower() != "custom":
             print("Unsupported database. Currently supports \"aou\" (All of Us) or \"custom\".")
@@ -26,6 +28,9 @@ class Cohort:
         if platform.lower() == "aou" and aou_db_version != 6 and aou_db_version != 7:
             print("Unsupported database. Currently supports All of Us CDR v6 and v7 "
                   "(enter 6 or 7 as parameter value).")
+            sys.exit(0)
+        if platform.lower() != "custom" and custom_db is None:
+            print("custom_db is required for non All of Us platforms.")
             sys.exit(0)
         self.platform = platform.lower()
 
@@ -37,6 +42,8 @@ class Cohort:
             else:
                 self.cdr = aou_omop_cdr
             self.user_project = os.getenv("GOOGLE_PROJECT")
+        else:
+            self.cdr = custom_db
                      
         # attributes for add_covariate method
         self.natural_age = False
