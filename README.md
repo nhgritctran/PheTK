@@ -16,14 +16,12 @@ or Jupyter Notebook (restart kernel after installation and prior to importing):
 ## 2. SYSTEM REQUIREMENTS
 As PheTK utilizes multithreading to speed up computational processes, the more CPUs/cores the system has, 
 the faster it would run.
-Memory requirement would vary based on user actual workflow and how efficient it is.
+Memory requirement would vary based on computing platform, user actual workflow and how efficient it is.
 
 In our test, a PheWAS for a cohort of 400,000+ participants and 12 covariates successfully completed on a 
-MacBook Pro M2 Pro 12 CPU cores 32GB RAM in ; 
+MacBook Pro M2 Pro 12 CPU cores 32GB RAM in ~81 minutes; 
 PheWAS for the same cohort took ~12 minutes with a cloud instance of 96 CPUs 370GB RAM 
 (memory choice here is mainly for redundancy and for comparison with other tests that we did).
-
-CPU/RAM configurations and pipeline runtime also vary by computing platforms and operating systems.
 
 In short, the more CPUs the better and RAM should be adequate for user workflow.
 
@@ -44,13 +42,12 @@ Demo.run()
 ```
 
 ## 4. DESCRIPTIONS
-PheTK is a fast and efficient python library for Phenome Wide Association Studies (PheWAS) and other analyses 
-utilizing both phecode 1.2 and phecodeX 1.0.
+PheTK is a fast python library for Phenome Wide Association Studies (PheWAS) utilizing both phecode 1.2 and phecodeX 1.0.
 
 ### 4.1. PheWAS workflow and PheTK modules
 ![PheWAS workflow and PheTK modules](img/readme/PheTK_flowchart.png)
-Standard PheWAS workflow. Green texts are PheTK module names. Black and gray components are steps supported or 
-not supported by PheTK currently.
+Standard PheWAS workflow. Green texts are PheTK module names. 
+Black components are supported while gray ones are not supported by PheTK currently.
 
 ### 4.2. PheTK module descriptions
 This table will be updated as we update PheTK.
@@ -131,7 +128,7 @@ cohort.by_genotype(
 
 #### 5.1.2. add_covariates
 This function is currently customized for the All of Us Research Platform. 
-t takes a cohort csv file and covariate selection as input, 
+It takes a cohort csv file and covariate selection as input, 
 and generate a new cohort csv file with covariate data added as output. 
 Input cohort data which must have at least "person_id" column.
 
@@ -186,9 +183,9 @@ The ICD code retrieval is done automatically for All of Us platform when users i
 For other platforms, users must provide your own ICD code data.
 
 Example of ICD code data: 
-- Each row must be unique, i.e., there should not be 2 instances of 1 ICD codes in the same day.
-- Data must have these exact column names. Date column is not used for later ICD-to-phecode mapping, 
-but should be included to make sure ICD events occurred on unique dates.
+- Each row must be unique, i.e., there should not be 2 instances of 1 ICD code in the same day.
+- Data must have these exact column names. "date" column is not used for later ICD-to-phecode mapping, 
+but should be included to make sure ICD events occurred on unique dates. 
 
 | person_id | date      | vocabulary_id | ICD   |
 |-----------|-----------|---------------|-------|
