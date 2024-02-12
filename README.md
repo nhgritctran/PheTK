@@ -158,6 +158,7 @@ cohort.add_covariates(
     ehr_length=False,
     dx_code_occurrence_count=False,
     dx_condition_count=False,
+    genetic_ancestry=False,
     first_n_pcs=10,
     drop_nulls=True,
     output_file_name="cohort_with_covariates.csv"
@@ -173,6 +174,12 @@ cohort.add_covariates(
     output_file_name="cohort_with_covariates.csv"
 )
 ```
+
+Notes:
+- In the "long_version" example, "genetic_ancestry" will return string values of predicted ancestries, 
+e.g., "eur", "afr", etc. 
+These are only useful if user would like to filter data by genetic ancestries. 
+Genetic PCs (from first_n_pcs parameter) is the better option for genetic ancestry adjustment in PheWAS.
 
 ### 5.2. Phecode module
 Phecode module is used to retrieve ICD code data of participants, map ICD codes to phecode 1.2 or phecodeX 1.0, 
