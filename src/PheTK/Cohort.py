@@ -29,7 +29,7 @@ class Cohort:
             print("Unsupported database. Currently supports All of Us CDR v6 and v7 "
                   "(enter 6 or 7 as parameter value).")
             sys.exit(0)
-        if platform.lower() != "custom" and gbq_dataset_id is None:
+        if platform.lower() == "custom" and gbq_dataset_id is None:
             print("custom_db is required for non All of Us platforms.")
             sys.exit(0)
         self.platform = platform.lower()
