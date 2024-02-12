@@ -137,7 +137,7 @@ These options were set to True (or 10 in case of first_n_pcs).
 
 The covariates shown in this example are currently supported by PheTK. Users should only change parameter value to True 
 for covariates to be used in subsequent PheWAS. All parameters are set to False by default, i.e., user only need to 
-specify parameters of interest.
+specify parameters of interest as shown in the "short version".
 
 #### Jupyter Notebook example for _All of Us_ Researcher Workbench:
 ```
@@ -158,7 +158,6 @@ cohort.add_covariates(
     ehr_length=False,
     dx_code_occurrence_count=False,
     dx_condition_count=False,
-    genetic_ancestry=False,
     first_n_pcs=10,
     drop_nulls=True,
     output_file_name="cohort_with_covariates.csv"
