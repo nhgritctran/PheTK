@@ -330,4 +330,12 @@ PheTK@mail.nih.gov
 
 ## 7. CITATION
 
+Preprint version:
+```
+https://www.medrxiv.org/content/10.1101/2024.02.12.24302720v1
+```
+
+Peer reviewed version:
+```
 TBD
+```
