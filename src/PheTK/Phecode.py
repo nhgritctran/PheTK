@@ -65,7 +65,7 @@ class Phecode:
                                                          (pl.col("vocabulary_id") == "ICD9CM"))
                                                  .then(9)
                                                  .when((pl.col("vocabulary_id") == "ICD10") |
-                                                       (pl.col("vocabulary_id") == "ICD910M"))
+                                                       (pl.col("vocabulary_id") == "ICD10M"))
                                                  .then(10)
                                                  .otherwise(0)
                                                  .alias("flag")
