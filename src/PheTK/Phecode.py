@@ -65,7 +65,7 @@ class Phecode:
                                                          (pl.col("vocabulary_id") == "ICD9CM"))
                                                  .then(9)
                                                  .when((pl.col("vocabulary_id") == "ICD10") |
-                                                       (pl.col("vocabulary_id") == "ICD910M"))
+                                                       (pl.col("vocabulary_id") == "ICD10M"))
                                                  .then(10)
                                                  .otherwise(0)
                                                  .alias("flag")
@@ -79,21 +79,21 @@ class Phecode:
         if phecode_version == "X":
             lazy_counts = icd_events.lazy().join(phecode_df.lazy(),
                                                  how="inner",
-                                                 on=["ICD", "flag"])
+                                                 on=["ICD"])
         elif phecode_version == "1.2":
             lazy_counts = icd_events.lazy().join(phecode_df.lazy(),
                                                  how="inner",
-                                                 on=["ICD", "flag"])
+                                                 on=["ICD"])
             lazy_counts = lazy_counts.rename({"phecode_unrolled": "phecode"})
         else:
-            lazy_counts = None
+            lazy_counts = pl.DataFrame()
         phecode_counts = lazy_counts.collect()
             
-        if not phecode_counts.is_empty() or phecode_counts is not None:
+        if not phecode_counts.is_empty():
             phecode_counts = phecode_counts.groupby(["person_id", "phecode"]).count()
 
         # report result
-        if not phecode_counts.is_empty() or phecode_counts is not None:
+        if not phecode_counts.is_empty():
             if output_file_name is None:
                 file_name = "{0}_{1}_phecode{2}_counts.csv".format(self.platform, icd_version,
                                                                    phecode_version.upper().replace(".", ""))
