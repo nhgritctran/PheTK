@@ -70,14 +70,16 @@ class Phecode:
                                                  .otherwise(0)
                                                  .alias("flag")
                                                  .cast(pl.Int8))
-            # remove ICD entries with "V" and flag=10
-            # the reason being PheWAS catalog do not have ICD-10-CM with "V" in mapping table
-            # and ICD codes with "V" are the only ones have overlapping codes between ICD-9-CM & ICD-10-CM
-            # ICD-9-CM has some started with "E" but not overlapped with ICD-10-CM
-            icd_events = icd_events.filter(~((pl.col("ICD").str.contains("V")) & (pl.col("flag") == 10)))
         else:
             icd_events = icd_events.with_columns(pl.col("flag").cast(pl.Int8))
+
         icd_events = icd_events[["person_id", "ICD", "flag"]]
+
+        # remove ICD entries with "V" and flag=10
+        # the reason being PheWAS catalog do not have ICD-10-CM with "V" in mapping table
+        # and ICD codes with "V" are the only ones have overlapping codes between ICD-9-CM & ICD-10-CM
+        # ICD-9-CM has some started with "E" but not overlapped with ICD-10-CM
+        icd_events = icd_events.filter(~((pl.col("ICD").str.contains("V")) & (pl.col("flag") == 10)))
 
         print()
         print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
