@@ -278,66 +278,162 @@ class PheWAS:
             gender_specific_var_cols = copy.deepcopy(self.gender_specific_var_cols)
 
         # SEX RESTRICTION
-        filtered_phecode_df = phecode_df.filter(pl.col("phecode") == phecode)
-        if len(filtered_phecode_df["sex"].unique().to_list()) > 0:
-            sex_restriction = filtered_phecode_df["sex"].unique().to_list()[0]
+        filtered_df = phecode_df.filter(pl.col("phecode") == phecode)
+        if len(filtered_df["sex"].unique().to_list()) > 0:
+            sex_restriction = filtered_df["sex"].unique().to_list()[0]
         else:
             return pl.DataFrame(), pl.DataFrame(), []
 
         # ANALYSIS VAR COLS
-        if sex_restriction == "Both" and self.sex_as_covariate:
+        if sex_restriction == "Both":
             analysis_var_cols = var_cols
         else:
             analysis_var_cols = gender_specific_var_cols
 
-        # FILTER COVARIATE DATA BY PHECODE SEX RESTRICTION
+        # CASE
+        # participants with at least <min_phecode_count> phecodes
+        case_ids = phecode_counts.filter(
+            (pl.col("phecode") == phecode) & (pl.col("count") >= self.min_phecode_count)
+        )["person_id"].unique().to_list()
+        cases = covariate_df.filter(pl.col("person_id").is_in(case_ids))
+        # select data based on phecode "sex", e.g., male/female only or both
         if not self.data_has_single_sex:
             if sex_restriction == "Male":
-                covariate_df = covariate_df.filter(pl.col(self.sex_at_birth_col) == self.male_value)
+                cases = cases.filter(pl.col(self.sex_at_birth_col) == 1)
             elif sex_restriction == "Female":
-                covariate_df = covariate_df.filter(pl.col(self.sex_at_birth_col) == self.female_value)
+                cases = cases.filter(pl.col(self.sex_at_birth_col) == 0)
+        # WIP
+        # else:
+        #     if ((self.single_sex_value == 1 and sex_restriction == "Female") or (
+        #             self.single_sex_value == 0 and sex_restriction == "Male")):
+        #         cases = pl.DataFrame()
+
+        # CONTROLS
+        # phecode exclusions
+        if self.use_exclusion:
+            exclude_range = [phecode] + self._exclude_range(phecode, phecode_df=phecode_df)
         else:
-            if (
-                (sex_restriction == "Male" and self.male_value not in self.sex_values)
-                or (sex_restriction == "Male") and (self.male_value not in self.sex_values)
-            ):
-                return pl.DataFrame(), pl.DataFrame(), []
+            exclude_range = [phecode]
+        # get participants ids to exclude and filter covariate df
+        exclude_ids = phecode_counts.filter(
+            pl.col("phecode").is_in(exclude_range)
+        )["person_id"].unique().to_list()
+        controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
+        if not self.data_has_single_sex:
+            if sex_restriction == "Male":
+                controls = controls.filter(pl.col(self.sex_at_birth_col) == 1)
+            elif sex_restriction == "Female":
+                controls = controls.filter(pl.col(self.sex_at_birth_col) == 0)
 
-        # GENERATE CASES & CONTROLS
-        if len(covariate_df) > 0:
-            # CASE
-            # participants with at least <min_phecode_count> phecodes
-            case_ids = phecode_counts.filter(
-                (pl.col("phecode") == phecode) & (pl.col("count") >= self.min_phecode_count)
-            )["person_id"].unique().to_list()
-            cases = covariate_df.filter(pl.col("person_id").is_in(case_ids))
+        # WIP
+        # else:
+        #     if ((self.single_sex_value == 1 and sex_restriction == "Female") or (
+        #             self.single_sex_value == 0 and sex_restriction == "Male")):
+        #         controls = pl.DataFrame()
+        #     else:
+        #         controls = base_controls
 
-            # CONTROLS
-            # phecode exclusions
-            if self.use_exclusion:
-                exclude_range = [phecode] + self._exclude_range(phecode, phecode_df=phecode_df)
-            else:
-                exclude_range = [phecode]
-            # get participants ids to exclude and filter covariate df
-            exclude_ids = phecode_counts.filter(
-                pl.col("phecode").is_in(exclude_range)
-            )["person_id"].unique().to_list()
-            controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
+        # DUPLICATE CHECK
+        # drop duplicates and keep analysis covariate cols only
+        duplicate_check_cols = ["person_id"] + analysis_var_cols
+        cases = cases.unique(subset=duplicate_check_cols)[analysis_var_cols]
+        controls = controls.unique(subset=duplicate_check_cols)[analysis_var_cols]
 
-            # DUPLICATE CHECK
-            # drop duplicates and keep analysis covariate cols only
-            duplicate_check_cols = ["person_id"] + analysis_var_cols
-            cases = cases.unique(subset=duplicate_check_cols)[analysis_var_cols]
-            controls = controls.unique(subset=duplicate_check_cols)[analysis_var_cols]
+        # KEEP MINIMUM REQUIRED COLUMNS
+        cases = cases[analysis_var_cols]
+        controls = controls[analysis_var_cols]
 
-            # KEEP ONLY REQUIRED COLUMNS
-            cases = cases[analysis_var_cols]
-            controls = controls[analysis_var_cols]
+        # for debugging
+        if self.debug_mode:
+            self._cases = cases
+            self._controls = controls
 
-            return cases, controls, analysis_var_cols
+        return cases, controls, analysis_var_cols
 
-        else:
-            return pl.DataFrame(), pl.DataFrame(), []
+    # def _case_control_prep(self, phecode,
+    #                        phecode_counts=None, covariate_df=None, phecode_df=None,
+    #                        var_cols=None, gender_specific_var_cols=None):
+    #     """
+    #     :param phecode: phecode of interest
+    #     :param phecode_counts: phecode counts table for cohort
+    #     :param covariate_df: covariate table for cohort
+    #     :param phecode_df: phecode mapping table
+    #     :param var_cols: variable columns in general case
+    #     :param gender_specific_var_cols: variable columns in gender-specific case
+    #     :return: cases, controls and analysis_var_cols
+    #     """
+    #     if phecode_counts is None:
+    #         phecode_counts = self.phecode_counts.clone()
+    #     if covariate_df is None:
+    #         covariate_df = self.covariate_df.clone()
+    #     if phecode_df is None:
+    #         phecode_df = self.phecode_df.clone()
+    #     if var_cols is None:
+    #         var_cols = copy.deepcopy(self.var_cols)
+    #     if gender_specific_var_cols is None:
+    #         gender_specific_var_cols = copy.deepcopy(self.gender_specific_var_cols)
+    #
+    #     # SEX RESTRICTION
+    #     filtered_phecode_df = phecode_df.filter(pl.col("phecode") == phecode)
+    #     if len(filtered_phecode_df["sex"].unique().to_list()) > 0:
+    #         sex_restriction = filtered_phecode_df["sex"].unique().to_list()[0]
+    #     else:
+    #         return pl.DataFrame(), pl.DataFrame(), []
+    #
+    #     # ANALYSIS VAR COLS
+    #     if sex_restriction == "Both" and self.sex_as_covariate:
+    #         analysis_var_cols = var_cols
+    #     else:
+    #         analysis_var_cols = gender_specific_var_cols
+    #
+    #     # FILTER COVARIATE DATA BY PHECODE SEX RESTRICTION
+    #     if not self.data_has_single_sex:
+    #         if sex_restriction == "Male":
+    #             covariate_df = covariate_df.filter(pl.col(self.sex_at_birth_col) == self.male_value)
+    #         elif sex_restriction == "Female":
+    #             covariate_df = covariate_df.filter(pl.col(self.sex_at_birth_col) == self.female_value)
+    #     else:
+    #         if (
+    #             (sex_restriction == "Male" and self.male_value not in self.sex_values)
+    #             or (sex_restriction == "Male") and (self.male_value not in self.sex_values)
+    #         ):
+    #             return pl.DataFrame(), pl.DataFrame(), []
+    #
+    #     # GENERATE CASES & CONTROLS
+    #     if len(covariate_df) > 0:
+    #         # CASE
+    #         # participants with at least <min_phecode_count> phecodes
+    #         case_ids = phecode_counts.filter(
+    #             (pl.col("phecode") == phecode) & (pl.col("count") >= self.min_phecode_count)
+    #         )["person_id"].unique().to_list()
+    #         cases = covariate_df.filter(pl.col("person_id").is_in(case_ids))
+    #
+    #         # CONTROLS
+    #         # phecode exclusions
+    #         if self.use_exclusion:
+    #             exclude_range = [phecode] + self._exclude_range(phecode, phecode_df=phecode_df)
+    #         else:
+    #             exclude_range = [phecode]
+    #         # get participants ids to exclude and filter covariate df
+    #         exclude_ids = phecode_counts.filter(
+    #             pl.col("phecode").is_in(exclude_range)
+    #         )["person_id"].unique().to_list()
+    #         controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
+    #
+    #         # DUPLICATE CHECK
+    #         # drop duplicates and keep analysis covariate cols only
+    #         duplicate_check_cols = ["person_id"] + analysis_var_cols
+    #         cases = cases.unique(subset=duplicate_check_cols)[analysis_var_cols]
+    #         controls = controls.unique(subset=duplicate_check_cols)[analysis_var_cols]
+    #
+    #         # KEEP ONLY REQUIRED COLUMNS
+    #         cases = cases[analysis_var_cols]
+    #         controls = controls[analysis_var_cols]
+    #
+    #         return cases, controls, analysis_var_cols
+    #
+    #     else:
+    #         return pl.DataFrame(), pl.DataFrame(), []
 
     @staticmethod
     def _result_prep(result, var_of_interest_index):
