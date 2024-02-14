@@ -79,11 +79,11 @@ class Phecode:
         if phecode_version == "X":
             lazy_counts = icd_events.lazy().join(phecode_df.lazy(),
                                                  how="inner",
-                                                 on=["ICD", "flag"])
+                                                 on=["ICD"])
         elif phecode_version == "1.2":
             lazy_counts = icd_events.lazy().join(phecode_df.lazy(),
                                                  how="inner",
-                                                 on=["ICD", "flag"])
+                                                 on=["ICD"])
             lazy_counts = lazy_counts.rename({"phecode_unrolled": "phecode"})
         else:
             lazy_counts = None
