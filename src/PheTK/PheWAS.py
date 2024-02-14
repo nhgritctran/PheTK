@@ -343,11 +343,6 @@ class PheWAS:
         cases = cases[analysis_var_cols]
         controls = controls[analysis_var_cols]
 
-        # for debugging
-        if self.debug_mode:
-            self._cases = cases
-            self._controls = controls
-
         return cases, controls, analysis_var_cols
 
     # def _case_control_prep(self, phecode,
