@@ -135,7 +135,7 @@ cohort.by_genotype(
 This function is currently customized for the _All of Us_ Research Platform. 
 It takes a cohort csv file and covariate selection as input, 
 and generate a new cohort csv file with covariate data added as output. 
-Input cohort data which must have at least "person_id" column.
+Input cohort data must have "person_id" column.
 
 For non-_All of Us_ platforms, a Google BigQuery dataset ID must be provided.
 
@@ -330,4 +330,8 @@ PheTK@mail.nih.gov
 
 ## 7. CITATION
 
+Preprint version:
+https://www.medrxiv.org/content/10.1101/2024.02.12.24302720v1
+
+Peer reviewed version:
 TBD
