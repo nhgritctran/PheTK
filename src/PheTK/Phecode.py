@@ -60,19 +60,19 @@ class Phecode:
 
         # make a copy of self.icd_events
         icd_events = self.icd_events.clone()
-        if "flag" not in icd_events.columns:
-            icd_events = icd_events.with_columns(pl.when((pl.col("vocabulary_id") == "ICD9") |
-                                                         (pl.col("vocabulary_id") == "ICD9CM"))
-                                                 .then(9)
-                                                 .when((pl.col("vocabulary_id") == "ICD10") |
-                                                       (pl.col("vocabulary_id") == "ICD10M"))
-                                                 .then(10)
-                                                 .otherwise(0)
-                                                 .alias("flag")
-                                                 .cast(pl.Int8))
-        else:
-            icd_events = icd_events.with_columns(pl.col("flag").cast(pl.Int8))
-        icd_events = icd_events[["person_id", "ICD", "flag"]]
+        # if "flag" not in icd_events.columns:
+        #     icd_events = icd_events.with_columns(pl.when((pl.col("vocabulary_id") == "ICD9") |
+        #                                                  (pl.col("vocabulary_id") == "ICD9CM"))
+        #                                          .then(9)
+        #                                          .when((pl.col("vocabulary_id") == "ICD10") |
+        #                                                (pl.col("vocabulary_id") == "ICD10M"))
+        #                                          .then(10)
+        #                                          .otherwise(0)
+        #                                          .alias("flag")
+        #                                          .cast(pl.Int8))
+        # else:
+        #     icd_events = icd_events.with_columns(pl.col("flag").cast(pl.Int8))
+        icd_events = icd_events[["person_id", "ICD"]]  # removed "flag"
 
         print()
         print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
