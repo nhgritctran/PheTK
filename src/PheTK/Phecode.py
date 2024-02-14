@@ -77,17 +77,16 @@ class Phecode:
         print()
         print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
         if phecode_version == "X":
-            lazy_counts = icd_events.lazy().join(phecode_df.lazy(),
-                                                 how="inner",
-                                                 on=["ICD"])
+            phecode_counts = icd_events.join(phecode_df,
+                                             how="inner",
+                                             on=["ICD", "flag"])
         elif phecode_version == "1.2":
-            lazy_counts = icd_events.lazy().join(phecode_df.lazy(),
-                                                 how="inner",
-                                                 on=["ICD"])
-            lazy_counts = lazy_counts.rename({"phecode_unrolled": "phecode"})
+            phecode_counts = icd_events.join(phecode_df,
+                                             how="inner",
+                                             on=["ICD", "flag"])
+            phecode_counts = phecode_counts.rename({"phecode_unrolled": "phecode"})
         else:
-            lazy_counts = pl.DataFrame()
-        phecode_counts = lazy_counts.collect()
+            phecode_counts = pl.DataFrame()
             
         if not phecode_counts.is_empty():
             phecode_counts = phecode_counts.groupby(["person_id", "phecode"]).count()
