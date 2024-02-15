@@ -33,10 +33,10 @@ class Phecode:
                 self.icd_events = pl.read_csv(icd_df_path,
                                               dtypes={"ICD": str})
             else:
-                print("icd_df_path is required for custom database.")
+                print("icd_df_path is required for custom platform.")
                 sys.exit(0)
         else:
-            print("Invalid database. Parameter db only accepts \"aou\" (All of Us) or \"custom\".")
+            print("Invalid platform. Parameter platform only accepts \"aou\" (All of Us) or \"custom\".")
             sys.exit(0)
 
     def count_phecode(self, phecode_version="X", icd_version="US",
