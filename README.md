@@ -209,6 +209,9 @@ Example of ICD code data:
 - Each row must be unique, i.e., there should not be 2 instances of 1 ICD code in the same day.
 - Data must have these exact column names. "date" column is not used for later ICD-to-phecode mapping, 
 but should be included to make sure ICD events occurred on unique dates. 
+- "vocabulary_id" column can be replaced with "flag" column with 9 and 10 values.
+
+Example with "vocabulary_id" column:
 
 | person_id | date      | vocabulary_id | ICD   |
 |-----------|-----------|---------------|-------|
@@ -217,6 +220,16 @@ but should be included to make sure ICD events occurred on unique dates.
 | 13579     | 12-4-2017 | ICD10CM       | R05.1 |
 | 24680     | 3-12-2012 | ICD9CM        | 659.2 |
 | 24680     | 4-18-2018 | ICD10CM       | R50   |
+
+Example with "flag" column:
+
+| person_id | date      | flag | ICD   |
+|-----------|-----------|------|-------|
+| 13579     | 1-11-2010 | 9    | 786.2 |
+| 13579     | 1-31-2010 | 9    | 786.2 |
+| 13579     | 12-4-2017 | 10   | R05.1 |
+| 24680     | 3-12-2012 | 9    | 659.2 |
+| 24680     | 4-18-2018 | 10   | R50   |
 
 In these examples, we will map US ICD codes (ICD-9-CM & ICD-10-CM) to phecodeX for _All of Us_ and custom platforms.
 
