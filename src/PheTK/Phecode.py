@@ -86,11 +86,11 @@ class Phecode:
         if phecode_version == "X":
             phecode_counts = icd_events.join(phecode_df,
                                              how="inner",
-                                             on=["ICD", "flag"])
+                                             on=["ICD"])
         elif phecode_version == "1.2":
             phecode_counts = icd_events.join(phecode_df,
                                              how="inner",
-                                             on=["ICD", "flag"])
+                                             on=["ICD"])
             phecode_counts = phecode_counts.rename({"phecode_unrolled": "phecode"})
         else:
             phecode_counts = pl.DataFrame()
@@ -111,5 +111,5 @@ class Phecode:
             print()
 
         else:
-            print("\033[1mNo phecode count generated.\033[0m")
+            print("\033[1mNo phecode count generated. Check your input data.\033[0m")
             print()
