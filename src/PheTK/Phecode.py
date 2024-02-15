@@ -60,40 +60,46 @@ class Phecode:
 
         # make a copy of self.icd_events
         icd_events = self.icd_events.clone()
-        # if "flag" not in icd_events.columns:
-        #     icd_events = icd_events.with_columns(pl.when((pl.col("vocabulary_id") == "ICD9") |
-        #                                                  (pl.col("vocabulary_id") == "ICD9CM"))
-        #                                          .then(9)
-        #                                          .when((pl.col("vocabulary_id") == "ICD10") |
-        #                                                (pl.col("vocabulary_id") == "ICD10M"))
-        #                                          .then(10)
-        #                                          .otherwise(0)
-        #                                          .alias("flag")
-        #                                          .cast(pl.Int8))
-        # else:
-        #     icd_events = icd_events.with_columns(pl.col("flag").cast(pl.Int8))
-        icd_events = icd_events[["person_id", "ICD"]]  # removed "flag" from keys
+        if "flag" not in icd_events.columns:
+            icd_events = icd_events.with_columns(pl.when((pl.col("vocabulary_id") == "ICD9") |
+                                                         (pl.col("vocabulary_id") == "ICD9CM"))
+                                                 .then(9)
+                                                 .when((pl.col("vocabulary_id") == "ICD10") |
+                                                       (pl.col("vocabulary_id") == "ICD10M"))
+                                                 .then(10)
+                                                 .otherwise(0)
+                                                 .alias("flag")
+                                                 .cast(pl.Int8))
+        else:
+            icd_events = icd_events.with_columns(pl.col("flag").cast(pl.Int8))
+
+        icd_events = icd_events[["person_id", "ICD", "flag"]]
+
+        # remove ICD entries with "V" and flag=10
+        # the reason being PheWAS catalog do not have ICD-10-CM with "V" in mapping table
+        # and ICD codes with "V" are the only ones have overlapping codes between ICD-9-CM & ICD-10-CM
+        # ICD-9-CM has some started with "E" but not overlapped with ICD-10-CM
+        icd_events = icd_events.filter(~((pl.col("ICD").str.contains("V")) & (pl.col("flag") == 10)))
 
         print()
         print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
         if phecode_version == "X":
-            lazy_counts = icd_events.lazy().join(phecode_df.lazy(),
-                                                 how="inner",
-                                                 on=["ICD"])
+            phecode_counts = icd_events.join(phecode_df,
+                                             how="inner",
+                                             on=["ICD"])
         elif phecode_version == "1.2":
-            lazy_counts = icd_events.lazy().join(phecode_df.lazy(),
-                                                 how="inner",
-                                                 on=["ICD"])
-            lazy_counts = lazy_counts.rename({"phecode_unrolled": "phecode"})
+            phecode_counts = icd_events.join(phecode_df,
+                                             how="inner",
+                                             on=["ICD"])
+            phecode_counts = phecode_counts.rename({"phecode_unrolled": "phecode"})
         else:
-            lazy_counts = None
-        phecode_counts = lazy_counts.collect()
+            phecode_counts = pl.DataFrame()
             
-        if not phecode_counts.is_empty() or phecode_counts is not None:
+        if not phecode_counts.is_empty():
             phecode_counts = phecode_counts.groupby(["person_id", "phecode"]).count()
 
         # report result
-        if not phecode_counts.is_empty() or phecode_counts is not None:
+        if not phecode_counts.is_empty():
             if output_file_name is None:
                 file_name = "{0}_{1}_phecode{2}_counts.csv".format(self.platform, icd_version,
                                                                    phecode_version.upper().replace(".", ""))
@@ -105,5 +111,5 @@ class Phecode:
             print()
 
         else:
-            print("\033[1mNo phecode count generated.\033[0m")
+            print("\033[1mNo phecode count generated. Check your input data.\033[0m")
             print()
