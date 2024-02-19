@@ -207,8 +207,7 @@ For other platforms, users must provide your own ICD code data.
 
 Example of ICD code data: 
 - Each row must be unique, i.e., there should not be 2 instances of 1 ICD code in the same day.
-- Data must have these exact column names. "date" column is not used for later ICD-to-phecode mapping, 
-but should be included to make sure ICD events occurred on unique dates. 
+- Data must have these exact column names. 
 - "vocabulary_id" column can be replaced with "flag" column with 9 and 10 values.
 
 Example with "vocabulary_id" column:
