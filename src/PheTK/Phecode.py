@@ -27,9 +27,10 @@ class Phecode:
             self.icd_query = _queries.phecode_icd_query(self.cdr)
             print("\033[1mStart querying ICD codes...")
             self.icd_events = _utils.polars_gbq(self.icd_query)
-            print("\033[1mDone!")
+
         elif platform == "custom":
             if icd_df_path is not None:
+                print("\033[1mLoading user's ICD data from file...")
                 self.icd_events = pl.read_csv(icd_df_path,
                                               dtypes={"ICD": str})
             else:
@@ -38,6 +39,42 @@ class Phecode:
         else:
             print("Invalid platform. Parameter platform only accepts \"aou\" (All of Us) or \"custom\".")
             sys.exit(0)
+
+        # add flag column if not exist
+        if "flag" not in self.icd_events.columns:
+            self.icd_events = self.icd_events.with_columns(
+                pl.when((pl.col("vocabulary_id") == "ICD9") |
+                        (pl.col("vocabulary_id") == "ICD9CM"))
+                .then(9)
+                .when((pl.col("vocabulary_id") == "ICD10") |
+                      (pl.col("vocabulary_id") == "ICD10CM"))
+                .then(10)
+                .otherwise(0)
+                .alias("flag")
+                .cast(pl.Int8)
+            )
+        else:
+            self.icd_events = self.icd_events.with_columns(pl.col("flag").cast(pl.Int8))
+
+        # Check ICD codes with "V"
+        # These are codes that overlap between ICD 9 & 10,
+        # i.e., same code having different meanings in each version,
+        # and will be mapped to both ICD9CM & ICD10CM when merged with concept table in the SQL query.
+        # Without doctor's notes, the only way to deal with this is to check flag by condition start date,
+        # i.e., flag = 9 if date <= 1 Oct 2015 & flag = 10 if date >= 01 Oct 2015.
+        # This filter statement would filter out the those violate above rule.
+        self.icd_events = self.icd_events.filter(
+            ~(
+                (
+                    ((pl.col("ICD").str.contains("V")) & (pl.col("date") >= pl.date(2015, 10, 1)) & (
+                        pl.col("flag") == 9)) |
+                    ((pl.col("ICD").str.contains("V")) & (pl.col("date") < pl.date(2015, 10, 1)) & (
+                        pl.col("flag") == 10))
+                )
+            )
+        )
+
+        print("\033[1mDone!")
 
     def count_phecode(self, phecode_version="X", icd_version="US",
                       phecode_map_file_path=None, output_file_name=None):
@@ -60,43 +97,26 @@ class Phecode:
 
         # make a copy of self.icd_events
         icd_events = self.icd_events.clone()
-        if "flag" not in icd_events.columns:
-            icd_events = icd_events.with_columns(pl.when((pl.col("vocabulary_id") == "ICD9") |
-                                                         (pl.col("vocabulary_id") == "ICD9CM"))
-                                                 .then(9)
-                                                 .when((pl.col("vocabulary_id") == "ICD10") |
-                                                       (pl.col("vocabulary_id") == "ICD10M"))
-                                                 .then(10)
-                                                 .otherwise(0)
-                                                 .alias("flag")
-                                                 .cast(pl.Int8))
-        else:
-            icd_events = icd_events.with_columns(pl.col("flag").cast(pl.Int8))
 
+        # keep only necessary columns
         icd_events = icd_events[["person_id", "ICD", "flag"]]
-
-        # remove ICD entries with "V" and flag=10
-        # the reason being PheWAS catalog do not have ICD-10-CM with "V" in mapping table
-        # and ICD codes with "V" are the only ones have overlapping codes between ICD-9-CM & ICD-10-CM
-        # ICD-9-CM has some started with "E" but not overlapped with ICD-10-CM
-        icd_events = icd_events.filter(~((pl.col("ICD").str.contains("V")) & (pl.col("flag") == 10)))
 
         print()
         print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
         if phecode_version == "X":
             phecode_counts = icd_events.join(phecode_df,
                                              how="inner",
-                                             on=["ICD"])
+                                             on=["ICD", "flag"])
         elif phecode_version == "1.2":
             phecode_counts = icd_events.join(phecode_df,
                                              how="inner",
-                                             on=["ICD"])
+                                             on=["ICD", "flag"])
             phecode_counts = phecode_counts.rename({"phecode_unrolled": "phecode"})
         else:
             phecode_counts = pl.DataFrame()
             
         if not phecode_counts.is_empty():
-            phecode_counts = phecode_counts.groupby(["person_id", "phecode"]).count()
+            phecode_counts = phecode_counts.group_by(["person_id", "phecode"]).len().rename({"len": "count"})
 
         # report result
         if not phecode_counts.is_empty():
