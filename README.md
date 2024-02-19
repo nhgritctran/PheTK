@@ -208,7 +208,7 @@ For other platforms, users must provide your own ICD code data.
 Example of ICD code data: 
 - Each row must be unique, i.e., there should not be 2 instances of 1 ICD code in the same day.
 - Data must have these exact column names. 
-- "vocabulary_id" column can be replaced with "flag" column with 9 and 10 values.
+- "vocabulary_id" column can be replaced with "flag" column with values of 9 and 10.
 
 Example with "vocabulary_id" column:
 
