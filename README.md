@@ -256,7 +256,7 @@ phecode.count_phecode(
 ```
 from PheTK.Phecode import Phecode
 
-phecode = Phecode(platform="custom", icd_file_path="/path/to/my_icd_data.csv")
+phecode = Phecode(platform="custom", icd_df_path="/path/to/my_icd_data.csv")
 phecode.count_phecode(
     phecode_version="X", 
     icd_version="US", 
