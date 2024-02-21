@@ -258,7 +258,8 @@ phecode.count_phecode(
 )
 ```
 
-In both examples, users can provide their own phecode mapping file by adding a csv file path to phecode_map_file_path.
+Users can provide their own phecode mapping file by adding a csv file path to phecode_map_file_path.
+If user provides their own ICD data, platform should be set to "custom".
 
 ### 5.3. PheWAS module
 It is recommended to run Demo example above and have a look at example cohort and phecode counts file to 
@@ -328,7 +329,7 @@ In this example, we are generating a Manhattan plot for the PheWAS results creat
 from PheTK.Plot import Plot
 
 p = Plot("example_phewas_results.csv")
-p.manhattpan(label_values="p_value", label_count=1, save_plot=True)
+p.manhattan(label_values="p_value", label_count=1, save_plot=True)
 ```
 The above code example generates this Manhattan plot figure:
 
