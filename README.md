@@ -1,6 +1,8 @@
 # PheTK - The Phenotype Toolkit
 The official repository of PheTK.
 
+Current version: 0.1.35
+
 ## 1. INSTALLATION
 PheTK can be installed using pip install command in a terminal (Python 3.7 or newer):
 
@@ -16,6 +18,11 @@ or Jupyter Notebook (restart kernel after installation and prior to importing):
 If and older version of PheTK was installed previously, it is best to uninstall it before new installation
 ```
 pip uninstall PheTK -y && pip install PheTK
+```
+
+To check current installed version:
+```
+pip show PheTK | grep Version
 ```
 
 ## 2. SYSTEM REQUIREMENTS
