@@ -22,6 +22,7 @@ class Phecode:
             "vocabulary_id" values should be "ICD9CM" or "ICD10CM"
         """
         self.platform = platform
+
         if platform == "aou":
             self.cdr = os.getenv("WORKSPACE_CDR")
             self.icd_query = _queries.phecode_icd_query(self.cdr)
@@ -55,26 +56,6 @@ class Phecode:
             )
         else:
             self.icd_events = self.icd_events.with_columns(pl.col("flag").cast(pl.Int8))
-
-        # additional check for All of Us
-        if platform == "aou":
-            # Check ICD codes with "V"
-            # These are codes that overlap between ICD 9 & 10,
-            # i.e., same code having different meanings in each version,
-            # and will be mapped to both ICD9CM & ICD10CM when merged with concept table in the SQL query.
-            # Without doctor's notes, the only way to deal with this is to check flag by condition start date,
-            # i.e., flag = 9 if date <= 1 Oct 2015 & flag = 10 if date >= 01 Oct 2015.
-            # This filter statement would filter out the those violate above rule.
-            self.icd_events = self.icd_events.filter(
-                ~(
-                    (
-                        ((pl.col("ICD").str.contains("V")) & (pl.col("date") >= pl.date(2015, 10, 1)) & (
-                            pl.col("flag") == 9)) |
-                        ((pl.col("ICD").str.contains("V")) & (pl.col("date") < pl.date(2015, 10, 1)) & (
-                            pl.col("flag") == 10))
-                    )
-                )
-            )
 
         print("\033[1mDone!")
 
