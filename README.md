@@ -81,7 +81,7 @@ This table will be updated as we update PheTK.
 _All of Us_: the _All of Us_ Research Program (https://allofus.nih.gov/). 
 For methods customized for _All of Us_, PheTK must be run within the _All of Us_ Researcher Workbench on Controlled Tier,
 i.e., users must be registered with _All of Us_ and have access to Controlled Tier data. 
-Information on registration can be found here: https://www.researchallofus.org/institutional-agreements/
+Information on registration can be found here: https://www.researchallofus.org/institutional-agreements/.
 
 ## 5. USAGE
 
