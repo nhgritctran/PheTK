@@ -33,7 +33,8 @@ class PheWAS:
                  use_exclusion=False,
                  output_file_name=None,
                  verbose=False,
-                 suppress_warnings=True):
+                 suppress_warnings=True,
+                 method="logit"):
         """
         :param phecode_version: accepts "1.2" or "X"
         :param phecode_count_csv_path: path to phecode count of relevant participants at minimum
@@ -54,6 +55,9 @@ class PheWAS:
                               whether to use additional exclusion range in control for PheWAS
         :param output_file_name: if None, defaults to "phewas_{timestamp}.csv"
         :param verbose: defaults to False; if True, print brief result of each phecode run
+        :param method: defaults to "logit"; supports:
+            "logit": logistic regression
+            "cox": cox regression
         :param suppress_warnings: defaults to True;
                                   if True, ignore common exception warnings such as ConvergenceWarnings, etc.
         """
@@ -87,6 +91,7 @@ class PheWAS:
         self.min_cases = min_cases
         self.min_phecode_count = min_phecode_count
         self.suppress_warnings = suppress_warnings
+        self.method = method
 
         # assign 1 & 0 to male & female based on male_as_one parameter
         if male_as_one:
@@ -389,9 +394,9 @@ class PheWAS:
                 "log10_odds_ratio": log10_odds_ratio,
                 "converged": converged}
 
-    def _logistic_regression(self, phecode,
-                             phecode_counts=None, covariate_df=None,
-                             var_cols=None, gender_specific_var_cols=None):
+    def _regression(self, phecode,
+                    phecode_counts=None, covariate_df=None,
+                    var_cols=None, gender_specific_var_cols=None):
         """
         Logistic regression of single phecode
         :param phecode: phecode of interest
@@ -486,7 +491,7 @@ class PheWAS:
             with ThreadPoolExecutor(max_workers=n_threads) as executor:
                 jobs = [
                     executor.submit(
-                        self._logistic_regression,
+                        self._regression,
                         phecode,
                         self.phecode_counts.clone(),
                         self.covariate_df.clone(),
