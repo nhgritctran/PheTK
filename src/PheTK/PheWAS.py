@@ -73,8 +73,10 @@ class PheWAS:
 
         # load phecode counts data for all participants
         # noinspection PyTypeChecker
-        self.phecode_counts = pl.read_csv(phecode_count_csv_path,
-                                          dtypes={"phecode": str})
+        self.phecode_counts = pl.read_csv(
+            phecode_count_csv_path,
+            dtypes={"phecode": str}
+        )
 
         # load covariate data
         # make sure person_id in covariate data has the same type as person_id in phecode count
@@ -365,12 +367,12 @@ class PheWAS:
             print(f"No phecode data for {phecode}")
 
     @staticmethod
-    def _result_prep(result, var_of_interest_index):
+    def _logit_result_prep(result, var_of_interest_index):
         """
         Process result from statsmodels
         :param result: logistic regression result
         :param var_of_interest_index: index of variable of interest
-        :return: dataframe with key statistics
+        :return: dictionary with key statistics
         """
         results_as_html = result.summary().tables[0].as_html()
         converged = pd.read_html(results_as_html)[0].iloc[5, 1]
@@ -385,14 +387,46 @@ class PheWAS:
         odds_ratio = np.exp(beta)
         log10_odds_ratio = np.log10(odds_ratio)
 
-        return {"p_value": p_value,
-                "neg_log_p_value": neg_log_p_value,
-                "beta": beta,
-                "conf_int_1": conf_int_1,
-                "conf_int_2": conf_int_2,
-                "odds_ratio": odds_ratio,
-                "log10_odds_ratio": log10_odds_ratio,
-                "converged": converged}
+        return {
+            "p_value": p_value,
+            "neg_log_p_value": neg_log_p_value,
+            "beta": beta,
+            "conf_int_1": conf_int_1,
+            "conf_int_2": conf_int_2,
+            "odds_ratio": odds_ratio,
+            "log10_odds_ratio": log10_odds_ratio,
+            "converged": converged
+        }
+
+    @staticmethod
+    def _cox_result_prep(result, var_of_interest_index, stratified):
+        """
+        Process result from statsmodels
+        :param result: cox regression result
+        :param var_of_interest_index: index of variable of interest
+        :param stratified: whether cox regression was stratified or not
+        :return: dictionary with key statistics
+        """
+        results_as_html = result.summary().tables[1].as_html()
+        res = pd.read_html(results_as_html, header=0, index_col=0)[0]
+
+        p_value = result.pvalues[var_of_interest_index]
+        neg_log_p_value = -np.log10(p_value)
+        log_hazard_ratio = result.params[var_of_interest_index]
+        conf_int_1 = res.iloc[var_of_interest_index]['[0.025']
+        conf_int_2 = res.iloc[var_of_interest_index]['0.975]']
+        hazard_ratio = np.exp(log_hazard_ratio)
+        stratified = stratified
+
+        return {
+            "p_value": p_value,
+            "neg_log_p_value": neg_log_p_value,
+            "log_hazard_ratio": log_hazard_ratio,
+            "conf_int_1": conf_int_1,
+            "conf_int_2": conf_int_2,
+            "hazard_ratio": hazard_ratio,
+            "stratified": stratified
+        }
 
     def _regression(self, phecode,
                     phecode_counts=None, covariate_df=None,
@@ -425,6 +459,9 @@ class PheWAS:
         # only run regression if number of cases > min_cases
         if (len(cases) >= self.min_cases) and (len(controls) > self.min_cases):
 
+            if self.suppress_warnings:
+                warnings.simplefilter("ignore")
+
             # add case/control values
             cases = cases.with_columns(pl.Series([1] * len(cases)).alias("y"))
             controls = controls.with_columns(pl.Series([0] * len(controls)).alias("y"))
@@ -435,40 +472,48 @@ class PheWAS:
             # get index of variable of interest
             var_index = regressors[analysis_var_cols].columns.index(self.independent_variable_of_interest)
 
-            # logistic regression
-            if self.suppress_warnings:
-                warnings.simplefilter("ignore")
+            # convert to numpy series
             y = regressors["y"].to_numpy()
-            regressors = regressors[analysis_var_cols].to_numpy()
-            regressors = sm.tools.add_constant(regressors, prepend=False)
-            logit = sm.Logit(y, regressors, missing="drop")
 
-            # catch Singular matrix error
-            try:
-                result = logit.fit(disp=False)
-            except (np.linalg.linalg.LinAlgError, statsmodels.tools.sm_exceptions.PerfectSeparationError) as err:
-                if "Singular matrix" in str(err) or "Perfect separation" in str(err):
+            # COX REGRESSION
+            if self.method == "cox":
+                time_to_event = regressors["time_to_event"].to_numpy()  # TEMPORARY
+                regressors = regressors[analysis_var_cols].to_numpy()
+                cox = sm.PHReg(endog=time_to_event, exog=regressors, status=y, missing="drop", ties="efron")
+                result = cox.fit(disp=False)
+
+            # LOGISTIC REGRESSION
+            if self.method == "logit":
+                regressors = regressors[analysis_var_cols].to_numpy()
+                regressors = sm.tools.add_constant(regressors, prepend=False)
+                logit = sm.Logit(y, regressors, missing="drop")
+
+                # catch Singular matrix error
+                try:
+                    result = logit.fit(disp=False)
+                except (np.linalg.linalg.LinAlgError, statsmodels.tools.sm_exceptions.PerfectSeparationError) as err:
+                    if "Singular matrix" in str(err) or "Perfect separation" in str(err):
+                        if self.verbose:
+                            print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls):", str(err), "\n")
+                        pass
+                    else:
+                        raise
+                    result = None
+
+                if result is not None:
+                    # process result
+                    base_dict = {"phecode": phecode,
+                                 "cases": len(cases),
+                                 "controls": len(controls)}
+                    stats_dict = self._logit_result_prep(result=result, var_of_interest_index=var_index)
+                    result_dict = {**base_dict, **stats_dict}  # python 3.5 or later
+                    # result_dict = base_dict | stats_dict  # python 3.9 or later
+
+                    # choose to see results on the fly
                     if self.verbose:
-                        print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls):", str(err), "\n")
-                    pass
-                else:
-                    raise
-                result = None
+                        print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls): {result_dict}\n")
 
-            if result is not None:
-                # process result
-                base_dict = {"phecode": phecode,
-                             "cases": len(cases),
-                             "controls": len(controls)}
-                stats_dict = self._result_prep(result=result, var_of_interest_index=var_index)
-                result_dict = {**base_dict, **stats_dict}  # python 3.5 or later
-                # result_dict = base_dict | stats_dict  # python 3.9 or later
-
-                # choose to see results on the fly
-                if self.verbose:
-                    print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls): {result_dict}\n")
-
-                return result_dict
+                    return result_dict
 
         else:
             if self.verbose:
