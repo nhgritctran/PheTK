@@ -115,8 +115,7 @@ class Phecode:
             else:
                 file_name = output_file_name
             phecode_counts.write_csv(file_name)
-            print()
-            print(f"Successfully generated phecode {phecode_version} counts for cohort participants!\n")
+            print(f"Successfully generated phecode {phecode_version} counts for cohort participants!")
             print()
             print(f"Saved to\033[1m {file_name}!\033[0m")
             print()
