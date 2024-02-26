@@ -140,7 +140,7 @@ class Phecode:
 
         print("\033[1mCalculating age at first event.")
         phecode_counts = phecode_counts.join(date_of_birth_df, how="inner", on=["person_id"])
-        phecode_counts = phecode_counts.with_column(
+        phecode_counts = phecode_counts.with_columns(
             (pl.col("first_event_date") - pl.col("date_of_birth")).dt.total_days()/365.2425
         ).alias("age_at_first_event")
 
