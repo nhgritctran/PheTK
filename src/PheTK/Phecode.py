@@ -68,7 +68,7 @@ class Phecode:
                             if "custom", user need to provide phecode_map_path
         :param phecode_map_file_path: path to custom phecode map table
         :param output_file_name: user specified output file name
-        :return: phecode counts polars dataframe
+        :return: phecode counts csv file
         """        
         # load phecode mapping file by version or by custom path
         phecode_df = _utils.get_phecode_mapping_table(
@@ -82,7 +82,7 @@ class Phecode:
         icd_events = self.icd_events.clone()
 
         # keep only necessary columns
-        icd_events = icd_events[["person_id", "ICD", "flag"]]
+        icd_events = icd_events[["person_id", "date", "ICD", "flag"]]
 
         print()
         print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
@@ -99,7 +99,13 @@ class Phecode:
             phecode_counts = pl.DataFrame()
             
         if not phecode_counts.is_empty():
-            phecode_counts = phecode_counts.group_by(["person_id", "phecode"]).len().rename({"len": "count"})
+            phecode_counts = phecode_counts.group_by(
+                ["person_id", "phecode"]
+            ).agg(
+                pl.len(), pl.col("date").min()
+            ).rename(
+                {"len": "count", "date": "first_event_date"}
+            )
 
         # report result
         if not phecode_counts.is_empty():
@@ -116,3 +122,27 @@ class Phecode:
         else:
             print("\033[1mNo phecode count generated. Check your input data.\033[0m")
             print()
+
+    def add_age_at_first_event(self, phecode_count_file_path):
+        """
+        Calculate age at first event based on input date at first event and birthdays from OMOP data
+        :param phecode_count_file_path: path to phecode count csv file; must have columns "person_id", "phecode",
+            and "first_event_date"
+        :return: new phecode counts csv file with age at first event
+        """
+        phecode_counts = pl.read_csv(phecode_count_file_path,
+                                     dtypes={"phecode": str,
+                                             "first_event_date": pl.Date()})
+        print("\033[1mPhecode counts loaded.")
+
+        print("\033[1mQuerying date of birth.")
+        date_of_birth_df = _utils.polars_gbq(_queries.date_of_birth_query(self.cdr))
+
+        print("\033[1mCalculating age at first event.")
+        phecode_counts = phecode_counts.join(date_of_birth_df, how="inner", on=["person_id"])
+        phecode_counts = phecode_counts.with_column(
+            (pl.col("first_event_date") - pl.col("date_of_birth")).dt.total_days()/365.2425
+        ).alias("age_at_first_event")
+
+        phecode_counts.write_csv("phecode_counts_with_event_age.csv")
+        print("\033[1mDone! Saved as phecode_counts_with_event_age.csv.")
