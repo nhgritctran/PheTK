@@ -26,12 +26,12 @@ class Phecode:
         if platform == "aou":
             self.cdr = os.getenv("WORKSPACE_CDR")
             self.icd_query = _queries.phecode_icd_query(self.cdr)
-            print("\033[1mStart querying ICD codes...")
+            print("Start querying ICD codes...")
             self.icd_events = _utils.polars_gbq(self.icd_query)
 
         elif platform == "custom":
             if icd_df_path is not None:
-                print("\033[1mLoading user's ICD data from file...")
+                print("Loading user's ICD data from file...")
                 self.icd_events = pl.read_csv(icd_df_path,
                                               dtypes={"ICD": str})
             else:
@@ -57,7 +57,7 @@ class Phecode:
         else:
             self.icd_events = self.icd_events.with_columns(pl.col("flag").cast(pl.Int8))
 
-        print("\033[1mDone!")
+        print("Done!")
 
     def count_phecode(self, phecode_version="X", icd_version="US",
                       phecode_map_file_path=None, output_file_name=None):
@@ -85,7 +85,7 @@ class Phecode:
         icd_events = icd_events[["person_id", "date", "ICD", "flag"]]
 
         print()
-        print(f"\033[1mMapping ICD codes to phecode {phecode_version}...")
+        print(f"Mapping ICD codes to phecode {phecode_version}...")
         if phecode_version == "X":
             phecode_counts = icd_events.join(phecode_df,
                                              how="inner",
@@ -115,8 +115,10 @@ class Phecode:
             else:
                 file_name = output_file_name
             phecode_counts.write_csv(file_name)
-            print(f"\033[1mSuccessfully generated phecode {phecode_version} counts for cohort participants!\n"
-                  f"\033[1mSaved to {file_name}!\033[0m")
+            print()
+            print(f"Successfully generated phecode {phecode_version} counts for cohort participants!\n")
+            print()
+            print(f"Saved to\033[1m {file_name}!\033[0m")
             print()
 
         else:
@@ -130,15 +132,14 @@ class Phecode:
             and "first_event_date"
         :return: new phecode counts csv file with age at first event
         """
+        print("Calculating age at first event...")
+
         phecode_counts = pl.read_csv(phecode_count_file_path,
                                      dtypes={"phecode": str,
                                              "first_event_date": pl.Date()})
-        print("\033[1mPhecode counts loaded.")
 
-        print("\033[1mQuerying date of birth.")
         date_of_birth_df = _utils.polars_gbq(_queries.date_of_birth_query(self.cdr))
 
-        print("\033[1mCalculating age at first event.")
         phecode_counts = phecode_counts.join(date_of_birth_df, how="inner", on=["person_id"])
         phecode_counts = phecode_counts.with_columns(
             (
@@ -147,4 +148,7 @@ class Phecode:
         )
 
         phecode_counts.write_csv("phecode_counts_with_event_age.csv")
-        print("\033[1mDone! Saved as phecode_counts_with_event_age.csv.")
+        print("Done!")
+        print()
+        print("Saved to\033[1m phecode_counts_with_event_age.csv\033[0m.")
+        print()
