@@ -140,14 +140,17 @@ class Phecode:
         date_of_birth_df = _utils.polars_gbq(_queries.date_of_birth_query(self.cdr))
 
         phecode_counts = phecode_counts.join(date_of_birth_df, how="inner", on=["person_id"])
+        col_name = "age_at_first_event"
         phecode_counts = phecode_counts.with_columns(
             (
                 (pl.col("first_event_date") - pl.col("date_of_birth")).dt.total_days()/365.2425
-            ).alias("age_at_first_event")
+            ).alias(col_name)
         )
+        phecode_counts = phecode_counts[["person_id", "phecode", "count", "age_at_first_event"]]
 
         phecode_counts.write_csv("phecode_counts_with_event_age.csv")
         print("Done!")
         print()
-        print("Saved to\033[1m phecode_counts_with_event_age.csv\033[0m")
+        print(f"Saved to\033[1m phecode_counts_with_event_age.csv\033[0m. "
+              f"Age at first event column name is {col_name}.")
         print()
