@@ -21,10 +21,13 @@ class PheWAS:
                  phecode_version,
                  phecode_count_csv_path,
                  cohort_csv_path,
-                 sex_at_birth_col,
                  covariate_cols,
                  independent_variable_of_interest,
+                 sex_at_birth_col,
                  male_as_one=True,
+                 cox_control_observed_time_col=None,
+                 cox_phecode_observed_time_col=None,
+                 cox_stratification_col=None,
                  icd_version="US",
                  phecode_map_file_path=None,
                  phecode_to_process="all",
@@ -45,6 +48,11 @@ class PheWAS:
         :param independent_variable_of_interest: independent variable of interest column name
         :param male_as_one: defaults to True; if True, male=1 and female=0; if False, male=0 and female=1;
                             use this to match how males and females are coded in sex_at_birth column;
+        :param cox_control_observed_time_col: name of column in cohort dataframe,
+                                              containing censoring time for controls in Cox regression.
+        :param cox_phecode_observed_time_col: name of column in phecode counts dataframe,
+                                              containing time to event (phecode) for cases in Cox regression.
+        :param cox_stratification_col: name of column that is used fpr stratification in Cox regression.
         :param icd_version: defaults to "US"; other option are "WHO" and "custom";
                             if "custom", user need to provide phecode_map_path
         :param phecode_map_file_path: path to custom phecode map table
@@ -75,7 +83,8 @@ class PheWAS:
         # noinspection PyTypeChecker
         self.phecode_counts = pl.read_csv(
             phecode_count_csv_path,
-            dtypes={"phecode": str}
+            dtypes={"phecode": str},
+            try_parse_dates=True
         )
 
         # load covariate data
@@ -94,6 +103,22 @@ class PheWAS:
         self.min_phecode_count = min_phecode_count
         self.suppress_warnings = suppress_warnings
         self.method = method
+
+        # for Cox regression:
+        if (method == "cox") and ((cox_control_observed_time_col is None) | (cox_phecode_observed_time_col is None)):
+            print()
+            print("Warning: Both cox_observed_time_col and cox_phecode_observed_time_col are required for Cox "
+                  "regression.")
+            print()
+            sys.exit(0)
+        else:
+            self.cox_control_observed_time_col = cox_control_observed_time_col
+            self.cox_phecode_observed_time_col = cox_phecode_observed_time_col
+        self.cox_stratification_col = cox_stratification_col
+        if cox_control_observed_time_col == sex_at_birth_col:
+            self.cox_stratification_by_sex = True
+        else:
+            self.cox_stratification_by_sex = False
 
         # assign 1 & 0 to male & female based on male_as_one parameter
         if male_as_one:
@@ -174,6 +199,11 @@ class PheWAS:
 
         # keep only relevant columns in covariate_df
         cols_to_keep = list(set(["person_id"] + self.var_cols))
+        # for Cox regression add stratification & observed time to covariate df
+        if method == "cox":
+            cols_to_keep = cols_to_keep + [cox_control_observed_time_col]
+            if (cox_stratification_col is not None) and (cox_stratification_col not in cols_to_keep):
+                cols_to_keep = cols_to_keep + [cox_stratification_col]
         self.covariate_df = self.covariate_df[cols_to_keep]
         self.covariate_df = self.covariate_df.drop_nulls()
         self.cohort_size = self.covariate_df.n_unique()
@@ -299,11 +329,14 @@ class PheWAS:
 
         # FILTER COVARIATE DATA BY PHECODE SEX RESTRICTION
         if not self.data_has_single_sex:
+            # filter cohort for just sex of phecode
             if sex_restriction == "Male":
                 covariate_df = covariate_df.filter(pl.col(self.sex_at_birth_col) == self.male_value)
             elif sex_restriction == "Female":
                 covariate_df = covariate_df.filter(pl.col(self.sex_at_birth_col) == self.female_value)
         else:
+            # if data has single sex and different from sex of phecode, return empty dfs
+            # otherwise, data is fine as is, i.e., nothing needed to be done
             if (
                 (sex_restriction == "Male" and self.male_value not in self.sex_values)
                 or (sex_restriction == "Male") and (self.male_value not in self.sex_values)
@@ -312,7 +345,7 @@ class PheWAS:
 
         # GENERATE CASES & CONTROLS
         if len(covariate_df) > 0:
-            # CASE
+            # CASES
             # participants with at least <min_phecode_count> phecodes
             case_ids = phecode_counts.filter(
                 (pl.col("phecode") == phecode) & (pl.col("count") >= self.min_phecode_count)
@@ -331,11 +364,36 @@ class PheWAS:
             )["person_id"].unique().to_list()
             controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
 
+            # PROCESS OBSERVED TIME FOR COX REGRESSION
+            if self.method == "cox":
+                # CASES
+                case_observed_time_df = phecode_counts.filter(
+                    pl.col("person_id").is_in(case_ids)
+                )[["person_id", self.cox_phecode_observed_time_col]]
+                cases = cases.join(
+                    case_observed_time_df, how="left", on="person_id"
+                ).drop(
+                    self.cox_control_observed_time_col
+                ).rename(
+                    {self.cox_phecode_observed_time_col: "observed_time"}
+                )
+
+                # CONTROLS
+                controls = controls.rename({self.cox_control_observed_time_col: "observed_time"})
+
             # DUPLICATE CHECK
             # drop duplicates
             duplicate_check_cols = ["person_id"] + analysis_var_cols
             cases = cases.unique(subset=duplicate_check_cols)
             controls = controls.unique(subset=duplicate_check_cols)
+
+            # KEEP ONLY REQUIRED COLUMNS
+            if self.method == "cox":
+                analysis_var_cols = analysis_var_cols + ["observed_time"]
+                if ((sex_restriction == "Both") and
+                    ((self.cox_stratification_col is not None) and
+                     (self.cox_stratification_col not in analysis_var_cols))):
+                    analysis_var_cols = analysis_var_cols + [self.cox_stratification_col]
 
             if not keep_ids:
                 # KEEP ONLY REQUIRED COLUMNS
@@ -399,12 +457,12 @@ class PheWAS:
         }
 
     @staticmethod
-    def _cox_result_prep(result, var_of_interest_index, stratified):
+    def _cox_result_prep(result, var_of_interest_index, stratified_by):
         """
         Process result from statsmodels
         :param result: cox regression result
         :param var_of_interest_index: index of variable of interest
-        :param stratified: whether cox regression was stratified or not
+        :param stratified_by: whether cox regression was stratified or not
         :return: dictionary with key statistics
         """
         results_as_html = result.summary().tables[1].as_html()
@@ -416,7 +474,7 @@ class PheWAS:
         conf_int_1 = res.iloc[var_of_interest_index]['[0.025']
         conf_int_2 = res.iloc[var_of_interest_index]['0.975]']
         hazard_ratio = np.exp(log_hazard_ratio)
-        stratified = stratified
+        stratified_by = stratified_by
 
         return {
             "p_value": p_value,
@@ -425,7 +483,7 @@ class PheWAS:
             "conf_int_1": conf_int_1,
             "conf_int_2": conf_int_2,
             "hazard_ratio": hazard_ratio,
-            "stratified": stratified
+            "stratified_by": stratified_by
         }
 
     def _regression(self, phecode,
@@ -469,22 +527,61 @@ class PheWAS:
             # merge cases & controls
             regressors = cases.vstack(controls)
 
-            # get index of variable of interest
-            var_index = regressors[analysis_var_cols].columns.index(self.independent_variable_of_interest)
-
             # convert to numpy series
             y = regressors["y"].to_numpy()
+            regressors = regressors[analysis_var_cols]
+
+            # base result dict
+            base_dict = {"phecode": phecode,
+                         "cases": len(cases),
+                         "controls": len(controls)}
 
             # COX REGRESSION
             if self.method == "cox":
-                time_to_event = regressors["time_to_event"].to_numpy()  # TEMPORARY
-                regressors = regressors[analysis_var_cols].to_numpy()
-                cox = sm.PHReg(endog=time_to_event, exog=regressors, status=y, missing="drop", ties="efron")
-                result = cox.fit(disp=False)
+                strata = None
+                stratified_by = "None"
+                observed_time = regressors["observed_time"].to_numpy()
+                if self.cox_stratification_col in regressors.columns:
+                    strata = regressors[self.cox_stratification_col].to_numpy()
+                    stratified_by = self.cox_stratification_col
+                regressors = regressors.drop(["observed_time", self.cox_stratification_col])
+                var_index = regressors.columns.index(self.independent_variable_of_interest)
+                regressors = regressors.to_numpy()
+                cox = sm.PHReg(
+                    endog=observed_time,
+                    exog=regressors,
+                    status=y,
+                    strata=strata,
+                    missing="drop",
+                    ties="efron"
+                )
+
+                try:
+                    result = cox.fit(disp=False)
+                except ValueError as e:
+                    print(e)
+                    result = None
+
+                # process result
+                if result is not None:
+                    stats_dict = self._cox_result_prep(
+                        result,
+                        var_of_interest_index=var_index,
+                        stratified_by=stratified_by
+                    )
+                    result_dict = {**base_dict, **stats_dict}
+
+                    # choose to see results on the fly
+                    if self.verbose:
+                        print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls): {result_dict}\n")
+
+                    return result_dict
 
             # LOGISTIC REGRESSION
             if self.method == "logit":
-                regressors = regressors[analysis_var_cols].to_numpy()
+                # get index of variable of interest
+                var_index = regressors.columns.index(self.independent_variable_of_interest)
+                regressors = regressors.to_numpy()
                 regressors = sm.tools.add_constant(regressors, prepend=False)
                 logit = sm.Logit(y, regressors, missing="drop")
 
@@ -502,9 +599,6 @@ class PheWAS:
 
                 if result is not None:
                     # process result
-                    base_dict = {"phecode": phecode,
-                                 "cases": len(cases),
-                                 "controls": len(controls)}
                     stats_dict = self._logit_result_prep(result=result, var_of_interest_index=var_index)
                     result_dict = {**base_dict, **stats_dict}  # python 3.5 or later
                     # result_dict = base_dict | stats_dict  # python 3.9 or later
