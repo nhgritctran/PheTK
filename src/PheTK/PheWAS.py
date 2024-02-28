@@ -619,14 +619,25 @@ class PheWAS:
             n_threads=round(os.cpu_count()*2/3)):
         """
         Run parallel logistic regressions
-        :param parallelization: defaults to "multithreading", utilizing concurrent.futures.ThreadPoolExecutor();
-                                if "multiprocessing": use multiprocessing.Pool()
+        :param parallelization: defaults to "multithreading"; other option is "serial" mainly used for troubleshooting
         :param n_threads: number of threads in multithreading
         :return: PheWAS summary statistics Polars dataframe
         """
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        if parallelization == "multithreading":
+        if parallelization == "serial":
+            result_dicts = []
+            for phecode in tqdm(self.phecode_list):
+                result = self._regression(
+                    phecode=phecode,
+                    phecode_counts=self.phecode_counts.clone(),
+                    covariate_df=self.covariate_df.clone(),
+                    var_cols=copy.deepcopy(self.var_cols),
+                    gender_specific_var_cols=copy.deepcopy(self.gender_specific_var_cols)
+                )
+                result_dicts.append(result)
+
+        elif parallelization == "multithreading":
             with ThreadPoolExecutor(max_workers=n_threads) as executor:
                 jobs = [
                     executor.submit(
@@ -639,6 +650,7 @@ class PheWAS:
                     ) for phecode in self.phecode_list
                 ]
                 result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
+
         else:
             return "Invalid parallelization method! Currently only supports \"multithreading\""
         result_dicts = [result for result in result_dicts if result is not None]
