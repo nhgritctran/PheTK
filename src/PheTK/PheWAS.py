@@ -440,11 +440,10 @@ class PheWAS:
         Process result from statsmodels
         :param result: cox regression result
         :param var_of_interest_index: index of variable of interest
-        :param stratified: whether cox regression was stratified or not
+        :param stratified_by: whether cox regression was stratified or not
         :return: dictionary with key statistics
         """
-        results_as_html = result.summary().tables[1].as_html()
-        res = pd.read_html(results_as_html, header=0, index_col=0)[0]
+        res = result.summary().tables[1]
 
         p_value = result.pvalues[var_of_interest_index]
         neg_log_p_value = -np.log10(p_value)
