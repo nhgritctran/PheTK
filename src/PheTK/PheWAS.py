@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 from datetime import datetime
 from tqdm import tqdm
 import argparse
@@ -557,7 +557,7 @@ class PheWAS:
 
                 try:
                     result = cox.fit(disp=False)
-                except ValueError as e:
+                except Exception as e:
                     print(e)
                     result = None
 
@@ -615,11 +615,11 @@ class PheWAS:
 
     def run(self,
             parallelization="multithreading",
-            n_threads=round(os.cpu_count()*2/3)):
+            n_workers=round(os.cpu_count() * 2 / 3)):
         """
         Run parallel logistic regressions
-        :param parallelization: defaults to "multithreading"; other option is "serial" mainly used for troubleshooting
-        :param n_threads: number of threads in multithreading
+        :param parallelization: defaults to "multithreading"; other options are "serial" and "multiprocessing"
+        :param n_workers: maximum number of workers
         :return: PheWAS summary statistics Polars dataframe
         """
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -637,7 +637,21 @@ class PheWAS:
                 result_dicts.append(result)
 
         elif parallelization == "multithreading":
-            with ThreadPoolExecutor(max_workers=n_threads) as executor:
+            with ThreadPoolExecutor(max_workers=n_workers) as executor:
+                jobs = [
+                    executor.submit(
+                        self._regression,
+                        phecode,
+                        self.phecode_counts.clone(),
+                        self.covariate_df.clone(),
+                        copy.deepcopy(self.var_cols),
+                        copy.deepcopy(self.gender_specific_var_cols)
+                    ) for phecode in self.phecode_list
+                ]
+                result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
+
+        elif parallelization == "multiprocessing":
+            with ProcessPoolExecutor(max_workers=n_workers) as executor:
                 jobs = [
                     executor.submit(
                         self._regression,
@@ -758,7 +772,7 @@ def main():
                     min_cases=args.min_case,
                     min_phecode_count=args.min_phecode_count,
                     output_file_name=args.output_file_name)
-    phewas.run(n_threads=args.threads)
+    phewas.run(n_workers=args.threads)
 
 
 if __name__ == "__main__":
