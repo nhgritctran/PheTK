@@ -1,6 +1,7 @@
 adjusttext
 connectorx
 hail
+lifelines
 matplotlib
 numpy
 polars
