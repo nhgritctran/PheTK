@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 from datetime import datetime
-from lifelines import CoxPHFitter
+from lifelines import CoxPHFitter, utils as u
 from tqdm import tqdm
 import argparse
 import copy
@@ -29,7 +29,6 @@ class PheWAS:
                  cox_control_observed_time_col=None,
                  cox_phecode_observed_time_col=None,
                  cox_stratification_col=None,
-                 cox_package="lifelines",
                  icd_version="US",
                  phecode_map_file_path=None,
                  phecode_to_process="all",
@@ -55,7 +54,6 @@ class PheWAS:
         :param cox_phecode_observed_time_col: name of column in phecode counts dataframe,
                                               containing time to event (phecode) for cases in Cox regression.
         :param cox_stratification_col: name of column that is used fpr stratification in Cox regression.
-        :param cox_package: name of python package used for Cox regression, "lifelines" or "statsmodels".
         :param icd_version: defaults to "US"; other option are "WHO" and "custom";
                             if "custom", user need to provide phecode_map_path
         :param phecode_map_file_path: path to custom phecode map table
@@ -106,7 +104,6 @@ class PheWAS:
         self.min_phecode_count = min_phecode_count
         self.suppress_warnings = suppress_warnings
         self.method = method
-        self.cox_package = cox_package
 
         # for Cox regression:
         if (method == "cox") and ((cox_control_observed_time_col is None) | (cox_phecode_observed_time_col is None)):
@@ -460,52 +457,31 @@ class PheWAS:
             "converged": converged
         }
 
-    def _cox_result_prep(self, result, stratified_by, var_of_interest_index=None, cox_package="lifelines"):
+    def _cox_result_prep(self, result, stratified_by):
         """
         Process result from statsmodels
         :param result: cox regression result
-        :param var_of_interest_index: index of variable of interest
         :param stratified_by: whether cox regression was stratified or not
         :return: dictionary with key statistics
         """
-        if cox_package == "statsmodels":
-            res = result.summary().tables[1]
 
-            p_value = result.pvalues[var_of_interest_index]
-            neg_log_p_value = -np.log10(p_value)
-            log_hazard_ratio = result.params[var_of_interest_index]
-            conf_int_1 = res.iloc[var_of_interest_index]['[0.025']
-            conf_int_2 = res.iloc[var_of_interest_index]['0.975]']
-            hazard_ratio = np.exp(log_hazard_ratio)
-            stratified_by = stratified_by
+        p_value = result.loc[self.independent_variable_of_interest]["p"]
+        neg_log_p_value = -np.log10(p_value)
+        hazard_ratio = result.loc[self.independent_variable_of_interest]["exp(coef)"]
+        hazard_ration_low = result.loc[self.independent_variable_of_interest]["exp(coef) lower 95%"]
+        hazard_ration_high = result.loc[self.independent_variable_of_interest]["exp(coef) upper 95%"]
+        log_hazard_ratio = result.loc[self.independent_variable_of_interest]["coef"]
+        stratified_by = stratified_by
 
-            return {
-                "p_value": p_value,
-                "neg_log_p_value": neg_log_p_value,
-                "hazard_ratio": hazard_ratio,
-                "hazard_ration_low": conf_int_1,
-                "hazard_ration_high": conf_int_2,
-                "log_hazard_ratio": log_hazard_ratio,
-                "stratified_by": stratified_by
-            }
-
-        elif self.cox_package == "lifelines":
-            p_value = result.summary.loc[self.independent_variable_of_interest]["p"]
-            neg_log_p_value = -np.log10(p_value)
-            hazard_ratio = result.hazard_ratios_[self.independent_variable_of_interest]
-            hazard_ration_low = result.summary.loc[self.independent_variable_of_interest]["exp(coef) lower 95%"]
-            hazard_ration_high = result.summary.loc[self.independent_variable_of_interest]["exp(coef) upper 95%"]
-            log_hazard_ratio = result.summary.loc[self.independent_variable_of_interest]["coef"]
-            stratified_by = stratified_by
-            return {
-                "p_value": p_value,
-                "neg_log_p_value": neg_log_p_value,
-                "hazard_ratio": hazard_ratio,
-                "hazard_ration_low": hazard_ration_low,
-                "hazard_ration_high": hazard_ration_high,
-                "log_hazard_ratio": log_hazard_ratio,
-                "stratified_by": stratified_by
-            }
+        return {
+            "p_value": p_value,
+            "neg_log_p_value": neg_log_p_value,
+            "hazard_ratio": hazard_ratio,
+            "hazard_ration_low": hazard_ration_low,
+            "hazard_ration_high": hazard_ration_high,
+            "log_hazard_ratio": log_hazard_ratio,
+            "stratified_by": stratified_by
+        }
 
     def _regression(self, phecode,
                     phecode_counts=None, covariate_df=None,
@@ -556,81 +532,39 @@ class PheWAS:
                          "cases": len(cases),
                          "controls": len(controls)}
 
-            # OPTION 1: COX REGRESSION WITH STATSMODELS
-            if self.method == "cox" and self.method == "statsmodels":
-                regressors = regressors[analysis_var_cols]
+            # OPTION 1: COX REGRESSION
+            if self.method == "cox":
                 strata = None
                 stratified_by = "None"
-                observed_time = regressors["observed_time"].to_numpy()
-                if self.cox_stratification_col in regressors.columns:
-                    strata = regressors[self.cox_stratification_col].to_numpy()
-                    stratified_by = self.cox_stratification_col
-                regressors = regressors.drop(["observed_time", self.cox_stratification_col])
-                var_index = regressors.columns.index(self.independent_variable_of_interest)
-                regressors = regressors.to_numpy()
-                cox = sm.PHReg(
-                    endog=observed_time,
-                    exog=regressors,
-                    status=y,
-                    strata=strata,
-                    missing="drop",
-                    ties="efron"
-                )
-
-                try:
-                    result = cox.fit(disp=False)
-                except Exception as e:
-                    print(e)
-                    result = None
-
-                # process result
-                if result is not None:
-                    stats_dict = self._cox_result_prep(
-                        result,
-                        var_of_interest_index=var_index,
-                        stratified_by=stratified_by,
-                        cox_package="statsmodels"
-                    )
-                    result_dict = {**base_dict, **stats_dict}
-
-                    # choose to see results on the fly
-                    if self.verbose:
-                        print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls): {result_dict}\n")
-
-                    return result_dict
-
-            # OPTION 2: COX REGRESSION WITH LIFELINES
-            elif self.method == "cox" and self.cox_package == "lifelines":
-                strata = None
-                stratified_by = "None"
+                result = None
                 if self.cox_stratification_col in regressors.columns:
                     strata = stratified_by = self.cox_stratification_col
                 cox = CoxPHFitter()
                 try:
-                    result = cox.fit(
+                    cox.fit(
                         df=regressors.to_pandas(),
                         event_col="y",
                         duration_col="observed_time",
                         strata=strata,
                     )
-                except Exception as e:
-                    print(e)
-                    result = cox.fit(
+                    result = cox.summary
+                except u.ConvergenceError as e:
+                    cox.fit(
                         df=regressors.to_pandas(),
                         event_col="y",
                         duration_col="observed_time",
                         strata=strata,
                         fit_options={"step_size": 0.1}
                     )
-                else:
-                    result = None
+                    result = cox.summary
+                except Exception as e:
+                    print(e)
 
                 # process result
                 if result is not None:
                     stats_dict = self._cox_result_prep(
                         result,
-                        stratified_by=stratified_by,
-                        cox_package="lifelines"
+                        stratified_by=stratified_by
                     )
                     result_dict = {**base_dict, **stats_dict}
 
@@ -640,7 +574,7 @@ class PheWAS:
 
                     return result_dict
 
-            # OPTION 3: LOGISTIC REGRESSION
+            # OPTION 2: LOGISTIC REGRESSION
             if self.method == "logit":
                 regressors = regressors[analysis_var_cols]
                 # get index of variable of interest
