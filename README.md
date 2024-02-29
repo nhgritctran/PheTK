@@ -35,6 +35,9 @@ MacBook Pro M2 Pro 12 CPU cores 32GB RAM in ~81 minutes;
 PheWAS for the same cohort took ~12 minutes with a cloud instance of 96 CPUs 370GB RAM 
 (memory choice here is mainly for redundancy and for comparison with other tests that we did).
 
+Method by_genotype() in Cohort module requires Hail and therefore must be run in a spark/dataproc cluster.
+For example, for _All of Us_ researcher workbench users, a dataproc VM with ~4 workers, 4 CPUs 15GB RAM each, is sufficient for by_genotype().
+
 In short, the more CPUs the better and RAM should be adequate for user workflow.
 
 ## 3. 1-MINUTE PHEWAS DEMO
