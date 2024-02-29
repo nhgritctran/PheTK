@@ -549,6 +549,7 @@ class PheWAS:
                     )
                     result = cox.summary
                 except u.ConvergenceError as e:
+                    print(f"Convergence error for phecode {phecode}. Lowering step_size to 0.1.")
                     cox.fit(
                         df=regressors.to_pandas(),
                         event_col="y",
@@ -558,7 +559,8 @@ class PheWAS:
                     )
                     result = cox.summary
                 except Exception as e:
-                    print(e)
+                    print("Exception:", e)
+                    result = None
 
                 # process result
                 if result is not None:
