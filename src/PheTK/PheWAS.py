@@ -618,7 +618,7 @@ class PheWAS:
             n_workers=round(os.cpu_count() * 2 / 3)):
         """
         Run parallel logistic regressions
-        :param parallelization: defaults to "multithreading"; other options are "serial" and "multiprocessing"
+        :param parallelization: defaults to "multithreading"; other options is "serial"
         :param n_workers: maximum number of workers
         :return: PheWAS summary statistics Polars dataframe
         """
@@ -638,20 +638,6 @@ class PheWAS:
 
         elif parallelization == "multithreading":
             with ThreadPoolExecutor(max_workers=n_workers) as executor:
-                jobs = [
-                    executor.submit(
-                        self._regression,
-                        phecode,
-                        self.phecode_counts.clone(),
-                        self.covariate_df.clone(),
-                        copy.deepcopy(self.var_cols),
-                        copy.deepcopy(self.gender_specific_var_cols)
-                    ) for phecode in self.phecode_list
-                ]
-                result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
-
-        elif parallelization == "multiprocessing":
-            with ProcessPoolExecutor(max_workers=n_workers) as executor:
                 jobs = [
                     executor.submit(
                         self._regression,
