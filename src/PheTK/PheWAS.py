@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from lifelines import CoxPHFitter, utils as u
 from tqdm import tqdm
@@ -536,7 +536,6 @@ class PheWAS:
             if self.method == "cox":
                 strata = None
                 stratified_by = "None"
-                result = None
                 if self.cox_stratification_col in regressors.columns:
                     strata = stratified_by = self.cox_stratification_col
                 cox = CoxPHFitter()
@@ -708,13 +707,13 @@ def main():
                         type=str, required=False, choices=["logit", "cox"],
                         help="Phecode regression method. Can be 'logit' or 'cox'.")
     parser.add_argument("--cox_control_observed_time_col",
-                        type="str", required=False,
+                        type=str, required=False,
                         help="Observed time for controls in phecode regression. Right censored time.")
     parser.add_argument("--cox_phecode_observed_time_col",
-                        type="str", required=False,
+                        type=str, required=False,
                         help="Observed time for cases in phecode regression. First phecode event time.")
     parser.add_argument("--cox_stratification_col",
-                        type="str", required=False,
+                        type=str, required=False,
                         help="Stratification for cox regression.")
     parser.add_argument("-cv",
                         "--covariates",
@@ -767,11 +766,15 @@ def main():
                     male_as_one=args.male_as_one,
                     covariate_cols=args.covariates,
                     independent_variable_of_interest=args.independent_variable_of_interest,
+                    cox_control_observed_time_col=args.cox_control_observed_time_col,
+                    cox_phecode_observed_time_col=args.cox_phecode_observed_time_col,
+                    cox_stratification_col=args.cox_stratification_col,
                     phecode_to_process=args.phecode_to_process,
                     use_exclusion=args.use_exclusion,
                     min_cases=args.min_case,
                     min_phecode_count=args.min_phecode_count,
-                    output_file_name=args.output_file_name)
+                    output_file_name=args.output_file_name,
+                    method=args.method)
     phewas.run(n_workers=args.threads)
 
 
