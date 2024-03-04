@@ -703,6 +703,19 @@ def main():
                         "--phecode_version",
                         type=str, required=True, choices=["1.2", 'X'],
                         help="Phecode version.")
+    parser.add_argument("-m",
+                        "--method",
+                        type=str, required=False, choices=["logit", "cox"],
+                        help="Phecode regression method. Can be 'logit' or 'cox'.")
+    parser.add_argument("--cox_control_observed_time_col",
+                        type="str", required=False,
+                        help="Observed time for controls in phecode regression. Right censored time.")
+    parser.add_argument("--cox_phecode_observed_time_col",
+                        type="str", required=False,
+                        help="Observed time for cases in phecode regression. First phecode event time.")
+    parser.add_argument("--cox_stratification_col",
+                        type="str", required=False,
+                        help="Stratification for cox regression.")
     parser.add_argument("-cv",
                         "--covariates",
                         nargs="+",
