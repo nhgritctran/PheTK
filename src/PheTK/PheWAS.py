@@ -547,7 +547,7 @@ class PheWAS:
                         strata=strata,
                     )
                     result = cox.summary
-                except u.ConvergenceError as e:
+                except u.ConvergenceError:
                     print(f"Convergence error for phecode {phecode}. Lowering step_size to 0.1.")
                     cox.fit(
                         df=regressors.to_pandas(),
