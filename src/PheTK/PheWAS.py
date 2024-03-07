@@ -464,22 +464,26 @@ class PheWAS:
         :param stratified_by: whether cox regression was stratified or not
         :return: dictionary with key statistics
         """
+        result_df = result.summary
 
-        p_value = result.loc[self.independent_variable_of_interest]["p"]
+        p_value = result_df.loc[self.independent_variable_of_interest]["p"]
         neg_log_p_value = -np.log10(p_value)
-        hazard_ratio = result.loc[self.independent_variable_of_interest]["exp(coef)"]
-        hazard_ration_low = result.loc[self.independent_variable_of_interest]["exp(coef) lower 95%"]
-        hazard_ration_high = result.loc[self.independent_variable_of_interest]["exp(coef) upper 95%"]
-        log_hazard_ratio = result.loc[self.independent_variable_of_interest]["coef"]
+        hazard_ratio = result_df.loc[self.independent_variable_of_interest]["exp(coef)"]
+        hazard_ratio_low = result_df.loc[self.independent_variable_of_interest]["exp(coef) lower 95%"]
+        hazard_ratio_high = result_df.loc[self.independent_variable_of_interest]["exp(coef) upper 95%"]
+        log_hazard_ratio = result_df.loc[self.independent_variable_of_interest]["coef"]
+
+        concordance_index = result.concordance_index_
         stratified_by = stratified_by
 
         return {
             "p_value": p_value,
             "neg_log_p_value": neg_log_p_value,
             "hazard_ratio": hazard_ratio,
-            "hazard_ration_low": hazard_ration_low,
-            "hazard_ration_high": hazard_ration_high,
+            "hazard_ratio_low": hazard_ratio_low,
+            "hazard_ratio_high": hazard_ratio_high,
             "log_hazard_ratio": log_hazard_ratio,
+            "concordance_index": concordance_index,
             "stratified_by": stratified_by
         }
 
@@ -540,23 +544,21 @@ class PheWAS:
                     strata = stratified_by = self.cox_stratification_col
                 cox = CoxPHFitter()
                 try:
-                    cox.fit(
+                    result = cox.fit(
                         df=regressors.to_pandas(),
                         event_col="y",
                         duration_col="observed_time",
                         strata=strata,
                     )
-                    result = cox.summary
                 except u.ConvergenceError:
                     print(f"Convergence error for phecode {phecode}. Lowering step_size to 0.1.")
-                    cox.fit(
+                    result = cox.fit(
                         df=regressors.to_pandas(),
                         event_col="y",
                         duration_col="observed_time",
                         strata=strata,
                         fit_options={"step_size": 0.1}
                     )
-                    result = cox.summary
                 except Exception as e:
                     print("Exception:", e)
                     result = None
@@ -756,6 +758,8 @@ def main():
     parser.add_argument("-o",
                         "--output_file_name",
                         type=str, required=False, default="phewas_results.csv")
+    parser.add_argument("--parallelization",
+                        type=str, required=False, default="multithreading")
     args = parser.parse_args()
 
     # run PheWAS
@@ -775,7 +779,8 @@ def main():
                     min_phecode_count=args.min_phecode_count,
                     output_file_name=args.output_file_name,
                     method=args.method)
-    phewas.run(n_workers=args.threads)
+    phewas.run(parallelization=args.parallelization,
+               n_workers=args.threads)
 
 
 if __name__ == "__main__":
