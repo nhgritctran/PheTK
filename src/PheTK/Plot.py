@@ -519,7 +519,7 @@ class Plot:
         ax.set_ylabel(r"$-\log_{10}$(p-value)", size=axis_text_size)
 
         # generate positive & negative betas
-        self.positive_betas, self.negative_betas = self._split_by_beta(plot_df, marker_size_by_beta)
+        self.positive_betas, self.negative_betas = self._split_by_beta(self, plot_df, marker_size_by_beta)
 
         ############
         # PLOTTING #
