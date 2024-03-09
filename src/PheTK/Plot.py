@@ -90,6 +90,13 @@ class Plot:
         # volcano plot label data
         self.volcano_label_data = None
 
+        # column name for datapoint direction, e.g., beta for logistic regression or log_hazard_ratio for cox
+        self.direction_col = None
+        if "beta" in self.phewas_result.columns:
+            self.direction_col = "beta"
+        elif "log_hazard_ratio" in self.phewas_result.columns:
+            self.direction_col = "log_hazard_ratio"
+
     @staticmethod
     def save_plot(plot_type="plot", output_file_name=None, output_file_type="pdf"):
         if output_file_name is not None:
@@ -120,7 +127,7 @@ class Plot:
         return df
 
     @staticmethod
-    def _create_phecode_index(df):
+    def _create_phecode_index(self, df):
         """
         Create phecode index after grouping by phecode_category and phecode;
         Phecode index will be used for plotting purpose
@@ -131,12 +138,12 @@ class Plot:
             df = df.drop("phecode_index")
         df = df.sort(by=["phecode_category", "phecode"])\
                .with_columns(pl.Series("phecode_index", range(1, len(df) + 1)))\
-               .with_columns(15*np.exp(pl.col("beta")).alias("marker_size_by_beta"))
+               .with_columns(15*np.exp(pl.col(self.direction_col)).alias(f"marker_size_by_{self.direction_col}"))
 
         return df
 
     @staticmethod
-    def _split_by_beta(df, marker_size_by_beta=False):
+    def _split_by_beta(self, df, marker_size_by_beta=False):
         """
         :param df: data of interest, e.g., full phewas result or result of a phecode_category
         :return: positive and negative beta polars dataframes
@@ -144,11 +151,11 @@ class Plot:
 
         # add marker size if marker_size_by_beta is True
         if marker_size_by_beta:
-            df = df.with_columns((18*pl.col("beta").abs()).alias("_marker_size"))
+            df = df.with_columns((18*pl.col(self.direction_col).abs()).alias("_marker_size"))
 
         # split to positive and negative beta data
-        positive_betas = df.filter(pl.col("beta") >= 0).sort(by="beta", descending=True)
-        negative_betas = df.filter(pl.col("beta") < 0).sort(by="beta", descending=False)
+        positive_betas = df.filter(pl.col(self.direction_col) >= 0).sort(by=self.direction_col, descending=True)
+        negative_betas = df.filter(pl.col(self.direction_col) < 0).sort(by=self.direction_col, descending=False)
         return positive_betas, negative_betas
 
     @staticmethod
@@ -344,7 +351,7 @@ class Plot:
                 self.data_to_label = pl.concat(
                     [
                         self.data_to_label,
-                        positive_betas.filter(pl.col("beta") >= label_value_threshold)
+                        positive_betas.filter(pl.col(self.direction_col) >= label_value_threshold)
                     ]
                 )
                 if label_categories is not None:
@@ -357,7 +364,7 @@ class Plot:
                 self.data_to_label = pl.concat(
                     [
                         self.data_to_label,
-                        negative_betas.filter(pl.col("beta") <= label_value_threshold)
+                        negative_betas.filter(pl.col(self.direction_col) <= label_value_threshold)
                     ]
                 )
                 if label_categories is not None:
@@ -479,7 +486,7 @@ class Plot:
             selected_color_dict = self.color_dict
             n_categories = len(self.phewas_result.columns)
             # create plot_df containing only necessary data for plotting
-            plot_df = self._create_phecode_index(self.phewas_result)
+            plot_df = self._create_phecode_index(self, self.phewas_result)
         else:
             if phecode_categories:
                 selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
@@ -487,6 +494,7 @@ class Plot:
                 dpi = None
                 # create plot_df containing only necessary data for plotting
                 plot_df = self._create_phecode_index(
+                    self,
                     self._filter_by_phecode_categories(
                         self.phewas_result, phecode_categories=phecode_categories
                     )
@@ -769,7 +777,7 @@ class Plot:
         if exclude_infinity:
             plot_df = plot_df.filter(pl.col("neg_log_p_value") != self.inf_proxy)
         # generate positive & negative betas
-        self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
+        self.positive_betas, self.negative_betas = self._split_by_beta(self, plot_df)
 
         ############
         # PLOTTING #

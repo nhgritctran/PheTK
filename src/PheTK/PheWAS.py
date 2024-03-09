@@ -1,6 +1,7 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from datetime import datetime
 from lifelines import CoxPHFitter, utils as u
+from multiprocessing import get_context
 from tqdm import tqdm
 import argparse
 import copy
@@ -652,9 +653,25 @@ class PheWAS:
                 ]
                 result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
 
+        elif parallelization == "multiprocessing":
+            mp_context = get_context("spawn")
+            with ProcessPoolExecutor(max_workers=n_workers, mp_context=mp_context) as executor:
+                jobs = [
+                    executor.submit(
+                        self._regression,
+                        phecode,
+                        self.phecode_counts,
+                        self.covariate_df,
+                        self.var_cols,
+                        self.gender_specific_var_cols
+                    ) for phecode in self.phecode_list
+                ]
+                result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
+
         else:
             return "Invalid parallelization method! Currently only supports \"multithreading\""
         result_dicts = [result for result in result_dicts if result is not None]
+
         if result_dicts:
             result_df = pl.from_dicts(result_dicts)
             self.results = result_df.join(self.phecode_df[["phecode", "sex",
