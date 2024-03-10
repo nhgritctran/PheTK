@@ -78,6 +78,9 @@ class Phecode:
             keep_all_columns=False
         )
 
+        if phecode_version == "1.2":
+            phecode_version = " " + phecode_version
+
         # make a copy of self.icd_events
         icd_events = self.icd_events.clone()
 
@@ -85,7 +88,7 @@ class Phecode:
         icd_events = icd_events[["person_id", "date", "ICD", "flag"]]
 
         print()
-        print(f"Mapping ICD codes to phecode {phecode_version}...")
+        print(f"Mapping ICD codes to phecode{phecode_version}...")
         if phecode_version == "X":
             phecode_counts = icd_events.join(phecode_df,
                                              how="inner",
@@ -115,7 +118,7 @@ class Phecode:
             else:
                 file_name = output_file_name
             phecode_counts.write_csv(file_name)
-            print(f"Successfully generated phecode {phecode_version} counts for cohort participants!")
+            print(f"Successfully generated phecode{phecode_version} counts for cohort participants!")
             print()
             print(f"Saved to\033[1m {file_name}\033[0m")
             print()
