@@ -104,7 +104,7 @@ def phecode_icd_query(ds):
         ON
             v_icds.concept_id = cr.concept_id_1
         INNER JOIN
-            {ds}. concept AS c
+            {ds}.concept AS c
         ON
             cr.concept_id_2 = c.concept_id
         WHERE
