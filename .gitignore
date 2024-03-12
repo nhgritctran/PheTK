@@ -139,4 +139,4 @@ old_version
 setup.py
 
 # docker
-docker
+/docker/
