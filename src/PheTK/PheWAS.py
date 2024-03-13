@@ -768,8 +768,7 @@ def main():
                         "--min_phecode_count",
                         type=int, required=False, default=2,
                         help="Minimum number of phecode counts required to be considered as case.")
-    parser.add_argument("-t",
-                        "--threads",
+    parser.add_argument("--n_workers",
                         type=int, required=False, default=round(os.cpu_count()*2/3),
                         help="Number of threads to use for parallel.")
     parser.add_argument("-o",
@@ -797,7 +796,7 @@ def main():
                     output_file_name=args.output_file_name,
                     method=args.method)
     phewas.run(parallelization=args.parallelization,
-               n_workers=args.threads)
+               n_workers=args.n_workers)
 
 
 if __name__ == "__main__":
