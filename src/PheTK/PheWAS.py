@@ -260,7 +260,7 @@ class PheWAS:
         :return: processed exclude_range, either None or a valid list of phecode(s)
         """
         if phecode_df is None:
-            phecode_df = self.phecode_df.clone()
+            phecode_df = self.phecode_df
 
         # not all phecode has exclude_range
         # exclude_range can be single code (e.g., "777"), single range (e.g., "777-780"),
@@ -306,11 +306,11 @@ class PheWAS:
         :return: cases, controls and analysis_var_cols
         """
         if phecode_counts is None:
-            phecode_counts = self.phecode_counts.clone()
+            phecode_counts = self.phecode_counts
         if covariate_df is None:
-            covariate_df = self.covariate_df.clone()
+            covariate_df = self.covariate_df
         if phecode_df is None:
-            phecode_df = self.phecode_df.clone()
+            phecode_df = self.phecode_df
         if var_cols is None:
             var_cols = copy.deepcopy(self.var_cols)
         if gender_specific_var_cols is None:
@@ -502,9 +502,9 @@ class PheWAS:
         """
 
         if phecode_counts is None:
-            phecode_counts = self.phecode_counts.clone()
+            phecode_counts = self.phecode_counts
         if covariate_df is None:
-            covariate_df = self.covariate_df.clone()
+            covariate_df = self.covariate_df
         if var_cols is None:
             var_cols = copy.deepcopy(self.var_cols)
         if gender_specific_var_cols is None:
@@ -632,8 +632,8 @@ class PheWAS:
             for phecode in tqdm(self.phecode_list):
                 result = self._regression(
                     phecode=phecode,
-                    phecode_counts=self.phecode_counts.clone(),
-                    covariate_df=self.covariate_df.clone(),
+                    phecode_counts=self.phecode_counts,
+                    covariate_df=self.covariate_df,
                     var_cols=copy.deepcopy(self.var_cols),
                     gender_specific_var_cols=copy.deepcopy(self.gender_specific_var_cols)
                 )
@@ -645,8 +645,8 @@ class PheWAS:
                     executor.submit(
                         self._regression,
                         phecode,
-                        self.phecode_counts.clone(),
-                        self.covariate_df.clone(),
+                        self.phecode_counts,
+                        self.covariate_df,
                         copy.deepcopy(self.var_cols),
                         copy.deepcopy(self.gender_specific_var_cols)
                     ) for phecode in self.phecode_list
@@ -660,8 +660,8 @@ class PheWAS:
                     executor.submit(
                         self._regression,
                         phecode,
-                        self.phecode_counts.clone(),
-                        self.covariate_df.clone(),
+                        self.phecode_counts,
+                        self.covariate_df,
                         copy.deepcopy(self.var_cols),
                         copy.deepcopy(self.gender_specific_var_cols)
                     ) for phecode in self.phecode_list
