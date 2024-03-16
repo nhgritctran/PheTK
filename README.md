@@ -26,20 +26,10 @@ pip show PheTK | grep Version
 ```
 
 ## 2. SYSTEM REQUIREMENTS
-As PheTK utilizes multithreading to speed up computational processes, the more CPUs/cores the system has, 
-the faster it would run.
-Memory requirement would vary based on computing platform, user actual workflow and how efficient it is.
-
-In our test, a PheWAS for a cohort of 400,000+ participants and 12 covariates successfully completed on a 
-MacBook Pro M2 Pro 12 CPU cores 32GB RAM in ~81 minutes; 
-PheWAS for the same cohort took ~12 minutes with a cloud instance of 96 CPUs 370GB RAM 
-(memory choice here is mainly for redundancy and for comparison with other tests that we did).
-
-In short, the more CPUs the better and RAM should be adequate for user workflow.
-
-In addition, method by_genotype() in Cohort module requires Hail and therefore must be run in a spark environment.
-For example, for _All of Us_ researcher workbench users, 
-a dataproc VM with ~4 workers, 4 CPUs 15GB RAM each, is sufficient for by_genotype().
+PheTK was developed for efficient processing of large data while being resource friendly. 
+It was tested on different platforms from personal laptop to different cloud environments. 
+The lowest test configuration to date was a 4CPU 8GB RAM C3D VM on Google Cloud 
+for PheWAS logistic regression of a 200,000+ cohort and 18 covariates.
 
 ## 3. 1-MINUTE PHEWAS DEMO
 
@@ -82,10 +72,7 @@ This table will be updated as we update PheTK.
 | Plot    | Plot    | all methods   | Any         | None                                                                         |
 | Demo    |         | all methods   | Any         | None                                                                         |
 
-_All of Us_: the _All of Us_ Research Program (https://allofus.nih.gov/). 
-For methods customized for _All of Us_, PheTK must be run within the _All of Us_ Researcher Workbench on Controlled Tier,
-i.e., users must be registered with _All of Us_ and have access to Controlled Tier data. 
-Information on registration can be found here: https://www.researchallofus.org/institutional-agreements/.
+_All of Us_: the _All of Us_ Research Program (https://allofus.nih.gov/)
 
 ## 5. USAGE
 
@@ -96,6 +83,8 @@ Cohort module can be used for generating genetic cohort and add certain covariat
 
 This function takes genetic variant information as input, 
 and generates cohort with matching genotypes as an output csv file.
+As this function uses Hail to extract data from Hail matrix tables, it must be run on a compatible environment,
+e.g., a dataproc cluster on All of Us researcher workbench or UK Biobank RAP.
 
 For example, we generate cohort for _CFTR_ variant chr7-117559590-ATCT-A with 
 heterozygous (0/1 genotype) participants as cases and homozygous reference (0/0 genotype) participants as controls.
