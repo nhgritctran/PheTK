@@ -27,9 +27,12 @@ pip show PheTK | grep Version
 
 ## 2. SYSTEM REQUIREMENTS
 PheTK was developed for efficient processing of large data while being resource friendly. 
-It was tested on different platforms from personal laptop to different cloud environments. 
-The lowest test configuration to date was a 4CPU 8GB RAM C3D VM on Google Cloud 
-for PheWAS logistic regression of a 200,000+ cohort and 18 covariates.
+It was tested on different platforms from laptops to different cloud environments. 
+The lowest test configuration to date was a 4CPU 15GB RAM standard VM on the _All of Us_ researcher workbench 
+for PheWAS of a 200,000+ cohort and 18 covariates. 
+
+Since every platform and every study is different, users could try different available machine configurations
+to achieve optimal performace and cost effectiveness.
 
 ## 3. 1-MINUTE PHEWAS DEMO
 
