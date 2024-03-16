@@ -83,7 +83,7 @@ Cohort module can be used for generating genetic cohort and add certain covariat
 
 This function takes genetic variant information as input, 
 and generates cohort with matching genotypes as an output csv file.
-As this function uses Hail to extract data from Hail matrix tables, it must be run on a compatible environment,
+As this function uses Hail to extract data from Hail matrix tables, it must be run in a compatible environment,
 e.g., a dataproc cluster on All of Us researcher workbench or UK Biobank RAP.
 
 For example, we generate cohort for _CFTR_ variant chr7-117559590-ATCT-A with 
