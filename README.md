@@ -32,7 +32,7 @@ The lowest test configuration to date was a 4CPU 15GB RAM standard VM on the _Al
 for PheWAS of a 200,000+ cohort and 18 covariates. 
 
 Since every platform and every study is different, users could try different available machine configurations
-to achieve optimal performace and cost effectiveness.
+to achieve optimal performance and cost-effectiveness.
 
 ## 3. 1-MINUTE PHEWAS DEMO
 
