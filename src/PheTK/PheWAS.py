@@ -39,7 +39,8 @@ class PheWAS:
                  output_file_name=None,
                  verbose=False,
                  suppress_warnings=True,
-                 method="logit"):
+                 method="logit",
+                 batch_size=1):
         """
         :param phecode_version: accepts "1.2" or "X"
         :param phecode_count_csv_path: path to phecode count of relevant participants at minimum
@@ -68,6 +69,7 @@ class PheWAS:
         :param method: defaults to "logit"; supports:
             "logit": logistic regression
             "cox": cox regression
+        :param batch_size: defaults to 1; number of phecodes to be processed in each thread/process
         :param suppress_warnings: defaults to True;
                                   if True, ignore common exception warnings such as ConvergenceWarnings, etc.
         """
@@ -105,6 +107,7 @@ class PheWAS:
         self.min_phecode_count = min_phecode_count
         self.suppress_warnings = suppress_warnings
         self.method = method
+        self.batch_size = batch_size
 
         # for Cox regression:
         if (method == "cox") and ((cox_control_observed_time_col is None) | (cox_phecode_observed_time_col is None)):
@@ -219,6 +222,7 @@ class PheWAS:
             if isinstance(phecode_to_process, str):
                 phecode_to_process = [phecode_to_process]
             self.phecode_list = phecode_to_process
+        self.phecode_batch_list = self._split_phecode_list(phecode_list=self.phecode_list, batch_size=self.batch_size)
 
         # attributes for reporting PheWAS results
         self._phecode_summary_statistics = None
@@ -252,6 +256,21 @@ class PheWAS:
         else:
             polars_df = df
         return polars_df
+
+    @staticmethod
+    def _split_phecode_list(phecode_list, batch_size):
+        """
+        Split phecode_list into batches of phecodes based on batch size. Used for parallel processing.
+        :param phecode_list: list of all phecodes in cohort
+        :param batch_size: phecode batch size
+        :return: list of batches of phecodes
+        """
+        sublists = []
+        for i in range(0, len(phecode_list), batch_size):
+            # Limit the end index to avoid out-of-bounds access
+            end_idx = min(i + batch_size, len(phecode_list))
+            sublists.append(phecode_list[i:end_idx])
+        return sublists
 
     def _exclude_range(self, phecode, phecode_df=None):
         """
@@ -316,6 +335,19 @@ class PheWAS:
         if gender_specific_var_cols is None:
             gender_specific_var_cols = copy.deepcopy(self.gender_specific_var_cols)
 
+        sex_as_covariate = copy.deepcopy(self.sex_as_covariate)
+        data_has_single_sex = copy.deepcopy(self.data_has_single_sex)
+        sex_at_birth_col = copy.deepcopy(self.sex_at_birth_col)
+        male_value = copy.deepcopy(self.male_value)
+        female_value = copy.deepcopy(self.female_value)
+        sex_values = copy.deepcopy(self.sex_values)
+        min_phecode_count = copy.deepcopy(self.min_phecode_count)
+        use_exclusion = copy.deepcopy(self.use_exclusion)
+        method = copy.deepcopy(self.method)
+        cox_phecode_observed_time_col = copy.deepcopy(self.cox_phecode_observed_time_col)
+        cox_control_observed_time_col = copy.deepcopy(self.cox_control_observed_time_col)
+        cox_stratification_col = copy.deepcopy(self.cox_stratification_col)
+
         # SEX RESTRICTION
         filtered_phecode_df = phecode_df.filter(pl.col("phecode") == phecode)
         if len(filtered_phecode_df["sex"].unique().to_list()) > 0:
@@ -324,24 +356,24 @@ class PheWAS:
             return pl.DataFrame(), pl.DataFrame(), []
 
         # ANALYSIS VAR COLS
-        if sex_restriction == "Both" and self.sex_as_covariate:
+        if sex_restriction == "Both" and sex_as_covariate:
             analysis_var_cols = var_cols
         else:
             analysis_var_cols = gender_specific_var_cols
 
         # FILTER COVARIATE DATA BY PHECODE SEX RESTRICTION
-        if not self.data_has_single_sex:
+        if not data_has_single_sex:
             # filter cohort for just sex of phecode
             if sex_restriction == "Male":
-                covariate_df = covariate_df.filter(pl.col(self.sex_at_birth_col) == self.male_value)
+                covariate_df = covariate_df.filter(pl.col(sex_at_birth_col) == male_value)
             elif sex_restriction == "Female":
-                covariate_df = covariate_df.filter(pl.col(self.sex_at_birth_col) == self.female_value)
+                covariate_df = covariate_df.filter(pl.col(sex_at_birth_col) == female_value)
         else:
             # if data has single sex and different from sex of phecode, return empty dfs
             # otherwise, data is fine as is, i.e., nothing needed to be done
             if (
-                (sex_restriction == "Male" and self.male_value not in self.sex_values)
-                or (sex_restriction == "Male") and (self.male_value not in self.sex_values)
+                (sex_restriction == "Male" and male_value not in sex_values)
+                or (sex_restriction == "Male") and (male_value not in sex_values)
             ):
                 return pl.DataFrame(), pl.DataFrame(), []
 
@@ -350,13 +382,13 @@ class PheWAS:
             # CASES
             # participants with at least <min_phecode_count> phecodes
             case_ids = phecode_counts.filter(
-                (pl.col("phecode") == phecode) & (pl.col("count") >= self.min_phecode_count)
+                (pl.col("phecode") == phecode) & (pl.col("count") >= min_phecode_count)
             )["person_id"].unique().to_list()
             cases = covariate_df.filter(pl.col("person_id").is_in(case_ids))
 
             # CONTROLS
             # phecode exclusions
-            if self.use_exclusion:
+            if use_exclusion:
                 exclude_range = [phecode] + self._exclude_range(phecode, phecode_df=phecode_df)
             else:
                 exclude_range = [phecode]
@@ -367,21 +399,21 @@ class PheWAS:
             controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
 
             # PROCESS OBSERVED TIME FOR COX REGRESSION
-            if self.method == "cox":
+            if method == "cox":
                 # CASES
                 case_observed_time_df = phecode_counts.filter(
                     pl.col("person_id").is_in(case_ids)
-                )[["person_id", self.cox_phecode_observed_time_col]]
+                )[["person_id", cox_phecode_observed_time_col]]
                 cases = cases.join(
                     case_observed_time_df, how="left", on="person_id"
                 ).drop(
-                    self.cox_control_observed_time_col
+                    cox_control_observed_time_col
                 ).rename(
-                    {self.cox_phecode_observed_time_col: "observed_time"}
+                    {cox_phecode_observed_time_col: "observed_time"}
                 )
 
                 # CONTROLS
-                controls = controls.rename({self.cox_control_observed_time_col: "observed_time"})
+                controls = controls.rename({cox_control_observed_time_col: "observed_time"})
 
             # DUPLICATE CHECK
             # drop duplicates
@@ -390,12 +422,12 @@ class PheWAS:
             controls = controls.unique(subset=duplicate_check_cols)
 
             # KEEP ONLY REQUIRED COLUMNS
-            if self.method == "cox":
+            if method == "cox":
                 analysis_var_cols = analysis_var_cols + ["observed_time"]
                 if ((sex_restriction == "Both") and
-                    ((self.cox_stratification_col is not None) and
-                     (self.cox_stratification_col not in analysis_var_cols))):
-                    analysis_var_cols = analysis_var_cols + [self.cox_stratification_col]
+                    ((cox_stratification_col is not None) and
+                     (cox_stratification_col not in analysis_var_cols))):
+                    analysis_var_cols = analysis_var_cols + [cox_stratification_col]
 
             if not keep_ids:
                 # KEEP ONLY REQUIRED COLUMNS
@@ -488,27 +520,23 @@ class PheWAS:
             "stratified_by": stratified_by
         }
 
-    def _regression(self, phecode,
-                    phecode_counts=None, covariate_df=None,
-                    var_cols=None, gender_specific_var_cols=None):
+    def _regression(self, phecode):
         """
         Logistic regression of single phecode
         :param phecode: phecode of interest
-        :param phecode_counts: phecode counts table for cohort
-        :param covariate_df: covariate table for cohort
-        :param var_cols: variable columns in general case
-        :param gender_specific_var_cols: variable columns in gender-specific case
         :return: result_dict object
         """
 
-        if phecode_counts is None:
-            phecode_counts = self.phecode_counts
-        if covariate_df is None:
-            covariate_df = self.covariate_df
-        if var_cols is None:
-            var_cols = copy.deepcopy(self.var_cols)
-        if gender_specific_var_cols is None:
-            gender_specific_var_cols = copy.deepcopy(self.gender_specific_var_cols)
+        phecode_counts = self.phecode_counts
+        covariate_df = self.covariate_df
+        var_cols = copy.deepcopy(self.var_cols)
+        gender_specific_var_cols = copy.deepcopy(self.gender_specific_var_cols)
+        min_cases = copy.deepcopy(self.min_cases)
+        suppress_warnings = copy.deepcopy(self.suppress_warnings)
+        method = copy.deepcopy(self.method)
+        verbose = copy.deepcopy(self.verbose)
+        independent_variable_of_interest = copy.deepcopy(self.independent_variable_of_interest)
+        cox_stratification_col = copy.deepcopy(self.cox_stratification_col)
 
         cases, controls, analysis_var_cols = self._case_control_prep(phecode,
                                                                      phecode_counts=phecode_counts,
@@ -517,9 +545,9 @@ class PheWAS:
                                                                      gender_specific_var_cols=gender_specific_var_cols)
 
         # only run regression if number of cases > min_cases
-        if (len(cases) >= self.min_cases) and (len(controls) > self.min_cases):
+        if (len(cases) >= min_cases) and (len(controls) > min_cases):
 
-            if self.suppress_warnings:
+            if suppress_warnings:
                 warnings.simplefilter("ignore")
 
             # add case/control values
@@ -538,11 +566,11 @@ class PheWAS:
                          "controls": len(controls)}
 
             # OPTION 1: COX REGRESSION
-            if self.method == "cox":
+            if method == "cox":
                 strata = None
                 stratified_by = "None"
-                if self.cox_stratification_col in regressors.columns:
-                    strata = stratified_by = self.cox_stratification_col
+                if cox_stratification_col in regressors.columns:
+                    strata = stratified_by = cox_stratification_col
                 cox = CoxPHFitter()
                 try:
                     result = cox.fit(
@@ -573,16 +601,16 @@ class PheWAS:
                     result_dict = {**base_dict, **stats_dict}
 
                     # choose to see results on the fly
-                    if self.verbose:
+                    if verbose:
                         print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls): {result_dict}\n")
 
                     return result_dict
 
             # OPTION 2: LOGISTIC REGRESSION
-            if self.method == "logit":
+            if method == "logit":
                 regressors = regressors[analysis_var_cols]
                 # get index of variable of interest
-                var_index = regressors.columns.index(self.independent_variable_of_interest)
+                var_index = regressors.columns.index(independent_variable_of_interest)
                 regressors = regressors.to_numpy()
                 regressors = sm.tools.add_constant(regressors, prepend=False)
                 logit = sm.Logit(y, regressors, missing="drop")
@@ -592,7 +620,7 @@ class PheWAS:
                     result = logit.fit(disp=False)
                 except (np.linalg.linalg.LinAlgError, statsmodels.tools.sm_exceptions.PerfectSeparationError) as err:
                     if "Singular matrix" in str(err) or "Perfect separation" in str(err):
-                        if self.verbose:
+                        if verbose:
                             print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls):", str(err), "\n")
                         pass
                     else:
@@ -606,19 +634,32 @@ class PheWAS:
                     # result_dict = base_dict | stats_dict  # python 3.9 or later
 
                     # choose to see results on the fly
-                    if self.verbose:
+                    if verbose:
                         print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls): {result_dict}\n")
 
                     return result_dict
 
         else:
-            if self.verbose:
+            if verbose:
                 print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls):",
                       "Not enough cases or controls. Pass.\n")
 
+    def _batch_regression(self, phecode_batch):
+        """
+        Run regression for a batch of phecodes
+        :param phecode_batch: batch of phecodes to run regression
+        :return: list of regression results
+        """
+        results = []
+        for phecode in phecode_batch:
+            result = self._regression(phecode=phecode)
+            if result is not None:
+                results.append(result)
+        return results
+
     def run(self,
             parallelization="multithreading",
-            n_workers=round(os.cpu_count() * 2 / 3)):
+            n_workers=None):
         """
         Run parallel logistic regressions
         :param parallelization: defaults to "multithreading"; other options is "serial"
@@ -627,49 +668,43 @@ class PheWAS:
         """
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
+        result_dicts = []
         if parallelization == "serial":
-            result_dicts = []
             for phecode in tqdm(self.phecode_list):
                 result = self._regression(
-                    phecode=phecode,
-                    phecode_counts=self.phecode_counts,
-                    covariate_df=self.covariate_df,
-                    var_cols=copy.deepcopy(self.var_cols),
-                    gender_specific_var_cols=copy.deepcopy(self.gender_specific_var_cols)
+                    phecode=phecode
                 )
                 result_dicts.append(result)
 
         elif parallelization == "multithreading":
+            if n_workers is None:
+                n_workers = round(os.cpu_count()*2/3)
             with ThreadPoolExecutor(max_workers=n_workers) as executor:
                 jobs = [
                     executor.submit(
-                        self._regression,
-                        phecode,
-                        self.phecode_counts,
-                        self.covariate_df,
-                        copy.deepcopy(self.var_cols),
-                        copy.deepcopy(self.gender_specific_var_cols)
-                    ) for phecode in self.phecode_list
+                        self._batch_regression,
+                        phecode_batch
+                    ) for phecode_batch in self.phecode_batch_list
                 ]
-                result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
+                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list)):
+                    result_dicts.extend(job.result())
 
         elif parallelization == "multiprocessing":
+            if n_workers is None:
+                n_workers = os.cpu_count() - min(round(os.cpu_count()/4), 4)
             mp_context = get_context("spawn")
             with ProcessPoolExecutor(max_workers=n_workers, mp_context=mp_context) as executor:
                 jobs = [
                     executor.submit(
-                        self._regression,
-                        phecode,
-                        self.phecode_counts,
-                        self.covariate_df,
-                        copy.deepcopy(self.var_cols),
-                        copy.deepcopy(self.gender_specific_var_cols)
-                    ) for phecode in self.phecode_list
+                        self._batch_regression,
+                        phecode_batch
+                    ) for phecode_batch in self.phecode_batch_list
                 ]
-                result_dicts = [job.result() for job in tqdm(as_completed(jobs), total=len(self.phecode_list))]
+                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list)):
+                    result_dicts.extend(job.result())
 
         else:
-            return "Invalid parallelization method! Currently only supports \"multithreading\""
+            return "Invalid parallelization method! Select \"multithreading\", \"multiprocessing\", or \"serial\"."
         result_dicts = [result for result in result_dicts if result is not None]
 
         if result_dicts:
@@ -719,7 +754,7 @@ def main():
                         help="Path to the cohort csv file.")
     parser.add_argument("-pv",
                         "--phecode_version",
-                        type=str, required=True, choices=["1.2", 'X'],
+                        type=str, required=True, choices=["1.2", "X"],
                         help="Phecode version.")
     parser.add_argument("-m",
                         "--method",
@@ -776,6 +811,8 @@ def main():
                         type=str, required=False, default="phewas_results.csv")
     parser.add_argument("--parallelization",
                         type=str, required=False, default="multithreading")
+    parser.add_argument("--batch_size",
+                        type=int, required=False, default=10, help="Batch size for parallelization.")
     args = parser.parse_args()
 
     # run PheWAS
@@ -794,7 +831,8 @@ def main():
                     min_cases=args.min_case,
                     min_phecode_count=args.min_phecode_count,
                     output_file_name=args.output_file_name,
-                    method=args.method)
+                    method=args.method,
+                    batch_size=args.batch_size)
     phewas.run(parallelization=args.parallelization,
                n_workers=args.n_workers)
 
