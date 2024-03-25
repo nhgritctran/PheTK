@@ -636,7 +636,7 @@ class PheWAS:
         return results
 
     def run(self,
-            parallelization="multithreading",
+            parallelization=None,
             n_workers=None):
         """
         Run parallel logistic regressions
@@ -645,6 +645,13 @@ class PheWAS:
         :return: PheWAS summary statistics Polars dataframe
         """
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+        # assign optimal parallelization method when it is not specified
+        if parallelization is None:
+            if self.method == "logit":
+                parallelization = "multithreading"
+            elif self.method == "cox":
+                parallelization = "multiprocessing"
 
         result_dicts = []
         if parallelization == "serial":
