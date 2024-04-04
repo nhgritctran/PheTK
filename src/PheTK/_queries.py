@@ -171,12 +171,12 @@ def natural_age_query(ds, participant_ids):
 def ehr_dx_code_query(ds, participant_ids):
     """
     This method is exclusively for All of Us platform.
-    In condition occurrence table, diagnosis codes belongs to ICD9CM, ICD10CM and SNOMED, are counted.
+    In condition occurrence table, diagnosis codes belongs to ICD9CM, ICD10CM, are counted.
     In observation table, diagnosis codes belongs to ICD9CM and ICD10CM are counted.
     :param ds: Google BigQuery dataset ID containing OMOP data tables
     :param participant_ids: list of participant IDs to query
     :return: a SQL query that would generate a table contains participant IDs and
-            their ehr length (days), diagnosis code count(ICD & SNOMED), and age at last event
+            their ehr length (days), diagnosis code count(ICD), and age at last event
     """
     query: str = f"""
         SELECT DISTINCT
@@ -199,7 +199,7 @@ def ehr_dx_code_query(ds, participant_ids):
                 ON
                     co.condition_source_value = c.concept_code
                 WHERE
-                    c.vocabulary_id IN ("ICD9CM", "ICD10CM", "SNOMED")
+                    c.vocabulary_id IN ("ICD9CM", "ICD10CM")
                     AND
                     person_id IN {participant_ids}
                 )
@@ -216,7 +216,7 @@ def ehr_dx_code_query(ds, participant_ids):
                 ON
                     co.condition_source_concept_id = c.concept_id
                 WHERE
-                    c.vocabulary_id IN ("ICD9CM", "ICD10CM", "SNOMED")
+                    c.vocabulary_id IN ("ICD9CM", "ICD10CM")
                     AND
                     person_id IN {participant_ids}
                 )

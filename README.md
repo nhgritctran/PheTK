@@ -1,7 +1,17 @@
 # PheTK - The Phenotype Toolkit
 The official repository of PheTK.
 
-Current version: 0.1.36
+Current version: 0.1.37
+
+## Changelog:
+
+___version 0.1.37 (04 Apr 2024):___
+- Removed SNOMED codes from SQL query (_ehr_dx_code_query_) generating _ehr_length_, _dx_code_occurrence_count_, 
+_dx_condition_count_, and _age_at_last_event_ covariates in _.add_covariates()_ method in Cohort module.
+  - This was to make it consistent with ICD event query for phecode mapping, 
+    i.e., only ICD9CM and ICD10CM would be used as vocabulary_id for these queries.
+  - For _All of Us_ users, this change should affect less than 2% of covariate data previously generated 
+  by _.add_covariates()_ method from version 0.1.36 or earlier, and should not significantly change previous analysis results.
 
 ## 1. INSTALLATION
 PheTK can be installed using pip install command in a terminal (Python 3.7 or newer):
@@ -59,7 +69,10 @@ Standard PheWAS workflow. Green texts are PheTK module names.
 Black components are supported while gray ones are not supported by PheTK currently.
 
 ### 4.2. PheTK module descriptions
-This table will be updated as we update PheTK.
+This table will be updated as we update PheTK. 
+
+All modules can be used together or independently, 
+e.g., users who only need to run PheWAS analysis can provide their own cohort and phecode count data as input for PheWAS module. 
 
 | Module  | Class   | Method(s)     | Platform    | Requirements/Notes                                                           |
 |---------|---------|---------------|-------------|------------------------------------------------------------------------------|
@@ -152,7 +165,8 @@ The covariates shown in this example are currently supported by PheTK. Users sho
 for covariates to be used in subsequent PheWAS. All parameters are set to False by default, i.e., user only need to 
 specify parameters of interest as shown in the "short version". 
 
-Users should decide which covariates to use for the study based on their data, and to add or use their own covariate data if necessary.
+It is highly recommended that users should decide which covariates to use for the study based on their data, 
+and it is perfectly fine to add or use their own covariate data if necessary. 
 
 #### Jupyter Notebook example for _All of Us_ Researcher Workbench:
 ```
