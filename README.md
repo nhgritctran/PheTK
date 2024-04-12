@@ -1,9 +1,14 @@
 # PheTK - The Phenotype Toolkit
 The official repository of PheTK.
 
-Current version: 0.1.37
+Current version: 0.1.38
 
 ## Changelog:
+
+___version 0.1.38 (11 Apr 2024):___
+- Updated default _All of Us_ common variant matrix table (ACAF) file path used by .by_genotype() method in Cohort module
+with _All of Us_ updated path.
+- Updated README to add some minimum VM configuration suggestions.
 
 ___version 0.1.37 (04 Apr 2024):___
 - Removed SNOMED codes from SQL query (_ehr_dx_code_query_) generating _ehr_length_, _dx_code_occurrence_count_, 
@@ -37,12 +42,21 @@ pip show PheTK | grep Version
 
 ## 2. SYSTEM REQUIREMENTS
 PheTK was developed for efficient processing of large data while being resource friendly. 
-It was tested on different platforms from laptops to different cloud environments. 
-The lowest test configuration to date was a 4CPU 15GB RAM standard VM on the _All of Us_ researcher workbench 
-for PheWAS of a 200,000+ cohort and 18 covariates. 
+It was tested on different platforms from laptops to different cloud environments.
 
-Since every platform and every study is different, users could try different available machine configurations
-to achieve optimal performance and cost-effectiveness.
+Here are some minimum VM configuration suggestions for _All of Us_ users:
+- Cohort module: default General Analysis (4 CPUs, 15GB RAM) or Hail Genomic Analysis 
+(main VM and 2 workers of 4 CPUs, 15GB RAM each) VMs should work. 
+Hail Genomic Analysis is only needed for .by_genotype() method.
+- Phecode module: a minimum of 8 CPUs, 52GB RAM standard VM should work for current v7 data.
+This might require more RAM depending on user custom workflow or data - 
+usually Jupyter Python kernel would die at if there is not enough memory.
+- PheWAS module: default General Analysis VM (4 CPUs, 15GB RAM) should work. 
+However, more CPUs would speed up analysis and using low configurations do not necessarily save computing cost
+since total runtime would be longer.
+- Plot module: default General Analysis VM (4 CPUs, 15GB RAM) should work.
+
+In practice, users could try different available machine configurations to achieve optimal performance and cost-effectiveness.
 
 ## 3. 1-MINUTE PHEWAS DEMO
 
