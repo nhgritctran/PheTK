@@ -1,11 +1,14 @@
 adjusttext
 connectorx
+google-cloud-bigquery
 hail
+lxml
 matplotlib
 numpy
+pandas
 polars
 pyarrow
 pandas
-tqdm
 statsmodels
+tqdm
 setuptools

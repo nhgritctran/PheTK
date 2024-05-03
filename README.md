@@ -1,9 +1,12 @@
 # PheTK - The Phenotype Toolkit
 The official repository of PheTK.
 
-Current version: 0.1.38
+Current version: 0.1.39
 
 ## Changelog:
+
+___version 0.1.39 (02 May 2024):___
+- Added lxml as a required dependency during installation as it might not be preinstalled in some platforms.
 
 ___version 0.1.38 (11 Apr 2024):___
 - Updated default _All of Us_ common variant matrix table (ACAF) file path used by .by_genotype() method in Cohort module
