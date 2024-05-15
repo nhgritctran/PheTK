@@ -156,7 +156,7 @@ class Cohort:
         # keep variant of interest
         mt = mt.filter_rows((mt.locus == variant["locus"]) &
                             (mt.alleles == variant["alleles"]))
-        if mt:
+        if mt.count_rows() >= 1:
             print()
             print(f"\033[1mVariant {variant_string} found!")
             mt.row.show()
