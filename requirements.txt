@@ -6,7 +6,7 @@ lxml
 matplotlib
 numpy
 pandas
-polars
+polars<=0.20.26
 pyarrow
 pandas
 statsmodels

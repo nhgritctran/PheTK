@@ -5,6 +5,9 @@ Current version: 0.1.40
 
 ## Changelog:
 
+___version 0.1.41 (22 May 2024):___
+- Added polars version <= 0.20.26 as dependency requirement since polars version 0.20.27 could cause multithreading issue.
+
 ___version 0.1.40 (14 May 2024):___
 - Fixed an incorrect printout text check in `.by_genotype()` in Cohort module when a variant is not found. 
 This is only an aesthetic fix to avoid confusion, and does not affect previously generated cohorts.
