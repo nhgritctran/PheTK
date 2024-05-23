@@ -1,7 +1,7 @@
 # PheTK - The Phenotype Toolkit
 The official repository of PheTK.
 
-Current version: 0.1.40
+Current version: 0.1.41
 
 ## Changelog:
 
