@@ -522,11 +522,9 @@ class PheWAS:
             "hazard_ratio_high": hazard_ratio_high,
             "log_hazard_ratio": log_hazard_ratio,
             "concordance_index": concordance_index,
-            "stratified_by": stratified_by
+            "stratified_by": stratified_by,
+            "convergence": warning_message
         }
-
-        if not self.suppress_warnings:
-            result_dict["regression_warnings"] = warning_message
 
         return result_dict
 
@@ -559,6 +557,8 @@ class PheWAS:
 
             if suppress_warnings:
                 warnings.simplefilter("ignore")
+            else:
+                warnings.simplefilter("always")
 
             # add case/control values
             cases = cases.with_columns(pl.Series([1] * len(cases)).alias("y"))
@@ -577,12 +577,15 @@ class PheWAS:
 
             # OPTION 1: COX REGRESSION
             if method == "cox":
+                # for cox regression warnings is always on to catch convergence status
+                warnings.simplefilter("always")
+
                 strata = None
                 stratified_by = "None"
                 if cox_stratification_col in regressors.columns:
                     strata = stratified_by = cox_stratification_col
                 cox = CoxPHFitter()
-                combined_warning = "No warnings."
+                combined_warning = "Converged"
                 try:
                     # wrap fit() in warning handler
                     captured_warnings = []
