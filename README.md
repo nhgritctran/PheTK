@@ -1,9 +1,24 @@
 # PheTK - The Phenotype Toolkit
 The official repository of PheTK.
 
-Current version: 0.1.41
+Quick links:
+- [Installation](#1-installation)
+- [System requirements](#2-system-requirements)
+- [1-minute PheWAS demo](#3-1-minute-phewas-demo)
+- [PheTK description](#4-descriptions)
+- [Usage examples](#5-usage)
+  - [Cohort module](#51-cohort-module)
+  - [Phecode module](#52-phecode-module)
+  - [PheWAS module](#53-phewas-module)
+  - [Plot module](#54-plot-module)
+- [Changelog](#changelog) (refer to this section for the latest version of PheTK)
+
 
 ## Changelog:
+
+___version 0.1.42 (17 Jul 2024):___
+- Added method `.get_phecode_data()` in PheWAS class. This method would generate cohort data from input data for a phecode of interest.
+Please refer to [this section](#get_phecode_data) in PheWAS module for usage example. 
 
 ___version 0.1.41 (22 May 2024):___
 - Added polars version <= 0.20.26 as dependency requirement since polars version 0.20.27 could cause multithreading issue.
@@ -27,6 +42,7 @@ _dx_condition_count_, and _age_at_last_event_ covariates in `.add_covariates()` 
     i.e., only ICD9CM and ICD10CM would be used as vocabulary_id for these queries.
   - For _All of Us_ users, this change should affect less than 2% of covariate data previously generated 
   by `.add_covariates()` method from version 0.1.36 or earlier, and should not significantly change previous analysis results.
+
 
 ## 1. INSTALLATION
 PheTK can be installed using pip install command in a terminal (Python 3.7 or newer):
@@ -371,6 +387,22 @@ Notes:
 - In the above example, "sex" column was declared twice, once in sex_at_birth_col and once in covariate_cols.
 sex_at_birth_col is always required as certain phecodes are sex restricted.
 If user would like to use sex as a covariate, sex column must be included in covariate_cols. 
+
+<a id="get_phecode_data"></a>
+#### Get cohort data of a phecode
+Method `.get_phecode_data()` can be used to get cohort data for a phecode of interest.
+A common use case is to look at input data of certain phecodes after a PheWAS run.
+
+In addition to the existing columns, e.g., person_id, covariates, etc., from input data, 
+the generated table has `is_phecode_case` boolean column to specify whether an individual is a case or control for that phecode.
+
+For example, after creating a PheWAS class instance as in the above example, 
+user can call `.get_phecode_data()` method as below:
+```
+# get cohort data for phecode "R05.1"
+example_phewas.get_phecode_data("R05.1")
+```
+
 
 ### 5.4. Plot module
 Plot class is instantiated with path to PheWAS result csv file.

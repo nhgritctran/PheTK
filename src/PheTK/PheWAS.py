@@ -256,7 +256,7 @@ class PheWAS:
 
     def _case_control_prep(self, phecode,
                            phecode_counts=None, covariate_df=None, phecode_df=None,
-                           var_cols=None, gender_specific_var_cols=None):
+                           var_cols=None, gender_specific_var_cols=None, keep_ids=False):
         """
         :param phecode: phecode of interest
         :param phecode_counts: phecode counts table for cohort
@@ -264,6 +264,7 @@ class PheWAS:
         :param phecode_df: phecode mapping table
         :param var_cols: variable columns in general case
         :param gender_specific_var_cols: variable columns in gender-specific case
+        :param keep_ids: if True, keep phecode person_id column, used when person_id is needed
         :return: cases, controls and analysis_var_cols
         """
         if phecode_counts is None:
@@ -325,19 +326,39 @@ class PheWAS:
             controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
 
             # DUPLICATE CHECK
-            # drop duplicates and keep analysis covariate cols only
+            # drop duplicates
             duplicate_check_cols = ["person_id"] + analysis_var_cols
-            cases = cases.unique(subset=duplicate_check_cols)[analysis_var_cols]
-            controls = controls.unique(subset=duplicate_check_cols)[analysis_var_cols]
+            cases = cases.unique(subset=duplicate_check_cols)
+            controls = controls.unique(subset=duplicate_check_cols)
 
-            # KEEP ONLY REQUIRED COLUMNS
-            cases = cases[analysis_var_cols]
-            controls = controls[analysis_var_cols]
+            if not keep_ids:
+                # KEEP ONLY REQUIRED COLUMNS
+                cases = cases[analysis_var_cols]
+                controls = controls[analysis_var_cols]
+            else:
+                cases = cases[duplicate_check_cols]
+                controls = controls[duplicate_check_cols]
 
             return cases, controls, analysis_var_cols
 
         else:
             return pl.DataFrame(), pl.DataFrame(), []
+
+    def get_phecode_data(self, phecode):
+        cases, controls, analysis_var_cols = self._case_control_prep(
+            phecode=phecode,
+            keep_ids=True
+        )
+
+        if len(cases) >= 0 or len(controls) >= 0:
+            cases = cases.with_columns(pl.lit(True).alias("is_phecode_case"))
+            controls = controls.with_columns(pl.lit(False).alias("is_phecode_case"))
+            phecode_data = cases.vstack(controls)
+
+            return phecode_data
+
+        else:
+            print(f"No phecode data for {phecode}")
 
     @staticmethod
     def _result_prep(result, var_of_interest_index):
