@@ -35,6 +35,9 @@ if user specifies "A" as `ref_allele`, "C" as `alt_allele`, and "0/1" as `case_g
 - Going forward, there is nothing changed in how user would use `.by_genotype()`,
 i.e., "0" represents reference allele, and "1" represents alternative allele of interest.
 
+- Users should uninstall any previous version, reinstall PheTK, and make sure current version is v0.1.43.
+It is recommended for ___affected___ users to rerun `.by_genotype()` step and potentially subsequent steps.
+
 ___version 0.1.42 (17 Jul 2024):___
 - Added method `.get_phecode_data()` in PheWAS class. This method would generate cohort data from input data for a phecode of interest.
 Please refer to [this section](#get_phecode_data) in PheWAS module for usage example. 
