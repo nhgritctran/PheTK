@@ -16,6 +16,27 @@ Quick links:
 
 ## Changelog:
 
+___version 0.1.43 (08 Aug 2024):___
+
+__IMPORTANT__: 
+- Fixed an issue in `.by_genotype()` in Cohort module which might generate incorrect cohort by genotype for
+multi-allelic sites from _All of Us_ variant data or custom Hail matrix table. 
+For example, for a site that has 3 alleles \["A", "G", "C"] (reference allele, alt allele 1, alt allele 2, as displayed in Hail), 
+if user specifies "A" as `ref_allele`, "C" as `alt_allele`, and "0/1" as `case_gt`:
+  - Before this fix, given above user inputs, participants with A-G genotype would be mistakenly assigned as cases, 
+  since the allele indexes ("1" represents "G" and "2" represents "T") remains the same, even after multi-allelic split.
+  - After this fix, given above user inputs, participants with A-C genotype will be correctly assigned as case, 
+  since the allele index for "T" would be properly updated to "1" after  multi-allelic split.
+
+- This issue affects users who used method `.by_genotype()` to generate cohort:
+  - from _All of Us_ data, having ALL the criteria below:
+    - the genomic position was a multi-allelic site,
+    - the alternative allele of interest was NOT the first alternative allele ("G" in the above example).
+  - from custom unsplit matrix table or improperly split matrix table as input.
+
+- Going forward, there is nothing changed in how user would use `.by_genotype()`,
+i.e., "0" represents reference allele, and "1" represents alternative allele of interest.
+
 ___version 0.1.42 (17 Jul 2024):___
 - Added method `.get_phecode_data()` in PheWAS class. This method would generate cohort data from input data for a phecode of interest.
 Please refer to [this section](#get_phecode_data) in PheWAS module for usage example. 
