@@ -16,9 +16,7 @@ Quick links:
 
 ## Changelog:
 
-___version 0.1.43 (08 Aug 2024):___
-
-__IMPORTANT__: 
+___version 0.1.43 (08 Aug 2024) - IMPORTANT BUG FIX___: 
 - Fixed an issue in `.by_genotype()` in Cohort module which might generate incorrect cohort by genotype for
 multi-allelic sites from _All of Us_ variant data or custom Hail matrix table. 
 For example, for a site that has 3 alleles \["A", "G", "C"] (reference allele, alt allele 1, alt allele 2, as displayed in Hail), 
