@@ -30,7 +30,7 @@ if user specifies "A" as `ref_allele`, "C" as `alt_allele`, and "0/1" as `case_g
   - from _All of Us_ data, having ALL the criteria below:
     - the genomic position was a multi-allelic site,
     - the alternative allele of interest was NOT the first alternative allele ("G" in the above example).
-  - from custom unsplit matrix table or improperly split matrix table as input, and having the same above criteria.
+  - from custom unsplit matrix table or improperly split matrix table as input, having the same above criteria.
 
 - Going forward, there is nothing changed in how user would use `.by_genotype()`,
 i.e., "0" represents reference allele, and "1" represents alternative allele of interest.
