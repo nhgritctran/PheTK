@@ -38,24 +38,36 @@ i.e., "0" represents reference allele, and "1" represents alternative allele of 
 - Users should uninstall any previous version, reinstall PheTK, and make sure current version is v0.1.43.
 It is recommended for ___affected___ users to rerun `.by_genotype()` step and potentially subsequent steps.
 
+***
+
 ___version 0.1.42 (17 Jul 2024):___
 - Added method `.get_phecode_data()` in PheWAS class. This method would generate cohort data from input data for a phecode of interest.
 Please refer to [this section](#get_phecode_data) in PheWAS module for usage example. 
 
+***
+
 ___version 0.1.41 (22 May 2024):___
 - Added polars version <= 0.20.26 as dependency requirement since polars version 0.20.27 could cause multithreading issue.
+
+***
 
 ___version 0.1.40 (14 May 2024):___
 - Fixed an incorrect printout text check in `.by_genotype()` in Cohort module when a variant is not found. 
 This is only an aesthetic fix to avoid confusion, and does not affect previously generated cohorts.
 
+***
+
 ___version 0.1.39 (02 May 2024):___
 - Added lxml as a required dependency during installation as it might not be preinstalled in some platforms.
+
+***
 
 ___version 0.1.38 (11 Apr 2024):___
 - Updated default _All of Us_ common variant matrix table (ACAF) file path used by `.by_genotype()` method in Cohort module
 with _All of Us_ updated path.
 - Updated README to add some minimum VM configuration suggestions.
+
+***
 
 ___version 0.1.37 (04 Apr 2024):___
 - Removed SNOMED codes from SQL query (_ehr_dx_code_query_) generating _ehr_length_, _dx_code_occurrence_count_, 
@@ -65,6 +77,7 @@ _dx_condition_count_, and _age_at_last_event_ covariates in `.add_covariates()` 
   - For _All of Us_ users, this change should affect less than 2% of covariate data previously generated 
   by `.add_covariates()` method from version 0.1.36 or earlier, and should not significantly change previous analysis results.
 
+***
 
 ## 1. INSTALLATION
 PheTK can be installed using pip install command in a terminal (Python 3.7 or newer):
