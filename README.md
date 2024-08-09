@@ -21,8 +21,8 @@ ___version 0.1.43 (08 Aug 2024) - IMPORTANT BUG FIX___:
 multi-allelic sites from _All of Us_ variant data or custom Hail matrix table. 
 For example, for a site that has 3 alleles \["A", "G", "C"] (reference allele, alt allele 1, alt allele 2, as displayed in Hail), 
 if user specifies "A" as `ref_allele`, "C" as `alt_allele`, and "0/1" as `case_gt`:
-  - Before this fix, given above user inputs, participants with A-G genotype would be mistakenly assigned as cases, 
-  since the allele indexes ("1" represents "G" and "2" represents "C") remains the same, even after multi-allelic split.
+  - Before this fix, given above user inputs, participants with A-C genotype would not be assigned as cases, 
+  since the allele index of "C" is still "2", and therefore A-C genotype would be encoded as "0/2", even after multi-allelic split.
   - After this fix, given above user inputs, participants with A-C genotype will be correctly assigned as cases, 
   since the allele index for "C" would be properly updated to "1" after  multi-allelic split.
 
