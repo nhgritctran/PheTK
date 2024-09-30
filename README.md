@@ -16,6 +16,16 @@ Quick links:
 
 ## Changelog:
 
+___version 0.1.44 (30 Sep 2024)___:
+- Removed polars version requirement of <=0.20.26 since polars has fixed multithreading bug.
+- Updated Demo with more descriptive texts.
+- Updated Plot module (see [this section](#54-plot-module) for usage examples):
+  - Added parameter `converged_only` that can be used when instantiate `Plot` class to plot only converged phecodes.
+  - Added parameter `marker_size_by_beta` and `marker_scale_factor` in `manhattan()` function
+- Updated README to reflect changes.
+
+***
+
 ___version 0.1.43 (08 Aug 2024) - IMPORTANT BUG FIX___: 
 - Fixed an issue in `.by_genotype()` in Cohort module which might generate incorrect cohort by genotype for
 multi-allelic sites from _All of Us_ variant data or custom Hail matrix table. 
@@ -134,6 +144,10 @@ from PheTK import Demo
 
 Demo.run()
 ```
+
+The example files (`example_cohort.csv`, `example_phecode_counts.csv`, and `example_phewas_results.csv`) 
+generated in this Demo should be in users' current working directory. 
+New-to-PheWAS users could explore these files to get a sense of what data are used or generated in PheWAS with PheTK.
 
 ## 4. DESCRIPTIONS
 PheTK is a fast python library for Phenome Wide Association Studies (PheWAS) utilizing both phecode 1.2 and phecodeX 1.0.
@@ -364,8 +378,18 @@ phecode.count_phecode(
 )
 ```
 
-Users can provide their own phecode mapping file by adding a csv file path to phecode_map_file_path.
+Users can provide their own phecode mapping file by adding a csv file path to `phecode_map_file_path`.
 If user provides their own ICD data, platform should be set to "custom".
+
+Custom phecode mapping file must have columns:
+- `phecode`: contains code values of phecodes
+- `ICD`: contains code values of ICD codes
+- `flag`: specifies whether ICD codes is of version 9 or 10; takes numerical 9 or 10 as values.
+- `sex`: sex of ICD/phecode; takes "Male", "Female", or "Both" as values.
+- `phecode_string`: literal name of phecodes as strings
+- `phecode_category`: specifies which category a phecode belongs to.
+- `exclude_range`: only applicable for phecode 1.2.; specifies the range of exclusion if used in PheWAS;
+for example, "008.5,008.7,008.51,008.52,008.6"
 
 ### 5.3. PheWAS module
 It is recommended to run Demo example above and have a look at example cohort and phecode counts file to 
@@ -422,6 +446,9 @@ Notes:
 - In the above example, "sex" column was declared twice, once in sex_at_birth_col and once in covariate_cols.
 sex_at_birth_col is always required as certain phecodes are sex restricted.
 If user would like to use sex as a covariate, sex column must be included in covariate_cols. 
+- PheWAS results often include both converged and non-converged phecodes. 
+This was intentional, as there can be multiple factors affect regression model convergence. 
+Therefore, non_converged phecodes are kept and flagged using `converged` column to allow users to do further investigation if needed. 
 
 <a id="get_phecode_data"></a>
 #### Get cohort data of a phecode
@@ -446,7 +473,7 @@ e.g., calling manhattan() method to make Manhattan plot.
 
 In this example, we are generating a Manhattan plot for the PheWAS results created by module Demo.
 
-#### Jupyter Notebook example:
+#### Demo Jupyter Notebook example:
 ```
 from PheTK.Plot import Plot
 
@@ -457,7 +484,70 @@ The above code example generates this Manhattan plot figure:
 
 ![Example Manhattan plot](img/readme/example_manhattan.png)
 
-Details on plot customization options will be provided in a separate document in the near future.
+#### Some main customization options:
+The features below can be used individually or in combinations to customize Manhattan Plot.
+
+##### Plot only converged phecodes:
+As mentioned in PheWAS module above, PheWAS results contain both converged and non-converged phecodes.
+By default, PheTK will exclude non-converged phecodes when plotting for better interpretation.
+
+Users can include non-converged phecodes by setting boolean parameter `converged_only` to `False`:
+```
+p = Plot("example_phewas_results.csv", converged_only=False)
+```
+
+##### Use beta values (effect sizes) as marker size and change scale factor:
+This feature can be turned on using boolean parameter `marker_size_by_beta` to `True`.
+Users can adjust marker size using parameter `marker_scale_factor` which has a default value of 1.
+(Note that this parameter only works when `marker_size_by_beta=True`).
+
+```
+p.manhattan(marker_size_by_beta=True, marker_scale_factor=1)
+```
+
+##### Select what to label
+By default, PheTK will label by top p-values. This can be changed using parameter `label_values`.
+This parameter accepts single string value or list of phecodes, or 3 preset values of "p_value", "positive_beta", or "negative_beta".
+Note that, if provided text values do not match the preset values or phecodes in PheWAS results, they will not be labeled.
+
+Label by top p-values:
+```
+p.manhattan(label_values="p_value")
+```
+
+Label by top positive beta values:
+```
+p.manhattan(label_values="positive_beta")
+```
+
+Label by top negative beta values:
+```
+p.manhattan(label_values="negative_beta")
+```
+
+Label by specific phecode(s) of interests:
+```
+p.manhattan(label_values=["GE_982", "NS_351"])
+```
+
+##### Number of data points to be labeled
+By default, PheTK will label top 10 data points of label values. To change this, use parameter `label_count`
+```
+p.manhattan(label_count=10)
+```
+
+##### Select phecode category to label
+Users can choose to label only in a specific phecode category or multiple categories using parameter `phecode_categories`
+```
+p.manhattan(phecode_categories=["Neoplasms", "Genetic"])
+```
+
+##### Save plot
+```
+p.manhattan(save_plot=True)
+```
+
+Further details on plot customization options will be provided in a separate document in the near future.
 
 ## 6. CONTACT
 

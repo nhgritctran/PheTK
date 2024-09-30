@@ -109,7 +109,10 @@ def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
     print("\033[1mFirst, let's create some example data.\033[0m")
     print()
     print(f"We will create an example cohort with covariates {covariates_cols}.",
-          "This data also contains our variable of interest which can be binary or continuous.")
+          "This data also contains our variable of interest which can be binary or continuous, "
+          "and it would change depending on your study.",
+          "For example, it can be whether a person having a specific genotype or not, or a continuous lab measurement "
+          "data, etc.")
     print()
     print("In addition, we will also create an example phenotype profile data for this cohort.",
           "This table contains all phecodes mapped from ICD codes from each person's EHR and their counts.")
@@ -141,6 +144,9 @@ def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
     _prompt()
     print("\033[1mHere is how the phecode count data look like:\033[0m")
     print(pl.read_csv("example_phecode_counts.csv", dtypes={"phecode": str}).head())
+    print()
+    print("Phecode count or phecode profile table contains all phecodes mapped from ICD codes from EHR "
+          "of each individual, and their counts.")
     _prompt()
     print("\033[1mNow we are ready to run PheWAS!\033[0m")
     print()
@@ -172,9 +178,19 @@ def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
                     verbose=verbose)
     phewas.run()
     print("\033[1mHere is how example_phewas_results.csv look like:\033[0m")
-    if independent_variable_of_interest == "independent_variable_of_interest" and phecode_to_process == "all":
-        print("In this example, we intentionally generated data with Cystic Fibrosis as a significant hit.")
     print(pl.read_csv("example_phewas_results.csv", dtypes={"phecode": str}).sort(by="p_value").head())
+    print()
+    print("In PheWAS, we ran a series of logistic regressions: phecode ~ independent_variable_of_interest + covariates.")
+    print()
+    print("Each phecode regression was done with a subset of your original cohort, depending on who had/didnt have "
+          "that phecode.",
+          "This was decided based on minimum number of phecode counts (min_phecode_count). "
+          "A phecode regression was only run if the minimum number of cases or controls (min_cases) was met.")
+    print()
+    print("Cases and controls here are the numbers of individuals in your cohort who are considered as case or control "
+          "for each specific phecode, based on their phecode counts data.")
+    print()
+    print("In this example, we intentionally generated data with Cystic Fibrosis (GE_979.2) as a significant hit.")
     print()
     print("\033[1mThis is the end of the demo!\033[0m")
     print()

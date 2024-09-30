@@ -1,6 +1,6 @@
-from datetime import datetime
 from matplotlib.lines import Line2D
 import adjustText
+import datetime
 import matplotlib.colors as mc
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,18 +10,22 @@ import polars as pl
 class Plot:
     def __init__(self,
                  phewas_result_csv_path,
+                 converged_only=True,
                  bonferroni=None,
                  phecode_version=None,
                  color_palette=None):
         """
         :param phewas_result_csv_path: path to PheWAS result csv file, generated from PheWAS module.
+        :param converged_only: whether to plot converged only or not.
         :param bonferroni: defaults to None; if None, calculate base on number of phecode tested
         :param phecode_version: defaults to None; if None, use phecode X; else phecode 1.2
         :param color_palette: defaults to None; if None, use internal color palette
         """
 
         # load PheWAS results
-        self.phewas_result = pl.read_csv(phewas_result_csv_path, dtypes={"phecode": str})
+        self.phewas_result = pl.read_csv(phewas_result_csv_path, dtypes={"phecode": str, "converged": bool})
+        if converged_only:
+            self.phewas_result = self.phewas_result.filter(pl.col("converged") == "true")
 
         # assign a proxy value for infinity neg_log_p_value
         max_non_inf_neg_log = self.phewas_result.filter(pl.col("neg_log_p_value") != np.inf) \
@@ -65,7 +69,7 @@ class Plot:
         self.color_dict = {self.phecode_categories[i]: self.color_palette[i % len(self.color_palette)]
                            for i in range(len(self.phecode_categories))}
         self.phewas_result = self.phewas_result.with_columns(
-            pl.col("phecode_category").map_dict(self.color_dict).alias("label_color")
+            pl.col("phecode_category").replace(self.color_dict).alias("label_color")
         )
         self.positive_betas = None
         self.negative_betas = None
@@ -90,7 +94,7 @@ class Plot:
             if "." not in output_file_name:
                 output_file_name = output_file_name + "." + output_file_type
         else:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             output_file_name = f"{plot_type}_{timestamp}.{output_file_type}"
         plt.savefig(output_file_name, bbox_inches="tight")
         print()
@@ -153,7 +157,7 @@ class Plot:
         :param selected_color_dict: color dict; this is changed based on number of phecode categories selected
         :return: x tick labels and colors for the plot
         """
-        x_ticks = plot_df[["phecode_category", "phecode_index"]].groupby("phecode_category").mean()
+        x_ticks = plot_df[["phecode_category", "phecode_index"]].group_by("phecode_category").mean()
         # create x ticks labels and colors
         adjustText.plt.xticks(x_ticks["phecode_index"],
                               x_ticks["phecode_category"],
@@ -166,7 +170,7 @@ class Plot:
         for tick_label, tick_color in zip(sorted_labels, selected_color_dict.values()):
             tick_label.set_color(tick_color)
 
-    def _manhattan_scatter(self, ax, marker_size_by_beta):
+    def _manhattan_scatter(self, ax, marker_size_by_beta, scale_factor=1):
         """
         Generate scatter data points
         :param ax: plot object
@@ -175,8 +179,8 @@ class Plot:
         """
 
         if marker_size_by_beta:
-            s_positive = self.positive_betas["_marker_size"]
-            s_negative = self.negative_betas["_marker_size"]
+            s_positive = self.positive_betas["_marker_size"] * scale_factor
+            s_negative = self.negative_betas["_marker_size"] * scale_factor
         else:
             s_positive = None
             s_negative = None
@@ -435,6 +439,7 @@ class Plot:
                   label_weight="normal",
                   label_split_threshold=30,
                   marker_size_by_beta=False,
+                  marker_scale_factor=1,
                   phecode_categories=None,
                   plot_all_categories=True,
                   title=None,
@@ -518,7 +523,7 @@ class Plot:
         self._x_ticks(plot_df, selected_color_dict)
 
         # scatter
-        self._manhattan_scatter(ax=ax, marker_size_by_beta=marker_size_by_beta)
+        self._manhattan_scatter(ax=ax, marker_size_by_beta=marker_size_by_beta, scale_factor=marker_scale_factor)
 
         # lines
         self._lines(ax=ax,
