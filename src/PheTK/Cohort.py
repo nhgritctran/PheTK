@@ -53,6 +53,7 @@ class Cohort:
         self.natural_age = False
         self.age_at_last_event = False
         self.sex_at_birth = False
+        self.last_ehr_date = False
         self.ehr_length = False
         self.dx_code_occurrence_count = False
         self.dx_condition_count = False
@@ -249,11 +250,14 @@ class Cohort:
             df = df.join(natural_age_df, how="left", on="person_id")
 
         # age_at_last_event, ehr_length, dx_code_occurrence_count, dx_condition_count
-        if self.age_at_last_event or self.ehr_length or self.dx_code_occurrence_count or self.dx_condition_count:
+        if (self.age_at_last_event or self.ehr_length or self.dx_code_occurrence_count
+                or self.dx_condition_count or self.last_ehr_date):
             temp_df = _utils.polars_gbq(_queries.ehr_dx_code_query(self.cdr, participant_ids))
             cols_to_keep = ["person_id"]
             if self.age_at_last_event:
                 cols_to_keep.append("age_at_last_event")
+            if self.last_ehr_date:
+                cols_to_keep.append("last_ehr_date")
             if self.ehr_length:
                 cols_to_keep.append("ehr_length")
             if self.dx_code_occurrence_count:
@@ -284,6 +288,7 @@ class Cohort:
                        natural_age=False,
                        age_at_last_event=False,
                        sex_at_birth=True,
+                       last_ehr_date=False,
                        ehr_length=False,
                        dx_code_occurrence_count=False,
                        dx_condition_count=False,
@@ -298,6 +303,7 @@ class Cohort:
         :param natural_age: age of participants as of today
         :param age_at_last_event: age of participants at their last diagnosis event in EHR record
         :param sex_at_birth: sex at birth from survey and observation
+        :param last_ehr_date: last diagnosis event in EHR record
         :param ehr_length: number of days that EHR record spans
         :param dx_code_occurrence_count: count of diagnosis code occurrences on unique dates,
                                          including ICD9CM, ICD10CM & SNOMED, throughout participant EHR history
@@ -313,6 +319,7 @@ class Cohort:
         self.natural_age = natural_age
         self.age_at_last_event = age_at_last_event
         self.sex_at_birth = sex_at_birth
+        self.last_ehr_date = last_ehr_date
         self.ehr_length = ehr_length
         self.dx_code_occurrence_count = dx_code_occurrence_count
         self.dx_condition_count = dx_condition_count

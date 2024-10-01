@@ -198,6 +198,7 @@ def ehr_dx_code_query(ds, participant_ids):
     query: str = f"""
         SELECT DISTINCT
             df1.person_id,
+            MAX(date) AS last_ehr_date,
             (DATETIME_DIFF(MAX(date), MIN(date), DAY) + 1)/365.2425 AS ehr_length,
             COUNT(code) AS dx_code_occurrence_count,
             COUNT(DISTINCT(code)) AS dx_condition_count,
