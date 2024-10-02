@@ -32,7 +32,7 @@ class Plot:
             self.bonferroni = bonferroni
 
         # remove non-converged phecodes - doing this after bonferroni to avoid bonferroni value shifting
-        if converged_only:
+        if ("converged" in self.phewas_result.columns) and converged_only:
             self.phewas_result = self.phewas_result.filter(pl.col("converged") == "true")
 
         # assign a proxy value for infinity neg_log_p_value
