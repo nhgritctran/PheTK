@@ -24,6 +24,14 @@ class Plot:
 
         # load PheWAS results
         self.phewas_result = pl.read_csv(phewas_result_csv_path, dtypes={"phecode": str, "converged": bool})
+
+        # bonferroni
+        if bonferroni is None:
+            self.bonferroni = -np.log10(0.05 / len(self.phewas_result))
+        else:
+            self.bonferroni = bonferroni
+
+        # remove non-converged phecodes - doing this after bonferroni to avoid bonferroni value shifting
         if converged_only:
             self.phewas_result = self.phewas_result.filter(pl.col("converged") == "true")
 
@@ -39,17 +47,11 @@ class Plot:
         else:
             self.inf_proxy = None
 
-        # bonferroni
-        if not bonferroni:
-            self.bonferroni = -np.log10(0.05 / len(self.phewas_result))
-        else:
-            self.bonferroni = bonferroni
-
         # nominal significance
         self.nominal_significance = -np.log10(0.05)
 
         # phecode_version
-        if phecode_version:
+        if phecode_version is not None:
             self.phecode_version = phecode_version.upper()
         else:
             self.phecode_version = "X"
@@ -58,7 +60,7 @@ class Plot:
         self.phecode_categories = None
 
         # color mapping
-        if color_palette:
+        if color_palette is not None:
             self.color_palette = color_palette
         else:
             self.color_palette = ("blue", "indianred", "darkcyan", "goldenrod", "darkblue", "magenta",

@@ -16,6 +16,13 @@ Quick links:
 
 ## Changelog:
 
+___version 0.1.45 (01 Oct 2024)___:
+- Fixed a minor issue where Bonferroni line is shifted in Manhattan Plot after non-converged phecodes are removed.
+- Updated README ([this section](#54-plot-module)) to add description for other plotting features, 
+such as setting custom Bonferroni value or custom color palette.
+
+***
+
 ___version 0.1.44 (30 Sep 2024)___:
 - Removed polars version requirement of <=0.20.26 since polars has fixed multithreading bug.
 - Updated Demo with more descriptive texts.
@@ -494,6 +501,19 @@ By default, PheTK will exclude non-converged phecodes when plotting for better i
 Users can include non-converged phecodes by setting boolean parameter `converged_only` to `False`:
 ```
 p = Plot("example_phewas_results.csv", converged_only=False)
+```
+
+##### Set custom Bonferroni value/line:
+```
+p = Plot("example_phewas_results.csv", bonferroni=your_custom_value)
+```
+
+##### Set custom color palette:
+Color palette should be provided in a tuple format. Each color will be used for a phecode category.
+If the number of colors is less than number of phecode categories, the colors will be cycled back to the first color and so on.
+PheTK uses matplotlib color names.
+```
+p = Plot("example_phewas_results.csv", color_palette=("blue", "indianred", "darkcyan"))
 ```
 
 ##### Use beta values (effect sizes) as marker size and change scale factor:
