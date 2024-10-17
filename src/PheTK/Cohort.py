@@ -50,6 +50,7 @@ class Cohort:
             self.cdr = gbq_dataset_id
                      
         # attributes for add_covariate method
+        self.date_of_birth = False
         self.natural_age = False
         self.age_at_last_event = False
         self.sex_at_birth = False
@@ -244,10 +245,16 @@ class Cohort:
         participant_ids = tuple([int(i) for i in participant_ids])
 
         # GET COVARIATES
+
         # natural_age
-        if self.natural_age:
+        if self.natural_age or self.date_of_birth:
             natural_age_df = _utils.polars_gbq(_queries.natural_age_query(self.cdr, participant_ids))
-            df = df.join(natural_age_df, how="left", on="person_id")
+            cols_to_keep = ["person_id"]
+            if self.natural_age:
+                cols_to_keep.append("natural_age")
+            if self.date_of_birth:
+                cols_to_keep.append("date_of_birth")
+            df = df.join(natural_age_df[cols_to_keep], how="left", on="person_id")
 
         # age_at_last_event, ehr_length, dx_code_occurrence_count, dx_condition_count
         if (self.age_at_last_event or self.ehr_length or self.dx_code_occurrence_count
@@ -285,6 +292,7 @@ class Cohort:
 
     def add_covariates(self,
                        cohort_csv_path=None,
+                       date_of_birth=False,
                        natural_age=False,
                        age_at_last_event=False,
                        sex_at_birth=True,
@@ -299,7 +307,8 @@ class Cohort:
                        output_file_name=None):
         """
         This method is a proxy for covariate.get_covariates method
-        :param cohort_csv_path:
+        :param cohort_csv_path: path to cohort csv file
+        :param date_of_birth: date of birth
         :param natural_age: age of participants as of today
         :param age_at_last_event: age of participants at their last diagnosis event in EHR record
         :param sex_at_birth: sex at birth from survey and observation
@@ -316,6 +325,7 @@ class Cohort:
         :return: csv file and polars dataframe object
         """
         # assign attributes
+        self.date_of_birth = date_of_birth
         self.natural_age = natural_age
         self.age_at_last_event = age_at_last_event
         self.sex_at_birth = sex_at_birth

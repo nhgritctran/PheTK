@@ -139,23 +139,6 @@ def phecode_icd_query(ds):
     return final_query
 
 
-def date_of_birth_query(ds):
-    """
-    This method is used to get date of birth of participants from OMOP data
-    :param ds: Google BigQuery dataset ID containing OMOP data tables
-    :return: a SQL query to get date of birth of all participants
-    """
-    query: str = f"""
-        SELECT DISTINCT 
-            person_id,
-            EXTRACT(DATE FROM DATETIME(birth_datetime)) AS date_of_birth
-        FROM
-            {ds}.person
-    """
-
-    return query
-
-
 def natural_age_query(ds, participant_ids):
     """
     This method is exclusively for All of Us platform
@@ -167,6 +150,7 @@ def natural_age_query(ds, participant_ids):
     query: str = f"""
         SELECT
             DISTINCT p.person_id, 
+            EXTRACT(DATE FROM DATETIME(birth_datetime)) AS date_of_birth,
             DATETIME_DIFF(
                 IF(DATETIME(death_datetime) IS NULL, CURRENT_DATETIME(), DATETIME(death_datetime)), 
                 DATETIME(birth_datetime), 

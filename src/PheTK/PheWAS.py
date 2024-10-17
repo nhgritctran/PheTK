@@ -27,6 +27,7 @@ class PheWAS:
                  independent_variable_of_interest,
                  sex_at_birth_col,
                  male_as_one=True,
+                 cox_start_date_col=None,
                  cox_control_observed_time_col=None,
                  cox_phecode_observed_time_col=None,
                  cox_stratification_col=None,
@@ -50,12 +51,15 @@ class PheWAS:
         :param covariate_cols: name of covariate columns; excluding independent var of interest
         :param independent_variable_of_interest: independent variable of interest column name
         :param male_as_one: defaults to True; if True, male=1 and female=0; if False, male=0 and female=1;
-                            use this to match how males and females are coded in sex_at_birth column;
-        :param cox_control_observed_time_col: name of column in cohort dataframe,
+                            use this to match how males and females are coded in sex_at_birth column
+        :param cox_start_date_col: name of a column in cohort dataframe,
+                                   containing specific start date for each participant in the cox regression study;
+                                   this will be used to filter cohort for each phecode in cox regression.
+        :param cox_control_observed_time_col: name of a column in cohort dataframe,
                                               containing censoring time for controls in Cox regression.
-        :param cox_phecode_observed_time_col: name of column in phecode counts dataframe,
+        :param cox_phecode_observed_time_col: name of a column in phecode counts dataframe,
                                               containing time to event (phecode) for cases in Cox regression.
-        :param cox_stratification_col: name of column that is used fpr stratification in Cox regression.
+        :param cox_stratification_col: name of a column that is used fpr stratification in Cox regression.
         :param icd_version: defaults to "US"; other option are "WHO" and "custom";
                             if "custom", user need to provide phecode_map_path
         :param phecode_map_file_path: path to custom phecode map table
@@ -93,7 +97,7 @@ class PheWAS:
 
         # load covariate data
         # make sure person_id in covariate data has the same type as person_id in phecode count
-        self.covariate_df = pl.read_csv(cohort_csv_path)
+        self.covariate_df = pl.read_csv(cohort_csv_path, try_parse_dates=True)
 
         # basic attributes from instantiation
         self.sex_at_birth_col = sex_at_birth_col
@@ -110,7 +114,8 @@ class PheWAS:
         self.batch_size = batch_size
 
         # for Cox regression:
-        if (method == "cox") and ((cox_control_observed_time_col is None) | (cox_phecode_observed_time_col is None)):
+        if (method == "cox") and ((cox_control_observed_time_col is None) |
+                                  (cox_phecode_observed_time_col is None)):
             print()
             print("Warning: Both cox_observed_time_col and cox_phecode_observed_time_col are required for Cox "
                   "regression.")
@@ -119,6 +124,7 @@ class PheWAS:
         else:
             self.cox_control_observed_time_col = cox_control_observed_time_col
             self.cox_phecode_observed_time_col = cox_phecode_observed_time_col
+        self.cox_start_date_col = cox_start_date_col
         self.cox_stratification_col = cox_stratification_col
         if cox_control_observed_time_col == sex_at_birth_col:
             self.cox_stratification_by_sex = True
@@ -207,6 +213,8 @@ class PheWAS:
         # for Cox regression add stratification & observed time to covariate df
         if method == "cox":
             cols_to_keep = cols_to_keep + [cox_control_observed_time_col]
+            if cox_start_date_col is not None:
+                cols_to_keep = cols_to_keep + [cox_start_date_col]
             if (cox_stratification_col is not None) and (cox_stratification_col not in cols_to_keep):
                 cols_to_keep = cols_to_keep + [cox_stratification_col]
         self.covariate_df = self.covariate_df[cols_to_keep]
@@ -216,6 +224,10 @@ class PheWAS:
         # update phecode_counts to only participants of interest
         self.cohort_ids = self.covariate_df["person_id"].unique().to_list()
         self.phecode_counts = self.phecode_counts.filter(pl.col("person_id").is_in(self.cohort_ids))
+        if (cox_start_date_col is not None) and (method == "cox"):
+            self.phecode_counts = self.phecode_counts.join(
+                self.covariate_df[["person_id", cox_start_date_col]], how="left", on="person_id"
+            )
         if phecode_to_process == "all":
             self.phecode_list = self.phecode_counts["phecode"].unique().to_list()
         else:
@@ -344,6 +356,7 @@ class PheWAS:
         min_phecode_count = copy.deepcopy(self.min_phecode_count)
         use_exclusion = copy.deepcopy(self.use_exclusion)
         method = copy.deepcopy(self.method)
+        cox_start_date_col = copy.deepcopy(self.cox_start_date_col)
         cox_phecode_observed_time_col = copy.deepcopy(self.cox_phecode_observed_time_col)
         cox_control_observed_time_col = copy.deepcopy(self.cox_control_observed_time_col)
         cox_stratification_col = copy.deepcopy(self.cox_stratification_col)
@@ -376,6 +389,20 @@ class PheWAS:
                 or (sex_restriction == "Male") and (male_value not in sex_values)
             ):
                 return pl.DataFrame(), pl.DataFrame(), []
+
+        # exclude participants with existing condition if a cox_start_date_col is provided
+        # (cox_start_date_col is not None and method = "cox" during class PheWAS instantiation)
+        if cox_start_date_col in phecode_counts.columns:
+            cox_exclude_ids = phecode_counts.filter(
+                (pl.col("phecode") == phecode) &
+                (pl.col("first_event_date") < pl.col(cox_start_date_col))
+            )["person_id"].unique().to_list()
+        else:
+            cox_exclude_ids = None
+        if cox_exclude_ids is not None:
+            phecode_counts = phecode_counts.filter(
+                ~pl.col("person_id").is_in(cox_exclude_ids)
+            )
 
         # GENERATE CASES & CONTROLS
         if len(covariate_df) > 0:
