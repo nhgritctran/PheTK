@@ -136,11 +136,14 @@ class Phecode:
         """
         print("Calculating age at first event...")
 
-        phecode_counts = pl.read_csv(phecode_count_file_path,
-                                     dtypes={"phecode": str,
-                                             "first_event_date": pl.Date()})
+        phecode_counts = pl.read_csv(
+            phecode_count_file_path,
+            dtypes={"phecode": str, "first_event_date": pl.Date()})
 
-        date_of_birth_df = _utils.polars_gbq(_queries.date_of_birth_query(self.cdr))
+        participant_ids = phecode_counts["person_id"].unique().to_list()
+
+        date_of_birth_df = _utils.polars_gbq(_queries.natural_age_query(ds=self.cdr, participant_ids=participant_ids))
+        date_of_birth_df = date_of_birth_df[["person_id", "date_of_birth"]]
 
         phecode_counts = phecode_counts.join(date_of_birth_df, how="inner", on=["person_id"])
         col_name = "age_at_first_event"
@@ -149,11 +152,61 @@ class Phecode:
                 (pl.col("first_event_date") - pl.col("date_of_birth")).dt.total_days()/365.2425
             ).alias(col_name)
         )
-        phecode_counts = phecode_counts[["person_id", "phecode", "count", "age_at_first_event"]]
+        phecode_counts = phecode_counts[["person_id", "phecode", "count", "first_event_date", "age_at_first_event"]]
 
         phecode_counts.write_csv("phecode_counts_with_event_age.csv")
         print("Done!")
         print()
         print(f"Saved to\033[1m phecode_counts_with_event_age.csv\033[0m. "
               f"Age at first event column name is {col_name}.")
+        print()
+
+    @staticmethod
+    def add_phecode_time_to_event(
+            phecode_count_file_path,
+            cohort_csv_file_path,
+            study_start_date_col,
+            time_unit="days"
+    ):
+        """
+        Calculate time to event for each phecode, based on study start date of each participant in the study cohort
+        :param phecode_count_file_path: path to phecode count csv file
+        :param cohort_csv_file_path: path to cohort csv file
+        :param study_start_date_col: column name of study start date
+        :param time_unit: unit of time to calculate phecode time, defaults to "days", accepts "days" or "years"
+        :return: new phecode counts csv file with time to event
+        """
+
+        print("Calculating time to event for each phecode...")
+
+        phecode_counts = pl.read_csv(
+            phecode_count_file_path,
+            dtypes={"phecode": str, "first_event_date": pl.Date()}
+        )
+
+        cohort_df = pl.read_csv(cohort_csv_file_path, dtypes={study_start_date_col: pl.Date()})
+        cohort_df = cohort_df[["person_id", study_start_date_col]]
+
+        phecode_counts = phecode_counts.join(cohort_df, how="inner", on=["person_id"])
+        col_name = "phecode_time_to_event"
+        if time_unit == "days":
+            denominator = 1
+        elif time_unit == "years":
+            denominator = 365.2425
+        else:
+            raise ValueError("time_unit must be either 'days' or 'years'")
+
+        phecode_counts = phecode_counts.with_columns(
+            (
+                    (pl.col("first_event_date") - pl.col("date_of_birth")).dt.total_days() / denominator
+            ).alias(col_name)
+        )
+
+        phecode_counts = phecode_counts[["person_id", "phecode", "count", "first_event_date", "phecode_time_to_event"]]
+
+        phecode_counts.write_csv("phecode_counts_with_phecode_time_to_event.csv")
+        print("Done!")
+        print()
+        print(f"Saved to\033[1m phecode_counts_with_phecode_time_to_event.csv\033[0m. "
+              f"Phecode time to event column name is {col_name}.")
         print()

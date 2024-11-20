@@ -19,29 +19,31 @@ from PheTK import _utils
 
 class PheWAS:
 
-    def __init__(self,
-                 phecode_version,
-                 phecode_count_csv_path,
-                 cohort_csv_path,
-                 covariate_cols,
-                 independent_variable_of_interest,
-                 sex_at_birth_col,
-                 male_as_one=True,
-                 cox_start_date_col=None,
-                 cox_control_observed_time_col=None,
-                 cox_phecode_observed_time_col=None,
-                 cox_stratification_col=None,
-                 icd_version="US",
-                 phecode_map_file_path=None,
-                 phecode_to_process="all",
-                 min_cases=50,
-                 min_phecode_count=2,
-                 use_exclusion=False,
-                 output_file_name=None,
-                 verbose=False,
-                 suppress_warnings=True,
-                 method="logit",
-                 batch_size=1):
+    def __init__(
+        self,
+        phecode_version,
+        phecode_count_csv_path,
+        cohort_csv_path,
+        covariate_cols,
+        independent_variable_of_interest,
+        sex_at_birth_col,
+        male_as_one=True,
+        cox_start_date_col=None,
+        cox_control_observed_time_col=None,
+        cox_phecode_observed_time_col=None,
+        cox_stratification_col=None,
+        icd_version="US",
+        phecode_map_file_path=None,
+        phecode_to_process="all",
+        min_cases=50,
+        min_phecode_count=2,
+        use_exclusion=False,
+        output_file_name=None,
+        verbose=False,
+        suppress_warnings=True,
+        method="logit",
+        batch_size=1
+    ):
         """
         :param phecode_version: accepts "1.2" or "X"
         :param phecode_count_csv_path: path to phecode count of relevant participants at minimum
@@ -818,6 +820,9 @@ def main():
                         "--method",
                         type=str, required=False, choices=["logit", "cox"],
                         help="Phecode regression method. Can be 'logit' or 'cox'.")
+    parser.add_argument("--cox_start_date_col",
+                        type=str, required=False,
+                        help="Start date column for Cox regression.")
     parser.add_argument("--cox_control_observed_time_col",
                         type=str, required=False,
                         help="Observed time for controls in phecode regression. Right censored time.")
@@ -876,26 +881,28 @@ def main():
     args = parser.parse_args()
 
     # run PheWAS
-    phewas = PheWAS(phecode_version=args.phecode_version,
-                    phecode_count_csv_path=args.phecode_count_csv_path,
-                    cohort_csv_path=args.cohort_csv_path,
-                    sex_at_birth_col=args.sex_at_birth_col,
-                    male_as_one=args.male_as_one,
-                    covariate_cols=args.covariates,
-                    independent_variable_of_interest=args.independent_variable_of_interest,
-                    cox_control_observed_time_col=args.cox_control_observed_time_col,
-                    cox_phecode_observed_time_col=args.cox_phecode_observed_time_col,
-                    cox_stratification_col=args.cox_stratification_col,
-                    phecode_to_process=args.phecode_to_process,
-                    use_exclusion=args.use_exclusion,
-                    min_cases=args.min_case,
-                    min_phecode_count=args.min_phecode_count,
-                    output_file_name=args.output_file_name,
-                    method=args.method,
-                    batch_size=args.batch_size,
-                    suppress_warnings=args.suppress_warnings)
-    phewas.run(parallelization=args.parallelization,
-               n_workers=args.n_workers)
+    phewas = PheWAS(
+        phecode_version=args.phecode_version,
+        phecode_count_csv_path=args.phecode_count_csv_path,
+        cohort_csv_path=args.cohort_csv_path,
+        sex_at_birth_col=args.sex_at_birth_col,
+        male_as_one=args.male_as_one,
+        covariate_cols=args.covariates,
+        independent_variable_of_interest=args.independent_variable_of_interest,
+        cox_start_date_col=args.cox_start_date_col,
+        cox_control_observed_time_col=args.cox_control_observed_time_col,
+        cox_phecode_observed_time_col=args.cox_phecode_observed_time_col,
+        cox_stratification_col=args.cox_stratification_col,
+        phecode_to_process=args.phecode_to_process,
+        use_exclusion=args.use_exclusion,
+        min_cases=args.min_case,
+        min_phecode_count=args.min_phecode_count,
+        output_file_name=args.output_file_name,
+        method=args.method,
+        batch_size=args.batch_size,
+        suppress_warnings=args.suppress_warnings
+    )
+    phewas.run(parallelization=args.parallelization, n_workers=args.n_workers)
 
 
 if __name__ == "__main__":
