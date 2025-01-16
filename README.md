@@ -7,7 +7,7 @@ __Contact__: [PheTK@mail.nih.gov](mailto:PheTK@mail.nih.gov)
 
 ***
 
-## QUICK LINKS:
+## QUICK LINKS
 - [Installation](#1-installation)
 - [System requirements](#2-system-requirements)
 - [1-minute PheWAS demo](#3-1-minute-phewas-demo)
