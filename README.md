@@ -1,7 +1,7 @@
 # PheTK - The Phenotype Toolkit
 The official repository of PheTK.
 
-Reference: [PheWAS analysis on large-scale biobank data with PheTK](https://doi.org/10.1093/bioinformatics/btae719).
+Reference: Tam C Tran, David J Schlueter, Chenjie Zeng, Huan Mo, Robert J Carroll, Joshua C Denny, PheWAS analysis on large-scale biobank data with PheTK, Bioinformatics, Volume 41, Issue 1, January 2025, btae719, https://doi.org/10.1093/bioinformatics/btae719
 
 Contact: [PheTK@mail.nih.gov](mailto:PheTK@mail.nih.gov)
 
