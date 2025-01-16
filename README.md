@@ -29,20 +29,15 @@ Legacy changelogs were archived in [CHANGELOG.md](CHANGELOG.md).
 ***
 
 ## 1. INSTALLATION
-PheTK can be installed using pip install command in a terminal (Python 3.7 or newer):
+The latest version of PheTK can be installed using pip install command in a terminal (Python 3.7 or newer):
 
 ```
-pip install PheTK
+pip install PheTK --upgrade
 ```
 
 or Jupyter Notebook (restart kernel after installation and prior to importing):
 ```
-!pip install PheTK
-```
-
-If and older version of PheTK was installed previously, it is best to uninstall it before new installation
-```
-pip uninstall PheTK -y && pip install PheTK
+!pip install PheTK --upgrade
 ```
 
 To check current installed version:
