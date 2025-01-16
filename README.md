@@ -1,13 +1,13 @@
 # PheTK - The Phenotype Toolkit
 The official repository of PheTK.
 
-Reference: Tam C Tran, David J Schlueter, Chenjie Zeng, Huan Mo, Robert J Carroll, Joshua C Denny, PheWAS analysis on large-scale biobank data with PheTK, Bioinformatics, Volume 41, Issue 1, January 2025, btae719, https://doi.org/10.1093/bioinformatics/btae719
+__Reference__: Tam C Tran, David J Schlueter, Chenjie Zeng, Huan Mo, Robert J Carroll, Joshua C Denny, PheWAS analysis on large-scale biobank data with PheTK, Bioinformatics, Volume 41, Issue 1, January 2025, btae719, https://doi.org/10.1093/bioinformatics/btae719
 
-Contact: [PheTK@mail.nih.gov](mailto:PheTK@mail.nih.gov)
+__Contact__: [PheTK@mail.nih.gov](mailto:PheTK@mail.nih.gov)
 
 ***
 
-Quick links:
+__QUICK LINKS__:
 - [Installation](#1-installation)
 - [System requirements](#2-system-requirements)
 - [1-minute PheWAS demo](#3-1-minute-phewas-demo)
