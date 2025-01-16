@@ -17,13 +17,13 @@ __QUICK LINKS__:
   - [Phecode module](#52-phecode-module)
   - [PheWAS module](#53-phewas-module)
   - [Plot module](#54-plot-module)
-- [Changelogs and releases](https://github.com/nhgritctran/PheTK/releases): 
-from v0.1.45, please use [GitHub Releases](https://github.com/nhgritctran/PheTK/releases) for latest versions and changelogs. 
-Legacy changelogs were archived in [CHANGELOG.md](CHANGELOG.md).
 - Platform specific tutorial(s):
   - ___All of Us___: [APOE PheWAS jupyter notebook](https://workbench.researchallofus.org/workspaces/aou-rw-42a1ea44/chargedemo/analysis/preview/2_PheWAS_with_PheTK_demo.ipynb).
 This notebook demonstrates PheTK usage on the _All of Us_ Researcher Workbench with APOE PheWAS as a study example.
 Please note that this link is only accessible to _All of Us_ registered users.
+- [Changelogs and releases](https://github.com/nhgritctran/PheTK/releases): 
+from v0.1.45, please use [GitHub Releases](https://github.com/nhgritctran/PheTK/releases) for latest versions and changelogs. 
+Legacy changelogs were archived in [CHANGELOG.md](CHANGELOG.md).
 - Resource to learn about PheWAS and phecode: [The PheWAS Catalog](https://phewascatalog.org/).
 
 ***
