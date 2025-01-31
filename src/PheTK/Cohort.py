@@ -12,7 +12,7 @@ class Cohort:
 
     def __init__(self,
                  platform="aou",
-                 aou_db_version=7,
+                 aou_db_version=8,
                  aou_omop_cdr=None,
                  gbq_dataset_id=None):
         """
@@ -22,12 +22,16 @@ class Cohort:
                     if None, it will use current workspace CDR value, i.e., os.getenv("WORKSPACE_CDR")
         :param gbq_dataset_id: Google BigQuery dataset ID for custom platforms.
         """
+        self.aou_max_version = 8
+
         if platform.lower() != "aou" and platform.lower() != "custom":
             print("Unsupported database. Currently supports \"aou\" (All of Us) or \"custom\".")
             sys.exit(0)
-        if platform.lower() == "aou" and aou_db_version != 6 and aou_db_version != 7:
-            print("Unsupported database. Currently supports All of Us CDR v6 and v7 "
-                  "(enter 6 or 7 as parameter value).")
+        if platform.lower() == "aou" and (aou_db_version not in range(6, self.aou_max_version+1)):
+            print(f"Unsupported database. Current All of Us (AoU) CDR version is {self.aou_max_version}. "
+                  f"aou_db_version takes an integer value from 6 to {self.aou_max_version}. "
+                  f"For other AoU database versions, "
+                  f"please provide the AoU CDR string using aou_omop_cdr parameter instead.")
             sys.exit(0)
         if platform.lower() == "custom" and gbq_dataset_id is None:
             print("gbq_dataset_id is required for non All of Us platforms.")
@@ -84,10 +88,14 @@ class Cohort:
 
         # set database path
         if self.platform == "aou":
-            if mt_path is None and self.db_version == 6:
-                mt_path = _paths.cdr6_mt_path
-            elif mt_path is None and self.db_version == 7:
-                mt_path = _paths.cdr7_mt_path
+            if (mt_path is None) and (self.db_version in range(6, self.aou_max_version+1)):
+                mt_path = getattr(_paths, f"cdr{self.db_version}_mt_path")
+            # if mt_path is None and self.db_version == 6:
+            #     mt_path = _paths.cdr6_mt_path
+            # elif mt_path is None and self.db_version == 7:
+            #     mt_path = _paths.cdr7_mt_path
+            # elif mt_path is None and self.db_version == 8:
+            #     mt_path = _paths.cdr8_mt_path
         elif self.platform == "custom" and mt_path is None:
             print("For custom platform, mt_path must not be None.")
             sys.exit(0)
@@ -202,8 +210,9 @@ class Cohort:
         :param participant_ids: participant IDs of interest
         :return: ancestry_preds data of specific version as polars dataframe object
         """
-        if self.db_version == 7:
-            ancestry_preds = pd.read_csv(_paths.cdr7_ancestry_pred_path,
+        if self.db_version in range(6, self.aou_max_version+1):
+            ancestry_preds_file_path = getattr(_paths, f"cdr{self.db_version}_ancestry_pred_path")
+            ancestry_preds = pd.read_csv(ancestry_preds_file_path,
                                          sep="\t",
                                          storage_options={"requester_pays": True,
                                                           "user_project": user_project})
