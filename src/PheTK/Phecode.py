@@ -199,7 +199,7 @@ class Phecode:
 
         phecode_counts = phecode_counts.with_columns(
             (
-                    (pl.col("first_event_date") - pl.col("date_of_birth")).dt.total_days() / denominator
+                    (pl.col("first_event_date") - pl.col(study_start_date_col)).dt.total_days() / denominator
             ).alias(col_name)
         )
 
