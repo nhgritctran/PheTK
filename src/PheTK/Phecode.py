@@ -78,8 +78,9 @@ class Phecode:
             keep_all_columns=False
         )
 
+        phecode_version_string = phecode_version
         if phecode_version == "1.2":
-            phecode_version = " " + phecode_version
+            phecode_version_string = " " + phecode_version
 
         # make a copy of self.icd_events
         icd_events = self.icd_events.clone()
@@ -88,7 +89,7 @@ class Phecode:
         icd_events = icd_events[["person_id", "date", "ICD", "flag"]]
 
         print()
-        print(f"Mapping ICD codes to phecode{phecode_version}...")
+        print(f"Mapping ICD codes to phecode{phecode_version_string}...")
         if phecode_version == "X":
             phecode_counts = icd_events.join(phecode_df,
                                              how="inner",
