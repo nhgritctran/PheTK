@@ -90,12 +90,7 @@ class Cohort:
         if self.platform == "aou":
             if (mt_path is None) and (self.db_version in range(6, self.aou_max_version+1)):
                 mt_path = getattr(_paths, f"cdr{self.db_version}_mt_path")
-            # if mt_path is None and self.db_version == 6:
-            #     mt_path = _paths.cdr6_mt_path
-            # elif mt_path is None and self.db_version == 7:
-            #     mt_path = _paths.cdr7_mt_path
-            # elif mt_path is None and self.db_version == 8:
-            #     mt_path = _paths.cdr8_mt_path
+
         elif self.platform == "custom" and mt_path is None:
             print("For custom platform, mt_path must not be None.")
             sys.exit(0)
@@ -210,6 +205,7 @@ class Cohort:
         :param participant_ids: participant IDs of interest
         :return: ancestry_preds data of specific version as polars dataframe object
         """
+        n_pc = 16  # AoU specific
         if self.db_version in range(6, self.aou_max_version+1):
             ancestry_preds_file_path = getattr(_paths, f"cdr{self.db_version}_ancestry_pred_path")
             ancestry_preds = pd.read_csv(ancestry_preds_file_path,
@@ -219,8 +215,8 @@ class Cohort:
             ancestry_preds = pl.from_pandas(ancestry_preds)
             ancestry_preds = ancestry_preds.with_columns(pl.col("pca_features").str.replace(r"\[", "")) \
                 .with_columns(pl.col("pca_features").str.replace(r"\]", "")) \
-                .with_columns(pl.col("pca_features").str.split(",").list.get(i).alias(f"pc{i}") for i in range(16)) \
-                .with_columns(pl.col(f"pc{i}").str.replace(" ", "").cast(float) for i in range(16)) \
+                .with_columns(pl.col("pca_features").str.split(",").list.get(i).alias(f"pc{i+1}") for i in range(n_pc)) \
+                .with_columns(pl.col(f"pc{i}").str.replace(" ", "").cast(float) for i in range(1, n_pc+1)) \
                 .drop(["probabilities", "pca_features", "ancestry_pred_other"]) \
                 .rename({"research_id": "person_id",
                          "ancestry_pred": "genetic_ancestry"}) \
@@ -278,7 +274,7 @@ class Cohort:
             if self.genetic_ancestry:
                 cols_to_keep.append("genetic_ancestry")
             if self.first_n_pcs > 0:
-                cols_to_keep = cols_to_keep + [f"pc{i}" for i in range(self.first_n_pcs)]
+                cols_to_keep = cols_to_keep + [f"pc{i}" for i in range(1, self.first_n_pcs+1)]
             df = df.join(temp_df[cols_to_keep], how="left", on="person_id")
 
         return df
