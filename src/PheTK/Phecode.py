@@ -143,7 +143,21 @@ class Phecode:
 
         participant_ids = phecode_counts["person_id"].unique().to_list()
 
-        date_of_birth_df = _utils.polars_gbq(_queries.natural_age_query(ds=self.cdr, participant_ids=participant_ids))
+        query_list = _utils.generate_chunk_queries(
+            query_function=_queries.natural_age_query,
+            ds=self.cdr,
+            id_list=participant_ids,
+            chunk_size=1000
+        )
+
+        date_of_birth_df = _utils.polars_gbq_chunk(
+            query_list=query_list,
+        )
+        # # old version without chunking
+        # date_of_birth_df = _utils.polars_gbq(_queries.natural_age_query(ds=self.cdr, participant_ids=participant_ids))
+
+        print("Processing data...")
+
         date_of_birth_df = date_of_birth_df[["person_id", "date_of_birth"]]
 
         phecode_counts = phecode_counts.join(date_of_birth_df, how="inner", on=["person_id"])

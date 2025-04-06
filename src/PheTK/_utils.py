@@ -1,4 +1,7 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from google.cloud import bigquery
+from tqdm import tqdm
+
 import os
 import polars as pl
 import pyarrow as pa
@@ -112,3 +115,66 @@ def get_phecode_mapping_table(phecode_version, icd_version, phecode_map_file_pat
         sys.exit(0)
 
     return phecode_df
+
+
+def generate_chunk_queries(query_function, ds, id_list, chunk_size=1000):
+    """
+    Generate a list of queries using a query generating function, each take a chunk of IDs as input
+    :param query_function: query function
+    :param ds: input dataset
+    :param id_list: list of IDs
+    :param chunk_size: chunk size
+    :return: list of queries
+    """
+    chunks = [
+        list(id_list)[i * chunk_size:(i + 1) * chunk_size] for i in
+        range((len(id_list) // chunk_size) + 1)
+    ]
+
+    print("Generating queries...")
+    with ThreadPoolExecutor() as executor:
+        jobs = [
+            executor.submit(
+                query_function,
+                ds,
+                tuple(chunk)
+            ) for chunk in chunks
+        ]
+        result_list = [job.result() for job in tqdm(as_completed(jobs), total=len(chunks))]
+
+    # process result
+    query_list = [result for result in result_list if result is not None]
+
+    print("Done!")
+    print()
+
+    return query_list
+
+
+def polars_gbq_chunk(query_list):
+    """
+    This takes a list of queries as input and generates a final merged dataframe from them.
+    :param query_list: list of queries
+    :return: final merged polars dataframe
+    """
+
+    print("Querying data...")
+    with ThreadPoolExecutor() as executor:
+        jobs = [
+            executor.submit(
+                polars_gbq,
+                query
+            ) for query in query_list
+        ]
+        result_list = [job.result() for job in tqdm(as_completed(jobs), total=len(query_list))]
+
+    # process result
+    result_list = [result for result in result_list if result is not None]
+    final_result = result_list[0]  # assign first dataframe in result list as final result and then concat with the rest
+    for i in range(1, len(query_list)):
+        final_result = pl.concat([final_result, result_list[i]])
+    final_result = final_result.unique()
+    print("Done!")
+    print()
+
+    return final_result
