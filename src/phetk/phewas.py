@@ -57,11 +57,11 @@ class PheWAS:
         :param cox_start_date_col: name of a column in cohort dataframe,
                                    containing specific start date for each participant in the cox regression study;
                                    this will be used to filter cohort for each phecode in cox regression.
-        :param cox_control_observed_time_col: name of a column in cohort dataframe,
+        :param cox_control_observed_time_col: name of a column in the cohort dataframe,
                                               containing censoring time for controls in Cox regression.
-        :param cox_phecode_observed_time_col: name of a column in phecode counts dataframe,
+        :param cox_phecode_observed_time_col: the name of a column in phecode counts dataframe,
                                               containing time to event (phecode) for cases in Cox regression.
-        :param cox_stratification_col: name of a column that is used fpr stratification in Cox regression.
+        :param cox_stratification_col: name of a column that is used for stratification in Cox regression.
         :param icd_version: defaults to "US"; other option are "WHO" and "custom";
                             if "custom", user need to provide phecode_map_path
         :param phecode_map_file_path: path to custom phecode map table
@@ -81,7 +81,7 @@ class PheWAS:
         """
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        # load phecode mapping file by version or by custom path
+        # load the phecode mapping file by version or by custom path
         self.phecode_df = _utils.get_phecode_mapping_table(
             phecode_version=phecode_version,
             icd_version=icd_version,
@@ -143,7 +143,7 @@ class PheWAS:
 
         # exclusion:
         # - phecode 1.2: user can choose to use exclusion or not
-        # - phecode X: exclusion is removed, therefore this parameter will be False for Phecode X regardless of input
+        # - phecode X: exclusion is removed, therefore, this parameter will be False for Phecode X regardless of input
         # to prevent user error
         if phecode_version == "1.2":
             self.use_exclusion = use_exclusion
@@ -160,7 +160,7 @@ class PheWAS:
                   "since it was already specified as variable of interest.")
             print()
 
-        # remove sex_at_birth column from covariates if it is included, just for processing purpose
+        # remove the sex_at_birth column from covariates if it is included, just for processing purpose
         self.sex_as_covariate = False
         if self.sex_at_birth_col in self.covariate_cols:
             self.sex_as_covariate = True
@@ -288,7 +288,7 @@ class PheWAS:
 
     def _exclude_range(self, phecode, phecode_df=None):
         """
-        Process text data in exclude_range column; exclusively for phecodeX
+        Process text data in the exclude_range column; exclusively for phecodeX
         :param phecode: phecode of interest
         :return: processed exclude_range, either None or a valid list of phecode(s)
         """
@@ -524,10 +524,10 @@ class PheWAS:
     def _cox_result_prep(self, result, stratified_by, warning_message=None):
         """
         Process result from statsmodels
-        :param result: cox regression result
+        :param result: cox regression results
         :param stratified_by: whether cox regression was stratified or not
         :param warning_message: list of warnings to include
-        :return: dictionary with key statistics
+        :return: a dictionary with key statistics
         """
         result_df = result.summary
 
@@ -557,10 +557,11 @@ class PheWAS:
 
         return result_dict
 
+    # noinspection PyInconsistentReturns
     def _regression(self, phecode):
         """
-        Logistic regression of single phecode
-        :param phecode: phecode of interest
+        Logistic regression of a single phecode
+        :param phecode: a phecode of interest
         :return: result_dict object
         """
 
@@ -606,7 +607,7 @@ class PheWAS:
 
             # OPTION 1: COX REGRESSION
             if method == "cox":
-                # for cox regression warnings is always on to catch convergence status
+                # for cox regression, warnings are always on to catch convergence status
                 warnings.simplefilter("always")
 
                 strata = None
@@ -700,7 +701,7 @@ class PheWAS:
     def _batch_regression(self, phecode_batch):
         """
         Run regression for a batch of phecodes
-        :param phecode_batch: batch of phecodes to run regression
+        :param phecode_batch: batch of phecodes to run the regression
         :return: list of regression results
         """
         results = []
@@ -710,18 +711,19 @@ class PheWAS:
                 results.append(result)
         return results
 
+    # noinspection PyUnreachableCode
     def run(self,
             parallelization=None,
             n_workers=None):
         """
-        Run parallel logistic regressions
-        :param parallelization: defaults to "multithreading"; other options is "serial"
+        Run parallel logistic regression
+        :param parallelization: defaults to "multithreading"; the other option is "serial"
         :param n_workers: maximum number of workers
         :return: PheWAS summary statistics Polars dataframe
         """
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        # assign optimal parallelization method when it is not specified
+        # assign an optimal parallelization method when it is not specified
         if parallelization is None:
             if self.method == "logit":
                 parallelization = "multithreading"
@@ -765,9 +767,10 @@ class PheWAS:
 
         else:
             return "Invalid parallelization method! Select \"multithreading\", \"multiprocessing\", or \"serial\"."
+
         result_dicts = [result for result in result_dicts if result is not None]
 
-        if result_dicts:
+        if len(result_dicts) > 0:
             result_df = pl.from_dicts(result_dicts)
             self.results = result_df.join(self.phecode_df[["phecode", "sex",
                                                            "phecode_string",
@@ -795,7 +798,7 @@ class PheWAS:
             print()
             print("PheWAS results saved to\033[1m", self.output_file_name, "\033[0m")
         else:
-            print("No analysis done. Please check your inputs.")
+            print("No analysis done. Please check your PheWAS settings/inputs.")
 
         print()
 
