@@ -22,14 +22,14 @@ __Contact__: [PheTK@mail.nih.gov](mailto:PheTK@mail.nih.gov)
 This notebook demonstrates PheTK usage on the _All of Us_ Researcher Workbench with APOE PheWAS as a study example.
 Please note that this link is only accessible to _All of Us_ registered users.
 - [Changelogs and releases](https://github.com/nhgritctran/PheTK/releases): 
-from v0.1.45, please use [GitHub Releases](https://github.com/nhgritctran/PheTK/releases) for latest versions and changelogs. 
+from v0.1.45, please use [GitHub Releases](https://github.com/nhgritctran/PheTK/releases) for the latest versions and changelogs. 
 Legacy changelogs were archived in [CHANGELOG.md](CHANGELOG.md).
 - Resource to learn about PheWAS and phecode: [The PheWAS Catalog](https://phewascatalog.org/).
 
 ***
 
 ## 1. INSTALLATION
-The latest version of PheTK can be installed using pip install command in a terminal (Python 3.7 or newer):
+The latest version of PheTK can be installed using the pip install command in the terminal (Python 3.7 or newer):
 
 ```
 pip install PheTK --upgrade
@@ -46,18 +46,18 @@ pip show PheTK | grep Version
 ```
 
 ## 2. SYSTEM REQUIREMENTS
-PheTK was developed for efficient processing of large data while being resource friendly. 
+PheTK was developed for efficient processing of large data while being resource-friendly. 
 It was tested on different platforms from laptops to different cloud environments.
 
 Here are some minimum VM configuration suggestions for _All of Us_ users:
 - Cohort module: default General Analysis (4 CPUs, 15GB RAM) or Hail Genomic Analysis 
 (main VM and 2 workers of 4 CPUs, 15GB RAM each) VMs should work. 
-Hail Genomic Analysis is only needed for .by_genotype() method.
+Hail Genomic Analysis is only needed for the .by_genotype() method.
 - Phecode module: a minimum of 8 CPUs, 52GB RAM standard VM should work for current v7 data.
-This might require more RAM depending on user custom workflow or data - 
+This might require more RAM depending on the user's custom workflow or data - 
 usually Jupyter Python kernel would die at if there is not enough memory.
 - PheWAS module: default General Analysis VM (4 CPUs, 15GB RAM) should work. 
-However, more CPUs would speed up analysis and using low configurations do not necessarily save computing cost
+However, more CPUs would speed up analysis and using low configurations does not necessarily save computing cost
 since total runtime would be longer.
 - Plot module: default General Analysis VM (4 CPUs, 15GB RAM) should work.
 
@@ -68,15 +68,15 @@ In practice, users could try different available machine configurations to achie
 User can run the quick 1-minute PheWAS demo with the following command in a terminal:
 
 ```
-python3 -m PheTK.Demo
+python3 -m phetk.demo
 ```
 
 Or in Jupyter Notebook:
 
 ```
-from PheTK import Demo
+from phetk import demo
 
-Demo.run()
+demo.run()
 ```
 
 The example files (`example_cohort.csv`, `example_phecode_counts.csv`, and `example_phewas_results.csv`) 
@@ -99,17 +99,17 @@ e.g., users who only need to run PheWAS analysis can provide their own cohort an
 
 | Module  | Class   | Method(s)     | Platform    | Requirements/Notes                                                           |
 |---------|---------|---------------|-------------|------------------------------------------------------------------------------|
-| Cohort  | Cohort  | by_genotype   | _All of Us_ | None                                                                         |
+| cohort  | Cohort  | by_genotype   | _All of Us_ | None                                                                         |
 |         |         |               | Other       | Variant data stored in Hail matrix table                                     |
 |         |         | add_covariate | _All of Us_ | None                                                                         |
 |         |         |               | Other       | Google BigQuery OMOP database                                                |
 |         |         |               |             | Required tables: person, condition_occurrence, observation, death, & concept |
-| Phecode | Phecode | count_phecode | _All of Us_ | None                                                                         | 
+| phecode | Phecode | count_phecode | _All of Us_ | None                                                                         | 
 |         |         |               | Other       | User provided cohort ICD code data                                           |
 |         |         |               |             | User can use custom ICD-to-phecode mapping table.                            |
-| PheWAS  | PheWAS  | all methods   | Any         | None                                                                         |
-| Plot    | Plot    | all methods   | Any         | None                                                                         |
-| Demo    |         | all methods   | Any         | None                                                                         |
+| pheWAS  | PheWAS  | all methods   | Any         | None                                                                         |
+| plot    | Plot    | all methods   | Any         | None                                                                         |
+| demo    |         | all methods   | Any         | None                                                                         |
 
 _All of Us_: the _All of Us_ Research Program (https://allofus.nih.gov/)
 
@@ -120,22 +120,22 @@ Cohort module can be used for generating genetic cohort and add certain covariat
 
 #### 5.1.1. by_genotype
 
-This function takes genetic variant information as input, 
+This function takes genetic variant information as input 
 and generates cohort with matching genotypes as an output csv file.
 As this function uses Hail to extract data from Hail matrix tables, it must be run in a compatible environment,
-e.g., a dataproc cluster on All of Us researcher workbench or UK Biobank RAP.
+e.g., a dataproc cluster on _All of Us_ researcher workbench or UK Biobank RAP.
 
 For example, we generate cohort for _CFTR_ variant chr7-117559590-ATCT-A with 
 heterozygous (0/1 genotype) participants as cases and homozygous reference (0/0 genotype) participants as controls.
 
 #### Jupyter Notebook example for _All of Us_ Researcher Workbench:
-For _All of Us_ data version 7, the default Hail matrix table is the ACAF (common variant) table.
+For _All of Us_ data version 7 or later, the default Hail matrix table is the ACAF (common variant) table.
 User can use a different table by providing table location in the mt_path parameter.
 ```
 from PheTK.Cohort import Cohort
 
-# instantiate class Cohort object for _All of Us_ database version 7
-cohort = Cohort(platform="aou", aou_db_version=7)
+# instantiate class Cohort object for _All of Us_ database version 8
+cohort = Cohort(platform="aou", aou_db_version=8)
 
 # generate cohort by genotype
 cohort.by_genotype(
@@ -152,7 +152,7 @@ cohort.by_genotype(
 ```
 
 #### Jupyter Notebook example for other platforms:
-For other platforms, user need to provide the location of Hail matrix table file for mt_path parameter.
+For other platforms, users need to provide the location of the Hail matrix table file for mt_path parameter.
 ```
 from PheTK.Cohort import Cohort
 
@@ -177,16 +177,16 @@ cohort.by_genotype(
 This function is currently customized for the _All of Us_ Research Platform. 
 It takes a cohort csv file and covariate selection as input, 
 and generate a new cohort csv file with covariate data added as output. 
-Input cohort data must have "person_id" column.
+Input cohort data must have a "person_id" column.
 
 For non-_All of Us_ platforms, a Google BigQuery dataset ID must be provided.
 
-In this example, we are adding age at last diagnosis event, sex at birth and 10 genetic PCs (provided by _All of Us_).
-These options were set to True (or 10 in case of first_n_pcs).
+In this example, we are adding age at the last diagnosis event, sex at birth, and 10 genetic PCs (provided by _All of Us_).
+These options were set to True (or 10 for first_n_pcs).
 
-The covariates shown in this example are currently supported by PheTK. Users should only change parameter value to True 
-for covariates to be used in subsequent PheWAS. All parameters are set to False by default, i.e., user only need to 
-specify parameters of interest as shown in the "short version". 
+The covariates shown in this example are currently supported by PheTK. Users should only change the parameter value to True 
+for covariates to be used in subsequent PheWAS. All parameters are set to False by default, i.e., users only need to 
+specify parameters of interest as shown in the "short version" 
 
 It is highly recommended that users should decide which covariates to use for the study based on their data, 
 and it is perfectly fine to add or use their own covariate data if necessary. 
@@ -233,19 +233,19 @@ Covariate descriptions:
 - _sex_at_birth_: sex at birth
 - _ehr_length_: EHR duration, in year, from first to last diagnosis code
 - _dx_code_occurrence_count_: counts the occurrences of diagnosis codes throughout EHR of each participant.
-For example: person 1 having R50 (fever) code on 5 different dates, R05 (cough) code on 3 different dates, 
+For example, person 1 having R50 (fever) code on 5 different dates, R05 (cough) code on 3 different dates, 
 and R05.1 (acute cough) code on 2 different dates, will have a dx_code_occurrence_count = 10.
 - _dx_condition_count_: counts the number of unique conditions occurred throughout EHR of each participant.
 For example, for the same person 1 above, the dx_condition_count = 3 (R05 - cough, R05.1 - acute cough, R50 - fever).
 - _genetic_ancestry_: returns string values of predicted ancestries, e.g., "eur", "afr", etc. 
-These are only useful if user would like to filter data by genetic ancestries. 
+These are only useful if users would like to filter data by genetic ancestries. 
 - _first_n_pcs_: retrieves first n genetic PC components from genetic PCA data generated by All of Us.
 - _drop_nulls_: remove rows containing null values in any column.
 
 #### Jupyter Notebook example for other platforms with OMOP data stored in Google BigQuery:
-The only difference in this case is that user need to provide dataset ID for gbq_dataset_id parameter.
-The rest should be the same as above example.
-Please make sure the custom database meet the requirements in section 4.2.
+The only difference in this case is that users need to provide dataset ID for the gbq_dataset_id parameter.
+The rest should be the same as the above example.
+Please make sure the custom database meets the requirements in section 4.2.
 ```
 from PheTK.Cohort import Cohort
 
@@ -262,7 +262,7 @@ For other platforms, users must provide your own ICD code data.
 Example of ICD code data: 
 - Each row must be unique, i.e., there should not be 2 instances of 1 ICD code in the same day.
 - Data must have these exact column names. 
-- "vocabulary_id" column can be replaced with "flag" column with values of 9 and 10.
+- "vocabulary_id" column can be replaced with the "flag" column with values of 9 and 10.
 
 Example with "vocabulary_id" column:
 
@@ -313,12 +313,12 @@ phecode.count_phecode(
 ```
 
 Users can provide their own phecode mapping file by adding a csv file path to `phecode_map_file_path`.
-If user provides their own ICD data, platform should be set to "custom".
+If users provide their own ICD data, the platform should be set to "custom".
 
 Custom phecode mapping file must have columns:
 - `phecode`: contains code values of phecodes
 - `ICD`: contains code values of ICD codes
-- `flag`: specifies whether ICD codes is of version 9 or 10; takes numerical 9 or 10 as values.
+- `flag`: specifies whether ICD codes are of version 9 or 10; takes numerical 9 or 10 as values.
 - `sex`: sex of ICD/phecode; takes "Male", "Female", or "Both" as values.
 - `phecode_string`: literal name of phecodes as strings
 - `phecode_category`: specifies which category a phecode belongs to.
@@ -326,15 +326,15 @@ Custom phecode mapping file must have columns:
 for example, "008.5,008.7,008.51,008.52,008.6"
 
 ### 5.3. PheWAS module
-It is recommended to run Demo example above and have a look at example cohort and phecode counts file to 
-be familiar with input data format. The example files should be generated in user's current working directory.
+It is recommended to run the demo example above and have a look at the example cohort and phecode counts file to 
+be familiar with the input data format. The example files should be generated in users' current working directory.
 
 PheWAS class is instantiated with paths to csv files of cohort data and phecode counts data,
 in addition to other parameters as shown in the examples below.
 It can be used in both Linux command line interface (CLI) and any Python environment, e.g., 
 Jupyter Notebook/Lab.
 
-In these example, we would like to run PheWAS with phecodeX for example data generated by Demo module, 
+In these examples, we would like to run PheWAS with phecodeX, for example, data generated by demo module, 
 with age, sex and 3 genetic PCs as covariates, and an independent variable of interest 
 (for which PheWAS summary statistics will be generated).
 For each phecode, a participant must have a minimum count of 2 phecode events to be considered a case.
@@ -375,13 +375,13 @@ example_phewas.run()
 ```
 
 Notes:
-- Each entry in sex_at_birth column should be either 0 or 1 for female or male. The default is male = 1 and female = 0.
+- Each entry in the sex_at_birth column should be either 0 or 1 for female or male. The default is male = 1 and female = 0.
 - User can use male_as_one to specify where male was coded as 1 (male_as_one=True) or 0 (male_as_one=False).
-- In the above example, "sex" column was declared twice, once in sex_at_birth_col and once in covariate_cols.
+- In the above example, the "sex" column was declared twice, once in sex_at_birth_col and once in covariate_cols.
 sex_at_birth_col is always required as certain phecodes are sex restricted.
-If user would like to use sex as a covariate, sex column must be included in covariate_cols. 
+If users would like to use sex as a covariate, the sex column must be included in covariate_cols. 
 - PheWAS results often include both converged and non-converged phecodes. 
-This was intentional, as there can be multiple factors affect regression model convergence. 
+This was intentional, as there can be multiple factors affecting regression model convergence. 
 Therefore, non_converged phecodes are kept and flagged using `converged` column to allow users to do further investigation if needed. 
 
 <a id="get_phecode_data"></a>
@@ -401,7 +401,7 @@ example_phewas.get_phecode_data("R05.1")
 
 
 ### 5.4. Plot module
-Plot class is instantiated with path to PheWAS result csv file.
+Plot class is instantiated with the path to PheWAS result csv file.
 After that, a plot type method can be called to generate a plot, 
 e.g., calling manhattan() method to make Manhattan plot.
 
@@ -437,7 +437,7 @@ p = Plot("example_phewas_results.csv", bonferroni=your_custom_value)
 
 ##### Set custom color palette:
 Color palette should be provided in a tuple format. Each color will be used for a phecode category.
-If the number of colors is less than number of phecode categories, the colors will be cycled back to the first color and so on.
+If the number of colors is lower than the number of phecode categories, the colors will be cycled back to the first color and so on.
 PheTK uses matplotlib color names.
 ```
 p = Plot("example_phewas_results.csv", color_palette=("blue", "indianred", "darkcyan"))
@@ -454,7 +454,7 @@ p.manhattan(marker_size_by_beta=True, marker_scale_factor=1)
 
 ##### Select what to label
 By default, PheTK will label by top p-values. This can be changed using parameter `label_values`.
-This parameter accepts single string value or list of phecodes, or 3 preset values of "p_value", "positive_beta", or "negative_beta".
+This parameter accepts a single string value or list of phecodes, or 3 preset values of "p_value", "positive_beta", or "negative_beta".
 Note that, if provided text values do not match the preset values or phecodes in PheWAS results, they will not be labeled.
 
 Label by top p-values:
@@ -478,7 +478,7 @@ p.manhattan(label_values=["GE_982", "NS_351"])
 ```
 
 ##### Number of data points to be labeled
-By default, PheTK will label top 10 data points of label values. To change this, use parameter `label_count`
+By default, PheTK will label the top 10 data points of label values. To change this, use parameter `label_count`
 ```
 p.manhattan(label_count=10)
 ```

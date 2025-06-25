@@ -2,7 +2,7 @@ import os
 import polars as pl
 import sys
 # noinspection PyUnresolvedReferences,PyProtectedMember
-from PheTK import _queries, _utils
+from phetk import _queries, _utils
 
 
 class Phecode:

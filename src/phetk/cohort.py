@@ -1,5 +1,5 @@
 # noinspection PyUnresolvedReferences,PyProtectedMember
-from PheTK import _queries, _paths, _utils
+from phetk import _queries, _paths, _utils
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 import os

@@ -14,7 +14,7 @@ import statsmodels.api as sm
 import sys
 import warnings
 # noinspection PyUnresolvedReferences,PyProtectedMember
-from PheTK import _utils
+from phetk import _utils
 
 
 class PheWAS:
