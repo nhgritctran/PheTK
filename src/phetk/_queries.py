@@ -1,10 +1,10 @@
 def phecode_icd_query(ds):
     """
-    This method is optimized for All of Us platform.
+    This method is optimized for the All of Us platform.
 
     It includes 3 queries: icd_query, v_icd_vocab_query, and final_query.
-    icd_query retrieves all ICD codes from OMOP database.
-    v_icd_vocab_query get the ICD codes starting with "V" from icd_query and check vocabulary_id using concept_id.
+    icd_query retrieves all ICD codes from the OMOP database.
+    v_icd_vocab_query gets the ICD codes starting with "V" from icd_query and check vocabulary_id using concept_id.
     final_query union distinct icd_query without V codes
     and v_icd_vocab_query which has V codes with proper vocabulary_ids.
 
@@ -145,7 +145,7 @@ def natural_age_query(ds, participant_ids):
     :param ds: Google BigQuery dataset ID containing OMOP data tables
     :param participant_ids: list of participant IDs to query
     :return: a SQL query that would generate a table
-            contains participant IDs and their natural age
+            containing participant IDs and their natural age
     """
     query: str = f"""
         SELECT
@@ -171,13 +171,13 @@ def natural_age_query(ds, participant_ids):
 
 def ehr_dx_code_query(ds, participant_ids):
     """
-    This method is exclusively for All of Us platform.
-    In condition occurrence table, diagnosis codes belongs to ICD9CM, ICD10CM, are counted.
-    In observation table, diagnosis codes belongs to ICD9CM and ICD10CM are counted.
+    This method is exclusively for the All of Us platform.
+    In the condition occurrence table, diagnosis codes belong to ICD9CM, ICD10CM, are counted.
+    In the observation table, diagnosis codes belong to ICD9CM and ICD10CM are counted.
     :param ds: Google BigQuery dataset ID containing OMOP data tables
     :param participant_ids: list of participant IDs to query
     :return: a SQL query that would generate a table contains participant IDs and
-            their ehr length (days), diagnosis code count(ICD), and age at last event
+            their ehr length (days), diagnosis code count(ICD), and age at the last event
     """
     query: str = f"""
         SELECT DISTINCT

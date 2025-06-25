@@ -17,7 +17,7 @@ class Cohort:
                  gbq_dataset_id=None):
         """
         :param platform: database; currently supports "aou" (All of Us) or "custom".
-        :param aou_db_version: int type, version of database, e.g., 7 for All of Us CDR v7
+        :param aou_db_version: int type, version of the database, e.g., 7 for All of Us CDR v7
         :param aou_omop_cdr: cdr string value, define where to query OMOP data;
                     if None, it will use current workspace CDR value, i.e., os.getenv("WORKSPACE_CDR")
         :param gbq_dataset_id: Google BigQuery dataset ID for custom platforms.
@@ -72,12 +72,12 @@ class Cohort:
                     mt_path=None,
                     output_file_name=None):
         """
-        Generate cohort based on genotype of variant of interest
+        Generate cohort based on genotype of variant-of-interest
         :param chromosome_number: chromosome number; int
-        :param genomic_position: genomic position; int
-        :param ref_allele: reference allele; str
+        :param genomic_position: genomic position; int;
+        :param ref_allele: the reference allele; str
         :param alt_allele: alternative allele; str
-        :param case_gt: genotype(s) for case; str or list of str
+        :param case_gt: genotype(s) for cases; str or list of str
         :param control_gt: genotype(s) for control; str or list of str
         :param reference_genome: defaults to "GRCh38"; accepts "GRCh37" or "GRCh38"
         :param mt_path: path to population level Hail variant matrix table
@@ -88,7 +88,7 @@ class Cohort:
         # import hail and assign hail_init attribute if needed
         import hail as hl
 
-        # set database path
+        # set the database path
         if self.platform == "aou":
             if (mt_path is None) and (self.db_version in range(6, self.aou_max_version+1)):
                 mt_path = getattr(_paths, f"cdr{self.db_version}_mt_path")
@@ -170,7 +170,7 @@ class Cohort:
             spark_df = mt.entries().select("GT").to_spark()
             polars_df = _utils.spark_to_polars(spark_df)
 
-            # convert list of int to GT string, e.g., "0/0", "0/1", "1/1"
+            # convert the list of int to GT string, e.g., "0/0", "0/1", "1/1"
             polars_df = polars_df.with_columns(
                 pl.col("GT.alleles").list.get(0).cast(pl.Utf8).alias("GT0"),
                 pl.col("GT.alleles").list.get(1).cast(pl.Utf8).alias("GT1"),
@@ -203,9 +203,9 @@ class Cohort:
     def _get_ancestry_preds(self, user_project, participant_ids):
         """
         This method specifically designed for All of Us database
-        :param user_project: proxy of GOOGLE_PROJECT environment variable of current workspace in All of Us workbench
+        :param user_project: proxy of the GOOGLE_PROJECT environment variable in the All of Us workbench
         :param participant_ids: participant IDs of interest
-        :return: ancestry_preds data of specific version as polars dataframe object
+        :return: ancestry_preds data of a specific version as the polars dataframe object
         """
         n_pc = 16  # AoU specific
         if self.db_version in range(6, self.aou_max_version+1):
@@ -350,7 +350,7 @@ class Cohort:
         # get participant IDs from cohort
         participant_ids = cohort["person_id"].unique().to_list()
 
-        # setup multi-threading to generate covariates
+        # set up multi-threading to generate covariates
         chunks = [
             list(participant_ids)[i * chunk_size:(i + 1) * chunk_size] for i in
             range((len(participant_ids) // chunk_size) + 1)

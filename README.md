@@ -32,17 +32,17 @@ Legacy changelogs were archived in [CHANGELOG.md](CHANGELOG.md).
 The latest version of PheTK can be installed using the pip install command in the terminal (Python 3.7 or newer):
 
 ```
-pip install PheTK --upgrade
+pip install phetk --upgrade
 ```
 
 or Jupyter Notebook (restart kernel after installation and prior to importing):
 ```
-!pip install PheTK --upgrade
+!pip install phetk --upgrade
 ```
 
 To check current installed version:
 ```
-pip show PheTK | grep Version
+pip show phetk | grep Version
 ```
 
 ## 2. SYSTEM REQUIREMENTS

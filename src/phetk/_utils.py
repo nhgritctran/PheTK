@@ -49,14 +49,14 @@ def polars_gbq(query):
 def get_phecode_mapping_table(phecode_version, icd_version, phecode_map_file_path, keep_all_columns=True):
     """
     Load phecode mapping table
-    :param phecode_version: defaults to "X"; other option is "1.2"
-    :param icd_version: defaults to "US"; other option are "WHO" and "custom";
-                        if "custom", user need to provide phecode_map_path
+    :param phecode_version: defaults to "X"; the other option is "1.2"
+    :param icd_version: defaults to "US"; the other options are "WHO" and "custom";
+                        if "custom", users need to provide phecode_map_path
     :param phecode_map_file_path: path to custom phecode map table
     :param keep_all_columns: defaults to True
     :return: phecode mapping table as polars dataframe
     """
-    # load phecode mapping file by version or by custom path
+    # load a phecode mapping file by version or by custom path
     phetk_dir = os.path.dirname(__file__)
     final_file_path = os.path.join(phetk_dir, "phecode")
     path_suffix = ""
@@ -119,7 +119,7 @@ def get_phecode_mapping_table(phecode_version, icd_version, phecode_map_file_pat
 
 def generate_chunk_queries(query_function, ds, id_list, chunk_size=1000):
     """
-    Generate a list of queries using a query generating function, each take a chunk of IDs as input
+    Generate a list of queries using a query generating function, each takes a chunk of IDs as input
     :param query_function: query function
     :param ds: input dataset
     :param id_list: list of IDs
@@ -170,7 +170,7 @@ def polars_gbq_chunk(query_list):
 
     # process result
     result_list = [result for result in result_list if result is not None]
-    final_result = result_list[0]  # assign first dataframe in result list as final result and then concat with the rest
+    final_result = result_list[0]  # assign the first dataframe in the result list as the final result and then concat with the rest
     for i in range(1, len(query_list)):
         final_result = pl.concat([final_result, result_list[i]])
     final_result = final_result.unique()

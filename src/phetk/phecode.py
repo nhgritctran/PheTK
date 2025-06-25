@@ -9,7 +9,7 @@ class Phecode:
     """
     Class Phecode extract ICD codes and map ICD codes to phecodes version 1.2 and X.
     Currently, supports ICD code extraction for All of Us OMOP data.
-    For other databases, user is expected to provide an ICD code table for all participants in cohort of interest.
+    For other databases, the user is expected to provide an ICD code table for all participants in the cohort of interest.
     """
 
     def __init__(self, platform="aou", icd_df_path=None):
@@ -18,7 +18,7 @@ class Phecode:
         :param platform: supports:
             "aou": All of Us OMOP database
             "custom": other databases; icd_df must be not None if db = "custom"
-        :param icd_df_path: path to ICD table csv file; required columns are "person_id", "ICD", and "vocabulary_id";
+        :param icd_df_path: path to the ICD table csv file; required columns are "person_id", "ICD", and "vocabulary_id";
             "vocabulary_id" values should be "ICD9CM" or "ICD10CM"
         """
         self.platform = platform
@@ -64,13 +64,13 @@ class Phecode:
         """
         Generate phecode counts from ICD counts
         :param phecode_version: defaults to "X"; other option is "1.2"
-        :param icd_version: defaults to "US"; other option are "WHO" and "custom";
-                            if "custom", user need to provide phecode_map_path
+        :param icd_version: defaults to "US"; other options are "WHO" and "custom";
+                            if "custom", users need to provide phecode_map_path
         :param phecode_map_file_path: path to custom phecode map table
-        :param output_file_name: user specified output file name
+        :param output_file_name: user-specified output file name
         :return: phecode counts csv file
         """        
-        # load phecode mapping file by version or by custom path
+        # load the phecode mapping file by version or by custom path
         phecode_df = _utils.get_phecode_mapping_table(
             phecode_version=phecode_version,
             icd_version=icd_version,
@@ -85,7 +85,7 @@ class Phecode:
         # make a copy of self.icd_events
         icd_events = self.icd_events.clone()
 
-        # keep only necessary columns
+        # keep only the necessary columns
         icd_events = icd_events[["person_id", "date", "ICD", "flag"]]
 
         print()
@@ -130,10 +130,10 @@ class Phecode:
 
     def add_age_at_first_event(self, phecode_count_file_path):
         """
-        Calculate age at first event based on input date at first event and birthdays from OMOP data
-        :param phecode_count_file_path: path to phecode count csv file; must have columns "person_id", "phecode",
+        Calculate age at the first event based on input date at the first event and birthdays from OMOP data
+        :param phecode_count_file_path: the path to phecode count csv file; must have columns "person_id", "phecode",
             and "first_event_date"
-        :return: new phecode counts csv file with age at first event
+        :return: new phecode counts csv file with age at the first event
         """
         print("Calculating age at first event...")
 
@@ -184,7 +184,7 @@ class Phecode:
             time_unit="days"
     ):
         """
-        Calculate time to event for each phecode, based on study start date of each participant in the study cohort
+        Calculate time to event for each phecode, based on the study start date of each participant in the study cohort
         :param phecode_count_file_path: path to phecode count csv file
         :param cohort_csv_file_path: path to cohort csv file
         :param study_start_date_col: column name of study start date

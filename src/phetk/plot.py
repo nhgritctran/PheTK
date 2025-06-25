@@ -17,7 +17,7 @@ class Plot:
         """
         :param phewas_result_csv_path: path to PheWAS result csv file, generated from PheWAS module.
         :param converged_only: whether to plot converged only or not.
-        :param bonferroni: defaults to None; if None, calculate base on number of phecode tested
+        :param bonferroni: defaults to None; if None, calculate base on the number of phecode tested
         :param phecode_version: defaults to None; if None, use phecode X; else phecode 1.2
         :param color_palette: defaults to None; if None, use internal color palette
         """
@@ -90,7 +90,7 @@ class Plot:
         # volcano plot label data
         self.volcano_label_data = None
 
-        # column name for datapoint direction, e.g., beta for logistic regression or log_hazard_ratio for cox
+        # column name for the datapoint direction, e.g., beta for logistic regression or log_hazard_ratio for cox
         self.direction_col = None
         if "beta" in self.phewas_result.columns:
             self.direction_col = "beta"
@@ -145,7 +145,7 @@ class Plot:
     @staticmethod
     def _split_by_beta(self, df, marker_size_by_beta=False):
         """
-        :param df: data of interest, e.g., full phewas result or result of a phecode_category
+        :param df: data of interest, e.g., full phewas result or result of a phecode_category;
         :return: positive and negative beta polars dataframes
         """
 
@@ -163,7 +163,7 @@ class Plot:
         """
         Generate x tick labels and colors
         :param plot_df: plot data
-        :param selected_color_dict: color dict; this is changed based on number of phecode categories selected
+        :param selected_color_dict: color dict; this is changed based on the number of phecode categories selected
         :return: x tick labels and colors for the plot
         """
         x_ticks = plot_df[["phecode_category", "phecode_index"]].group_by("phecode_category").mean()
@@ -182,7 +182,7 @@ class Plot:
     def _manhattan_scatter(self, ax, marker_size_by_beta, scale_factor=1):
         """
         Generate scatter data points
-        :param ax: plot object
+        :param ax: plot the object
         :param marker_size_by_beta: adjust marker size by beta coefficient if True
         :return: scatter plot of selected data
         """
@@ -466,7 +466,7 @@ class Plot:
         # SETTINGS #
         ############
 
-        # setup some variables based on plot_all_categories and phecode_categories
+        # Set up some variables based on plot_all_categories and phecode_categories
 
         # offset
         self.offset = 9
@@ -590,7 +590,7 @@ class Plot:
             positive_face_color = "none"
             negative_face_color = "none"
 
-        # color values for every points
+        # color values for every point
         if marker_size_col is not None:
             col_list = [x_col, y_col, marker_size_col]
         else:
@@ -663,7 +663,7 @@ class Plot:
                        x_positive_threshold=None,
                        x_negative_threshold=None):
 
-        # get data for labeling, either use a list of phecodes/phecode names of choice, or use x & y thresholds
+        # Get the data for labeling, either use a list of phecodes/phecode names of choice or use x & y thresholds
         if (phecode_list is not None) or (phecode_string_list is not None):
             if isinstance(phecode_string_list, str):
                 phecode_string_list = [phecode_string_list]
