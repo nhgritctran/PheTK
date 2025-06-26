@@ -1,5 +1,5 @@
 # noinspection PyUnresolvedReferences
-from PheTK.PheWAS import PheWAS
+from phetk.PheWAS import PheWAS
 from tqdm import tqdm
 import numpy as np
 import polars as pl
