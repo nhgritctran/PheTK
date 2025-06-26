@@ -26,16 +26,16 @@ class Cohort:
 
         if platform.lower() != "aou" and platform.lower() != "custom":
             print("Unsupported database. Currently supports \"aou\" (All of Us) or \"custom\".")
-            sys.exit(0)
+            sys.exit(1)
         if platform.lower() == "aou" and (aou_db_version not in range(6, self.aou_max_version+1)):
             print(f"Unsupported database. Current All of Us (AoU) CDR version is {self.aou_max_version}. "
                   f"aou_db_version takes an integer value from 6 to {self.aou_max_version}. "
                   f"For other AoU database versions, "
                   f"please provide the AoU CDR string using aou_omop_cdr parameter instead.")
-            sys.exit(0)
+            sys.exit(1)
         if platform.lower() == "custom" and gbq_dataset_id is None:
             print("gbq_dataset_id is required for non All of Us platforms.")
-            sys.exit(0)
+            sys.exit(1)
         self.platform = platform.lower()
 
         # generate attributes for AoU class instance
@@ -81,8 +81,8 @@ class Cohort:
         :param control_gt: genotype(s) for control; str or list of str
         :param reference_genome: defaults to "GRCh38"; accepts "GRCh37" or "GRCh38"
         :param mt_path: path to population level Hail variant matrix table
-        :param output_file_name: name of csv file output
-        :return: genotype cohort csv file as well as polars dataframe object
+        :param output_file_name: name of tsv file output
+        :return: genotype cohort tsv file as well as polars dataframe object
         """
 
         # import hail and assign hail_init attribute if needed
@@ -95,20 +95,20 @@ class Cohort:
 
         elif self.platform == "custom" and mt_path is None:
             print("For custom platform, mt_path must not be None.")
-            sys.exit(0)
+            sys.exit(1)
 
         # basic data processing
         if output_file_name is not None:
-            if ".csv" in output_file_name:
-                output_file_name = output_file_name.replace(".csv", "")
-            output_file_name = f"{output_file_name}.csv"
+            if ".tsv" in output_file_name:
+                output_file_name = output_file_name.replace(".tsv", "")
+            output_file_name = f"{output_file_name}.tsv"
         else:
             output_file_name = "aou_chr" + \
                                str(chromosome_number) + "_" + \
                                str(genomic_position) + "_" + \
                                str(ref_allele) + "_" + \
                                str(alt_allele) + \
-                               ".csv"
+                               ".tsv"
         if isinstance(case_gt, str):
             case_gt = [case_gt]
         if isinstance(control_gt, str):
@@ -185,7 +185,7 @@ class Cohort:
                 .rename({"s": "person_id"})[["person_id", "case"]] \
                 .with_columns(pl.col("person_id").cast(int))
             cohort = cohort.unique()
-            cohort.write_csv(output_file_name)
+            cohort.write_csv(output_file_name, separator="\t")
 
             print()
             print("\033[1mCohort size:", len(cohort))
@@ -291,7 +291,7 @@ class Cohort:
         return df
 
     def add_covariates(self,
-                       cohort_csv_path=None,
+                       cohort_file_path=None,
                        date_of_birth=False,
                        natural_age=False,
                        age_at_last_event=False,
@@ -307,7 +307,7 @@ class Cohort:
                        output_file_name=None):
         """
         This method is a proxy for covariate.get_covariates method
-        :param cohort_csv_path: path to cohort csv file
+        :param cohort_file_path: path to cohort csv or tsv file
         :param date_of_birth: date of birth
         :param natural_age: age of participants as of today
         :param age_at_last_event: age of participants at their last diagnosis event in EHR record
@@ -321,8 +321,8 @@ class Cohort:
         :param first_n_pcs: number of first principal components to include
         :param chunk_size: defaults to 10,000; number of IDs per thread
         :param drop_nulls: defaults to False; drop rows having null values, i.e., participants without all covariates
-        :param output_file_name: name for output csv file; do not include ".csv"
-        :return: csv file and polars dataframe object
+        :param output_file_name: name for output tsv file; can include ".tsv"
+        :return: tsv file and polars dataframe object
         """
         # assign attributes
         self.date_of_birth = date_of_birth
@@ -337,15 +337,16 @@ class Cohort:
         self.first_n_pcs = first_n_pcs
 
         # check for valid input
-        if cohort_csv_path is not None:
-            cohort = pl.read_csv(cohort_csv_path)
+        if cohort_file_path is not None:
+            sep = _utils.detect_delimiter(cohort_file_path)
+            cohort = pl.read_csv(cohort_file_path, separator=sep)
             if "person_id" not in cohort.columns:
                 print("Cohort must contains \"person_id\" column!")
-                sys.exit(0)
+                sys.exit(1)
         else:
             print("A cohort is required."
                   "Please provide a valid file path.")
-            sys.exit(0)
+            sys.exit(1)
 
         # get participant IDs from cohort
         participant_ids = cohort["person_id"].unique().to_list()
@@ -371,7 +372,7 @@ class Cohort:
             covariates = pl.concat([covariates, result_list[i]])
 
         covariates = covariates.unique()
-        covariates.write_csv("covariates.csv")
+        covariates.write_csv("covariates.tsv", separator="\t")
 
         # merge covariates to cohort
         final_cohort = cohort.join(covariates, how="left", on="person_id")
@@ -380,10 +381,10 @@ class Cohort:
 
         file_name = "cohort"
         if output_file_name is not None:
-            if ".csv" in output_file_name:
-                output_file_name = output_file_name.replace(".csv", "")
+            if ".tsv" in output_file_name:
+                output_file_name = output_file_name.replace(".tsv", "")
             file_name = output_file_name
-        final_cohort.write_csv(f"{file_name}.csv")
+        final_cohort.write_csv(f"{file_name}.tsv", separator="\t")
 
         print()
         print("Cohort size:", len(final_cohort))
@@ -391,5 +392,5 @@ class Cohort:
             print("Cases:", final_cohort["case"].sum())
             print("Controls:", len(final_cohort.filter(pl.col("case") == 0)), "\033[0m")
         print()
-        print(f"Cohort data saved as \"{file_name}.csv\"!\033[0m")
+        print(f"Cohort data saved as \"{file_name}.tsv\"!\033[0m")
         print()

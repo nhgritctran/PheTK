@@ -10,13 +10,13 @@ import sys
 
 def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary",
                       data_has_both_sexes=True):
-    # load phecode mapping file to get all phecodes
+    # load the phecode mapping file to get all phecodes
     phetk_dir = os.path.dirname(__file__)
     phecode_mapping_file_path = os.path.join(phetk_dir, "phecode")
     phecode_mapping_file_path = os.path.join(phecode_mapping_file_path, "phecodeX.csv")
     # noinspection PyTypeChecker
     phecode_df = pl.read_csv(phecode_mapping_file_path,
-                             dtypes={"phecode": str,
+                             schema_overrides={"phecode": str,
                                      "ICD": str,
                                      "flag": pl.Int8,
                                      "code_val": float})
@@ -78,11 +78,11 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary",
     phecode_counts = phecode_counts.unique(["person_id", "phecode"]).sort(by="person_id")
 
     # save data
-    cohort.write_csv("example_cohort.csv")
-    phecode_counts.write_csv("example_phecode_counts.csv")
+    cohort.write_csv("example_cohort.tsv", separator="\t")
+    phecode_counts.write_csv("example_phecode_counts.tsv", separator="\t")
     print(
-        "Generated data saved to \033[1m\"example_cohort.csv\"\033[0m",
-        "and \033[1m\"example_phecode_counts.csv\"\033[0m"
+        "Generated data saved to \033[1m\"example_cohort.tsv\"\033[0m",
+        "and \033[1m\"example_phecode_counts.tsv\"\033[0m"
     )
 
 
@@ -140,10 +140,10 @@ def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
             generate_examples(var_type=var_type, data_has_both_sexes=data_has_both_sexes)
     _prompt()
     print("\033[1mWe created a cohort of 500 people and here is how the cohort data look like:\033[0m")
-    print(pl.read_csv("example_cohort.csv").head())
+    print(pl.read_csv("example_cohort.tsv", separator="\t").head())
     _prompt()
     print("\033[1mHere is how the phecode count data look like:\033[0m")
-    print(pl.read_csv("example_phecode_counts.csv", dtypes={"phecode": str}).head())
+    print(pl.read_csv("example_phecode_counts.tsv", separator="\t", schema_overrides={"phecode": str}).head())
     print()
     print("Phecode count or phecode profile table contains all phecodes mapped from ICD codes from EHR "
           "of each individual, and their counts.")
@@ -151,34 +151,35 @@ def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
     print("\033[1mNow we are ready to run PheWAS!\033[0m")
     print()
     print("If run in command line interface, the analysis below can be run with the following command:")
-    print("\033[1mpython3 -m phetk.PheWAS --cohort_csv_path\033[0m example_cohort.csv",
-          "\033[1m--phecode_count_csv_path\033[0m example_phecode_counts.csv",
+    print("\033[1mpython3 -m phetk.PheWAS --cohort_file_path\033[0m example_cohort.tsv",
+          "\033[1m--phecode_count_file_path\033[0m example_phecode_counts.tsv",
           "\033[1m--phecode_version\033[0m X",
           "\033[1m--sex_at_birth_col\033[0m sex",
           "\033[1m--covariates\033[0m age sex pc1 pc2 pc3",
           "\033[1m--independent_variable_of_interest\033[0m independent_variable_of_interest",
           "\033[1m--min_case\033[0m 50",
           "\033[1m--min_phecode_count\033[0m 2",
-          "\033[1m--output_file_name\033[0m example_phewas_results.csv")
+          "\033[1m--output_file_name\033[0m example_phewas_results.tsv")
     print()
     input("\033[1mPress enter to run PheWAS!\033[0m")
     print()
     if isinstance(covariates_cols, tuple):
         covariates_cols = list(covariates_cols)
-    phewas = PheWAS(cohort_csv_path="example_cohort.csv",
-                    phecode_count_csv_path="example_phecode_counts.csv",
-                    phecode_version="X",
-                    sex_at_birth_col="sex",
-                    phecode_to_process=phecode_to_process,
-                    covariate_cols=list(covariates_cols),
-                    independent_variable_of_interest=independent_variable_of_interest,
-                    min_cases=50,
-                    min_phecode_count=2,
-                    output_file_name="example_phewas_results.csv",
-                    verbose=verbose)
+    phewas = PheWAS(
+        cohort_file_path="example_cohort.tsv",
+        phecode_count_file_path="example_phecode_counts.tsv",
+        phecode_version="X",
+        sex_at_birth_col="sex",
+        phecode_to_process=phecode_to_process,
+        covariate_cols=list(covariates_cols),
+        independent_variable_of_interest=independent_variable_of_interest,
+        min_cases=50,
+        min_phecode_count=2,
+        output_file_name="example_phewas_results.tsv",
+        verbose=verbose)
     phewas.run()
-    print("\033[1mHere is how example_phewas_results.csv look like:\033[0m")
-    print(pl.read_csv("example_phewas_results.csv", dtypes={"phecode": str}).sort(by="p_value").head())
+    print("\033[1mHere is how example_phewas_results.tsv look like:\033[0m")
+    print(pl.read_csv("example_phewas_results.tsv", separator="\t", schema_overrides={"phecode": str}).sort(by="p_value").head())
     print()
     print("In PheWAS, we ran a series of logistic regressions: phecode ~ independent_variable_of_interest + covariates.")
     print()

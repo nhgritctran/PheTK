@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from google.cloud import bigquery
 from tqdm import tqdm
 
+import csv
 import os
 import polars as pl
 import pyarrow as pa
@@ -68,10 +69,10 @@ def get_phecode_mapping_table(phecode_version, icd_version, phecode_map_file_pat
         elif icd_version == "custom":
             if phecode_map_file_path is None:
                 print("Please provide phecode_map_path for custom icd_version")
-                sys.exit(0)
+                sys.exit(1)
         else:
             print("Invalid icd_version. Available icd_version values are US, WHO and custom.")
-            sys.exit(0)
+            sys.exit(1)
         if phecode_map_file_path is None:
             final_file_path = os.path.join(final_file_path, path_suffix)
         else:
@@ -89,14 +90,14 @@ def get_phecode_mapping_table(phecode_version, icd_version, phecode_map_file_pat
             path_suffix = "phecode12.csv"
         elif icd_version == "WHO":
             print("PheTK does not support mapping ICD-10 (WHO version) to phecode 1.2")
-            sys.exit(0)
+            sys.exit(1)
         elif icd_version == "custom":
             if phecode_map_file_path is None:
                 print("Please provide phecode_map_path for custom icd_version")
-                sys.exit(0)
+                sys.exit(1)
         else:
             print("Invalid icd_version. Available icd_version values are US, WHO and custom.")
-            sys.exit(0)
+            sys.exit(1)
         if phecode_map_file_path is None:
             final_file_path = os.path.join(final_file_path, path_suffix)
         else:
@@ -112,7 +113,7 @@ def get_phecode_mapping_table(phecode_version, icd_version, phecode_map_file_pat
             phecode_df = phecode_df[["phecode_unrolled", "ICD", "flag"]]
     else:
         print("Unsupported phecode version. Supports phecode \"1.2\" and \"X\".")
-        sys.exit(0)
+        sys.exit(1)
 
     return phecode_df
 
@@ -178,3 +179,17 @@ def polars_gbq_chunk(query_list):
     print()
 
     return final_result
+
+def detect_delimiter(file_path):
+    with open(file_path, "r") as file:
+        sample = file.read(1024)  # Read the first 1KB
+        sniffer = csv.Sniffer()
+        delimiter = sniffer.sniff(sample).delimiter
+
+        if delimiter == ",":
+            return ","
+        elif delimiter == "\t":
+            return "\t"
+        else:
+            print(f"Error: File must be CSV or TSV format. Detected delimiter: '{delimiter}'")
+            sys.exit(1)

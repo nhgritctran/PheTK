@@ -79,7 +79,7 @@ from phetk import demo
 demo.run()
 ```
 
-The example files (`example_cohort.csv`, `example_phecode_counts.csv`, and `example_phewas_results.csv`) 
+The example files (`example_cohort.tsv`, `example_phecode_counts.tsv`, and `example_phewas_results.tsv`) 
 generated in this Demo should be in users' current working directory. 
 New-to-PheWAS users could explore these files to get a sense of what data are used or generated in PheWAS with PheTK.
 
@@ -121,7 +121,7 @@ Cohort module can be used for generating genetic cohort and add certain covariat
 #### 5.1.1. by_genotype
 
 This function takes genetic variant information as input 
-and generates cohort with matching genotypes as an output csv file.
+and generates cohort with matching genotypes as an output tsv file.
 As this function uses Hail to extract data from Hail matrix tables, it must be run in a compatible environment,
 e.g., a dataproc cluster on _All of Us_ researcher workbench or UK Biobank RAP.
 
@@ -147,7 +147,7 @@ cohort.by_genotype(
     control_gt="0/0",
     reference_genome="GRCh38",
     mt_path=None,
-    output_file_name="cftr_cohort.csv"
+    output_file_name="cftr_cohort.tsv"
 )
 ```
 
@@ -169,14 +169,14 @@ cohort.by_genotype(
     control_gt="0/0",
     reference_genome="GRCh38",
     mt_path="/path/to/hail_matrix_table.mt",
-    output_file_name="cftr_cohort.csv"
+    output_file_name="cftr_cohort.tsv"
 )
 ```
 
 #### 5.1.2. add_covariates
 This function is currently customized for the _All of Us_ Research Platform. 
-It takes a cohort csv file and covariate selection as input, 
-and generate a new cohort csv file with covariate data added as output. 
+It takes a cohort csv/tsv file and covariate selection as input, 
+and generate a new cohort tsv file with covariate data added as output. 
 Input cohort data must have a "person_id" column.
 
 For non-_All of Us_ platforms, a Google BigQuery dataset ID must be provided.
@@ -203,7 +203,7 @@ cohort = Cohort(platform="aou", aou_db_version=7)
 # RUN EITHER LONG OR SHORT VERSION BELOW
 # add covariates - long version, including all currently supported covariate options
 cohort.add_covariates(
-    cohort_csv_path="cftr_cohort.csv",
+    cohort_file_path="cftr_cohort.tsv",
     natural_age=False,
     age_at_last_event=True,
     sex_at_birth=True,
@@ -213,17 +213,17 @@ cohort.add_covariates(
     genetic_ancestry=False,
     first_n_pcs=10,
     drop_nulls=True,
-    output_file_name="cohort_with_covariates.csv"
+    output_file_name="cohort_with_covariates.tsv"
 )
 
 # add covariates - short version, i.e., users do not need to list unused covariates
 cohort.add_covariates(
-    cohort_csv_path="cftr_cohort.csv",
+    cohort_file_path="cftr_cohort.tsv",
     age_at_last_event=True,
     sex_at_birth=True,
     first_n_pcs=10,
     drop_nulls=True,
-    output_file_name="cohort_with_covariates.csv"
+    output_file_name="cohort_with_covariates.tsv"
 )
 ```
 
@@ -295,7 +295,7 @@ phecode.count_phecode(
     phecode_version="X", 
     icd_version="US",
     phecode_map_file_path=None, 
-    output_file_name="my_phecode_counts.csv"
+    output_file_name="my_phecode_counts.tsv"
 )
 ```
 
@@ -303,16 +303,16 @@ phecode.count_phecode(
 ```
 from PheTK.Phecode import Phecode
 
-phecode = Phecode(platform="custom", icd_df_path="/path/to/my_icd_data.csv")
+phecode = Phecode(platform="custom", icd_df_path="/path/to/my_icd_data.tsv")
 phecode.count_phecode(
     phecode_version="X", 
     icd_version="US", 
     phecode_map_file_path=None,
-    output_file_name="my_phecode_counts.csv"
+    output_file_name="my_phecode_counts.tsv"
 )
 ```
 
-Users can provide their own phecode mapping file by adding a csv file path to `phecode_map_file_path`.
+Users can provide their own phecode mapping file by adding a csv/tsv file path to `phecode_map_file_path`.
 If users provide their own ICD data, the platform should be set to "custom".
 
 Custom phecode mapping file must have columns:
@@ -329,7 +329,7 @@ for example, "008.5,008.7,008.51,008.52,008.6"
 It is recommended to run the demo example above and have a look at the example cohort and phecode counts file to 
 be familiar with the input data format. The example files should be generated in users' current working directory.
 
-PheWAS class is instantiated with paths to csv files of cohort data and phecode counts data,
+PheWAS class is instantiated with paths to csv/tsv files of cohort data and phecode counts data,
 in addition to other parameters as shown in the examples below.
 It can be used in both Linux command line interface (CLI) and any Python environment, e.g., 
 Jupyter Notebook/Lab.
@@ -344,15 +344,15 @@ There must be at least 50 cases and 50 controls for the phecode to be tested.
 ```
 python3 -m PheTK.PheWAS \
 --phecode_version X \
---cohort_csv_path example_cohort.csv \
---phecode_count_csv_path example_phecode_counts.csv \
+--cohort_file_path example_cohort.tsv \
+--phecode_count_file_path example_phecode_counts.tsv \
 --sex_at_birth_col sex \
 --male_as_one True \
 --covariates age sex pc1 pc2 pc3 \
 --independent_variable_of_interest independent_variable_of_interest \
 --min_case 50 \
 --min_phecode_count 2 \
---output_file_name example_phewas_results.csv
+--output_file_name example_phewas_results.tsv
 ```
 
 #### Jupyter Notebook example:
@@ -361,15 +361,15 @@ from PheTK.PheWAS import PheWAS
 
 example_phewas = PheWAS(
     phecode_version="X",
-    phecode_count_csv_path="example_phecode_counts.csv",
-    cohort_csv_path="example_cohort.csv",
+    phecode_count_file_path="example_phecode_counts.tsv",
+    cohort_file_path="example_cohort.tsv",
     sex_at_birth_col="sex",
     male_as_one=True,
     covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
     independent_variable_of_interest="independent_variable_of_interest",
     min_cases=50,
     min_phecode_count=2,
-    output_file_name="example_phewas_results.csv"
+    output_file_name="example_phewas_results.tsv"
 )
 example_phewas.run()
 ```
@@ -401,7 +401,7 @@ example_phewas.get_phecode_data("R05.1")
 
 
 ### 5.4. Plot module
-Plot class is instantiated with the path to PheWAS result csv file.
+Plot class is instantiated with the path to PheWAS result csv/tsv file.
 After that, a plot type method can be called to generate a plot, 
 e.g., calling manhattan() method to make Manhattan plot.
 
@@ -411,7 +411,7 @@ In this example, we are generating a Manhattan plot for the PheWAS results creat
 ```
 from PheTK.Plot import Plot
 
-p = Plot("example_phewas_results.csv")
+p = Plot("example_phewas_results.tsv")
 p.manhattan(label_values="p_value", label_count=1, save_plot=True)
 ```
 The above code example generates this Manhattan plot figure:
@@ -427,12 +427,12 @@ By default, PheTK will exclude non-converged phecodes when plotting for better i
 
 Users can include non-converged phecodes by setting boolean parameter `converged_only` to `False`:
 ```
-p = Plot("example_phewas_results.csv", converged_only=False)
+p = Plot("example_phewas_results.tsv", converged_only=False)
 ```
 
 ##### Set custom Bonferroni value/line:
 ```
-p = Plot("example_phewas_results.csv", bonferroni=your_custom_value)
+p = Plot("example_phewas_results.tsv", bonferroni=your_custom_value)
 ```
 
 ##### Set custom color palette:
@@ -440,7 +440,7 @@ Color palette should be provided in a tuple format. Each color will be used for 
 If the number of colors is lower than the number of phecode categories, the colors will be cycled back to the first color and so on.
 PheTK uses matplotlib color names.
 ```
-p = Plot("example_phewas_results.csv", color_palette=("blue", "indianred", "darkcyan"))
+p = Plot("example_phewas_results.tsv", color_palette=("blue", "indianred", "darkcyan"))
 ```
 
 ##### Use beta values (effect sizes) as marker size and change scale factor:

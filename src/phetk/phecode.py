@@ -12,13 +12,13 @@ class Phecode:
     For other databases, the user is expected to provide an ICD code table for all participants in the cohort of interest.
     """
 
-    def __init__(self, platform="aou", icd_df_path=None):
+    def __init__(self, platform="aou", icd_file_path=None):
         """
         Instantiate based on parameter db
         :param platform: supports:
             "aou": All of Us OMOP database
             "custom": other databases; icd_df must be not None if db = "custom"
-        :param icd_df_path: path to the ICD table csv file; required columns are "person_id", "ICD", and "vocabulary_id";
+        :param icd_file_path: path to the ICD table csv/tsv file; required columns are "person_id", "ICD", and "vocabulary_id";
             "vocabulary_id" values should be "ICD9CM" or "ICD10CM"
         """
         self.platform = platform
@@ -30,12 +30,16 @@ class Phecode:
             self.icd_events = _utils.polars_gbq(self.icd_query)
 
         elif platform == "custom":
-            if icd_df_path is not None:
+            if icd_file_path is not None:
                 print("Loading user's ICD data from file...")
-                self.icd_events = pl.read_csv(icd_df_path,
-                                              dtypes={"ICD": str})
+                sep = _utils.detect_delimiter(icd_file_path)
+                self.icd_events = pl.read_csv(
+                    icd_file_path,
+                    separator=sep,
+                    schema_overrides={"ICD": str}
+                )
             else:
-                print("icd_df_path is required for custom platform.")
+                print("icd_file_path is required for custom platform.")
                 sys.exit(0)
         else:
             print("Invalid platform. Parameter platform only accepts \"aou\" (All of Us) or \"custom\".")
@@ -68,7 +72,7 @@ class Phecode:
                             if "custom", users need to provide phecode_map_path
         :param phecode_map_file_path: path to custom phecode map table
         :param output_file_name: user-specified output file name
-        :return: phecode counts csv file
+        :return: phecode counts tsv file
         """        
         # load the phecode mapping file by version or by custom path
         phecode_df = _utils.get_phecode_mapping_table(
@@ -114,11 +118,11 @@ class Phecode:
         # report result
         if not phecode_counts.is_empty():
             if output_file_name is None:
-                file_name = "{0}_{1}_phecode{2}_counts.csv".format(self.platform, icd_version,
+                file_name = "{0}_{1}_phecode{2}_counts.tsv".format(self.platform, icd_version,
                                                                    phecode_version.upper().replace(".", ""))
             else:
                 file_name = output_file_name
-            phecode_counts.write_csv(file_name)
+            phecode_counts.write_csv(file_name, separator="\t")
             print(f"Successfully generated phecode{phecode_version} counts for cohort participants!")
             print()
             print(f"Saved to\033[1m {file_name}\033[0m")
@@ -131,15 +135,17 @@ class Phecode:
     def add_age_at_first_event(self, phecode_count_file_path):
         """
         Calculate age at the first event based on input date at the first event and birthdays from OMOP data
-        :param phecode_count_file_path: the path to phecode count csv file; must have columns "person_id", "phecode",
+        :param phecode_count_file_path: the path to the phecode count /tsv file; must have columns "person_id", "phecode",
             and "first_event_date"
-        :return: new phecode counts csv file with age at the first event
+        :return: new phecode counts tsv file with age at the first event
         """
         print("Calculating age at first event...")
-
+        sep = _utils.detect_delimiter(phecode_count_file_path)
         phecode_counts = pl.read_csv(
             phecode_count_file_path,
-            dtypes={"phecode": str, "first_event_date": pl.Date()})
+            separator=sep,
+            schema_overrides={"phecode": str, "first_event_date": pl.Date()}
+        )
 
         participant_ids = phecode_counts["person_id"].unique().to_list()
 
@@ -169,37 +175,42 @@ class Phecode:
         )
         phecode_counts = phecode_counts[["person_id", "phecode", "count", "first_event_date", "age_at_first_event"]]
 
-        phecode_counts.write_csv("phecode_counts_with_event_age.csv")
+        phecode_counts.write_csv("phecode_counts_with_event_age.tsv", separator="\t")
         print("Done!")
         print()
-        print(f"Saved to\033[1m phecode_counts_with_event_age.csv\033[0m. "
+        print(f"Saved to\033[1m phecode_counts_with_event_age.tsv\033[0m. "
               f"Age at first event column name is {col_name}.")
         print()
 
     @staticmethod
     def add_phecode_time_to_event(
             phecode_count_file_path,
-            cohort_csv_file_path,
+            cohort_file_path,
             study_start_date_col,
             time_unit="days"
     ):
         """
         Calculate time to event for each phecode, based on the study start date of each participant in the study cohort
-        :param phecode_count_file_path: path to phecode count csv file
-        :param cohort_csv_file_path: path to cohort csv file
+        :param phecode_count_file_path: path to phecode count csv/tsv file
+        :param cohort_file_path: path to cohort csv/tsv file
         :param study_start_date_col: column name of study start date
         :param time_unit: unit of time to calculate phecode time, defaults to "days", accepts "days" or "years"
-        :return: new phecode counts csv file with time to event
+        :return: new phecode counts tsv file with time to event
         """
 
         print("Calculating time to event for each phecode...")
-
+        phecode_sep = _utils.detect_delimiter(phecode_count_file_path)
         phecode_counts = pl.read_csv(
             phecode_count_file_path,
-            dtypes={"phecode": str, "first_event_date": pl.Date()}
+            separator=phecode_sep,
+            schema_overrides={"phecode": str, "first_event_date": pl.Date()}
         )
-
-        cohort_df = pl.read_csv(cohort_csv_file_path, dtypes={study_start_date_col: pl.Date()})
+        cohort_sep = _utils.detect_delimiter(cohort_file_path)
+        cohort_df = pl.read_csv(
+            cohort_file_path,
+            separator=cohort_sep,
+            schema_overrides={study_start_date_col: pl.Date()}
+        )
         cohort_df = cohort_df[["person_id", study_start_date_col]]
 
         phecode_counts = phecode_counts.join(cohort_df, how="inner", on=["person_id"])
@@ -219,9 +230,9 @@ class Phecode:
 
         phecode_counts = phecode_counts[["person_id", "phecode", "count", "first_event_date", "phecode_time_to_event"]]
 
-        phecode_counts.write_csv("phecode_counts_with_phecode_time_to_event.csv")
+        phecode_counts.write_csv("phecode_counts_with_phecode_time_to_event.tsv", separator="\t")
         print("Done!")
         print()
-        print(f"Saved to\033[1m phecode_counts_with_phecode_time_to_event.csv\033[0m. "
+        print(f"Saved to\033[1m phecode_counts_with_phecode_time_to_event.tsv\033[0m. "
               f"Phecode time to event column name is {col_name}.")
         print()

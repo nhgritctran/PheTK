@@ -22,8 +22,8 @@ class PheWAS:
     def __init__(
         self,
         phecode_version,
-        phecode_count_csv_path,
-        cohort_csv_path,
+        phecode_count_file_path,
+        cohort_file_path,
         covariate_cols,
         independent_variable_of_interest,
         sex_at_birth_col,
@@ -46,8 +46,8 @@ class PheWAS:
     ):
         """
         :param phecode_version: accepts "1.2" or "X"
-        :param phecode_count_csv_path: path to phecode count of relevant participants at minimum
-        :param cohort_csv_path: path to cohort data with covariates of interest
+        :param phecode_count_file_path: path to phecode count of relevant participants at minimum
+        :param cohort_file_path: path to cohort data with covariates of interest
         :param sex_at_birth_col: gender/sex column of interest, by default, male = 1, female = 0;
                                  can use male_as_one parameter to specify the value assigned to male
         :param covariate_cols: name of covariate columns; excluding independent var of interest
@@ -70,7 +70,7 @@ class PheWAS:
         :param min_phecode_count: defaults to 2; minimum number of phecode count to qualify as case for PheWAS
         :param use_exclusion: defaults to True for phecode 1.2; always False for phecode X;
                               whether to use additional exclusion range in control for PheWAS
-        :param output_file_name: if None, defaults to "phewas_{timestamp}.csv"
+        :param output_file_name: if None, defaults to "phewas_{timestamp}.tsv"
         :param verbose: defaults to False; if True, print brief result of each phecode run
         :param method: defaults to "logit"; supports:
             "logit": logistic regression
@@ -91,15 +91,22 @@ class PheWAS:
 
         # load phecode counts data for all participants
         # noinspection PyTypeChecker
+        phecode_sep = _utils.detect_delimiter(phecode_count_file_path)
         self.phecode_counts = pl.read_csv(
-            phecode_count_csv_path,
-            dtypes={"phecode": str},
+            phecode_count_file_path,
+            separator=phecode_sep,
+            schema_overrides={"phecode": str},
             try_parse_dates=True
         )
 
         # load covariate data
         # make sure person_id in covariate data has the same type as person_id in phecode count
-        self.covariate_df = pl.read_csv(cohort_csv_path, try_parse_dates=True)
+        cohort_sep = _utils.detect_delimiter(cohort_file_path)
+        self.covariate_df = pl.read_csv(
+            cohort_file_path,
+            separator=cohort_sep,
+            try_parse_dates=True
+        )
 
         # basic attributes from instantiation
         self.sex_at_birth_col = sex_at_birth_col
@@ -251,12 +258,12 @@ class PheWAS:
 
         # for saving results
         if output_file_name is not None:
-            if ".csv" in output_file_name:
-                output_file_name = output_file_name.replace(".csv", "")
-            self.output_file_name = output_file_name + ".csv"
+            if ".tsv" in output_file_name:
+                output_file_name = output_file_name.replace(".tsv", "")
+            self.output_file_name = output_file_name + ".tsv"
         else:
             self._timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.output_file_name = f"phewas_{self._timestamp}.csv"
+            self.output_file_name = f"phewas_{self._timestamp}.tsv"
 
     @staticmethod
     def _to_polars(df):
@@ -787,7 +794,7 @@ class PheWAS:
             self.above_bonferroni_count = len(self.phecodes_above_bonferroni)
 
             # save results
-            self.results.write_csv(self.output_file_name)
+            self.results.write_csv(self.output_file_name, separator="\t")
 
             print("Number of participants in cohort:", self.cohort_size)
             print("Number of phecodes in cohort:", len(self.phecode_list))
@@ -808,13 +815,13 @@ def main():
     # parse args
     parser = argparse.ArgumentParser(description="PheWAS analysis tool.")
     parser.add_argument("-p",
-                        "--phecode_count_csv_path",
+                        "--phecode_count_file_path",
                         type=str, required=True,
-                        help="Path to the phecode count csv file.")
+                        help="Path to the phecode count csv/tsv file.")
     parser.add_argument("-c",
-                        "--cohort_csv_path",
+                        "--cohort_file_path",
                         type=str, required=True,
-                        help="Path to the cohort csv file.")
+                        help="Path to the cohort csv/tsv file.")
     parser.add_argument("-pv",
                         "--phecode_version",
                         type=str, required=True, choices=["1.2", "X"],
@@ -874,7 +881,7 @@ def main():
                         help="Number of threads to use for parallel.")
     parser.add_argument("-o",
                         "--output_file_name",
-                        type=str, required=False, default="phewas_results.csv")
+                        type=str, required=False, default="phewas_results.tsv")
     parser.add_argument("--parallelization",
                         type=str, required=False, default="multithreading")
     parser.add_argument("--batch_size",
@@ -886,8 +893,8 @@ def main():
     # run PheWAS
     phewas = PheWAS(
         phecode_version=args.phecode_version,
-        phecode_count_csv_path=args.phecode_count_csv_path,
-        cohort_csv_path=args.cohort_csv_path,
+        phecode_count_file_path=args.phecode_count_file_path,
+        cohort_file_path=args.cohort_file_path,
         sex_at_birth_col=args.sex_at_birth_col,
         male_as_one=args.male_as_one,
         covariate_cols=args.covariates,

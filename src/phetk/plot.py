@@ -5,17 +5,19 @@ import matplotlib.colors as mc
 import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
+# noinspection PyUnresolvedReferences,PyProtectedMember
+from phetk import _utils
 
 
 class Plot:
     def __init__(self,
-                 phewas_result_csv_path,
+                 phewas_result_file_path,
                  converged_only=True,
                  bonferroni=None,
                  phecode_version=None,
                  color_palette=None):
         """
-        :param phewas_result_csv_path: path to PheWAS result csv file, generated from PheWAS module.
+        :param phewas_result_file_path: path to PheWAS result csv/tsv file, generated from PheWAS module.
         :param converged_only: whether to plot converged only or not.
         :param bonferroni: defaults to None; if None, calculate base on the number of phecode tested
         :param phecode_version: defaults to None; if None, use phecode X; else phecode 1.2
@@ -23,7 +25,12 @@ class Plot:
         """
 
         # load PheWAS results
-        self.phewas_result = pl.read_csv(phewas_result_csv_path, dtypes={"phecode": str, "converged": bool})
+        sep = _utils.detect_delimiter(phewas_result_file_path)
+        self.phewas_result = pl.read_csv(
+            phewas_result_file_path,
+            separator=sep,
+            schema_overrides={"phecode": str, "converged": bool}
+        )
 
         # bonferroni
         if bonferroni is None:
