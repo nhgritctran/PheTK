@@ -32,6 +32,7 @@ class PheWAS:
         cox_control_observed_time_col=None,
         cox_phecode_observed_time_col=None,
         cox_stratification_col=None,
+        cox_fallback_step_size=0.1,
         icd_version="US",
         phecode_map_file_path=None,
         phecode_to_process="all",
@@ -62,6 +63,7 @@ class PheWAS:
         :param cox_phecode_observed_time_col: the name of a column in phecode counts dataframe,
                                               containing time to event (phecode) for cases in Cox regression.
         :param cox_stratification_col: name of a column that is used for stratification in Cox regression.
+        :param cox_fallback_step_size: defaults to 0.1. When the original step_size=0.95 failed, it will run again with the fallback stepsize.
         :param icd_version: defaults to "US"; other option are "WHO" and "custom";
                             if "custom", user need to provide phecode_map_path
         :param phecode_map_file_path: path to custom phecode map table
@@ -139,6 +141,7 @@ class PheWAS:
             self.cox_stratification_by_sex = True
         else:
             self.cox_stratification_by_sex = False
+        self.cox_fallback_step_size = cox_fallback_step_size
 
         # assign 1 & 0 to male & female based on male_as_one parameter
         if male_as_one:
@@ -582,6 +585,7 @@ class PheWAS:
         verbose = copy.deepcopy(self.verbose)
         independent_variable_of_interest = copy.deepcopy(self.independent_variable_of_interest)
         cox_stratification_col = copy.deepcopy(self.cox_stratification_col)
+        cox_fallback_step_size = copy.deepcopy(self.cox_fallback_step_size)
 
         cases, controls, analysis_var_cols = self._case_control_prep(phecode,
                                                                      phecode_counts=phecode_counts,
@@ -639,14 +643,14 @@ class PheWAS:
                     if captured_warnings:
                         combined_warning = "\n".join(captured_warnings)
                 except u.ConvergenceError:
-                    # print(f"Convergence error for phecode {phecode}. Lowering step_size to 0.1.")
-                    combined_warning = "Convergence error. step_size was lowered to 0.1 (default is 0.95)."
+                    # print(f"Convergence error for phecode {phecode}. Lowering step_size to {cox_fallback_step_size}.")
+                    combined_warning = f"Convergence error. step_size was lowered to {cox_fallback_step_size} (default is 0.95)."
                     result = cox.fit(
                         df=regressors.to_pandas(),
                         event_col="y",
                         duration_col="observed_time",
                         strata=strata,
-                        fit_options={"step_size": 0.1}
+                        fit_options={"step_size": cox_fallback_step_size}
                     )
                 except Exception as e:
                     print("Exception:", e)
@@ -842,6 +846,9 @@ def main():
     parser.add_argument("--cox_stratification_col",
                         type=str, required=False,
                         help="Stratification for cox regression.")
+    parser.add_argument("--cox_fallback_step_size",
+                        type=int, required=False,
+                        help="Cox fallback step size used when regression fails to converge with the default step size of 0.95.")
     parser.add_argument("-cv",
                         "--covariates",
                         nargs="+",
@@ -903,6 +910,7 @@ def main():
         cox_control_observed_time_col=args.cox_control_observed_time_col,
         cox_phecode_observed_time_col=args.cox_phecode_observed_time_col,
         cox_stratification_col=args.cox_stratification_col,
+        cox_fallback_step_size=args.cox_fallback_step_size,
         phecode_to_process=args.phecode_to_process,
         use_exclusion=args.use_exclusion,
         min_cases=args.min_case,

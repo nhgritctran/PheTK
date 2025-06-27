@@ -51,7 +51,7 @@ class Cohort:
                      
         # attributes for add_covariate method
         self.date_of_birth = False
-        self.natural_age = False
+        self.current_age = False
         self.age_at_last_event = False
         self.sex_at_birth = False
         self.last_ehr_date = False
@@ -246,15 +246,15 @@ class Cohort:
 
         # GET COVARIATES
 
-        # natural_age
-        if self.natural_age or self.date_of_birth:
-            natural_age_df = _utils.polars_gbq(_queries.natural_age_query(self.cdr, participant_ids))
+        # current_age
+        if self.current_age or self.date_of_birth:
+            current_age_df = _utils.polars_gbq(_queries.current_age_query(self.cdr, participant_ids))
             cols_to_keep = ["person_id"]
-            if self.natural_age:
-                cols_to_keep.append("natural_age")
+            if self.current_age:
+                cols_to_keep.append("current_age")
             if self.date_of_birth:
                 cols_to_keep.append("date_of_birth")
-            df = df.join(natural_age_df[cols_to_keep], how="left", on="person_id")
+            df = df.join(current_age_df[cols_to_keep], how="left", on="person_id")
 
         # age_at_last_event, ehr_length, dx_code_occurrence_count, dx_condition_count
         if (self.age_at_last_event or self.ehr_length or self.dx_code_occurrence_count
@@ -293,7 +293,7 @@ class Cohort:
     def add_covariates(self,
                        cohort_file_path=None,
                        date_of_birth=False,
-                       natural_age=False,
+                       current_age=False,
                        age_at_last_event=False,
                        sex_at_birth=True,
                        last_ehr_date=False,
@@ -309,7 +309,7 @@ class Cohort:
         This method is a proxy for covariate.get_covariates method
         :param cohort_file_path: path to cohort csv or tsv file
         :param date_of_birth: date of birth
-        :param natural_age: age of participants as of today
+        :param current_age: age of participants as of today
         :param age_at_last_event: age of participants at their last diagnosis event in EHR record
         :param sex_at_birth: sex at birth from survey and observation
         :param last_ehr_date: last diagnosis event in EHR record
@@ -326,7 +326,7 @@ class Cohort:
         """
         # assign attributes
         self.date_of_birth = date_of_birth
-        self.natural_age = natural_age
+        self.current_age = current_age
         self.age_at_last_event = age_at_last_event
         self.sex_at_birth = sex_at_birth
         self.last_ehr_date = last_ehr_date

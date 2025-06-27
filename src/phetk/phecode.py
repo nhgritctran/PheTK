@@ -150,7 +150,7 @@ class Phecode:
         participant_ids = phecode_counts["person_id"].unique().to_list()
 
         query_list = _utils.generate_chunk_queries(
-            query_function=_queries.natural_age_query,
+            query_function=_queries.current_age_query,
             ds=self.cdr,
             id_list=participant_ids,
             chunk_size=1000
@@ -160,7 +160,7 @@ class Phecode:
             query_list=query_list,
         )
         # # old version without chunking
-        # date_of_birth_df = _utils.polars_gbq(_queries.natural_age_query(ds=self.cdr, participant_ids=participant_ids))
+        # date_of_birth_df = _utils.polars_gbq(_queries.current_age_query(ds=self.cdr, participant_ids=participant_ids))
 
         print("Processing data...")
 

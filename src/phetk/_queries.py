@@ -139,7 +139,7 @@ def phecode_icd_query(ds):
     return final_query
 
 
-def natural_age_query(ds, participant_ids):
+def current_age_query(ds, participant_ids):
     """
     This method is exclusively for All of Us platform
     :param ds: Google BigQuery dataset ID containing OMOP data tables
@@ -155,7 +155,7 @@ def natural_age_query(ds, participant_ids):
                 IF(DATETIME(death_datetime) IS NULL, CURRENT_DATETIME(), DATETIME(death_datetime)), 
                 DATETIME(birth_datetime), 
                 DAY
-            )/365.2425 AS natural_age
+            )/365.2425 AS current_age
         FROM
             {ds}.person AS p
         LEFT JOIN
