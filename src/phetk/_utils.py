@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from google.cloud import bigquery
+from itertools import combinations
 from tqdm import tqdm
 
 import csv
@@ -193,3 +194,19 @@ def detect_delimiter(file_path):
         else:
             print(f"Error: File must be CSV or TSV format. Detected delimiter: '{delimiter}'")
             sys.exit(1)
+
+def has_overlapping_values(d):
+    # Convert all values to sets, handling both single items and lists
+    sets = []
+    for value in d.values():
+        if isinstance(value, list):
+            sets.append(set(value))
+        else:
+            sets.append({value})
+
+    # Check all pairs for intersection
+    for set1, set2 in combinations(sets, 2):
+        if set1 & set2:  # an intersection is not empty
+            return True
+
+    return False

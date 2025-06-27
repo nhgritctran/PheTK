@@ -66,8 +66,7 @@ class Cohort:
                     genomic_position,
                     ref_allele,
                     alt_allele,
-                    case_gt,
-                    control_gt,
+                    gt_dict=None,
                     reference_genome="GRCh38",
                     mt_path=None,
                     output_file_name=None):
@@ -77,8 +76,7 @@ class Cohort:
         :param genomic_position: genomic position; int;
         :param ref_allele: the reference allele; str
         :param alt_allele: alternative allele; str
-        :param case_gt: genotype(s) for cases; str or list of str
-        :param control_gt: genotype(s) for control; str or list of str
+        :param gt_dict: genotypes to be labeled, e.g., {0: "0/0". 1: ["0/1", "1/1"]}; dict
         :param reference_genome: defaults to "GRCh38"; accepts "GRCh37" or "GRCh38"
         :param mt_path: path to population level Hail variant matrix table
         :param output_file_name: name of tsv file output
@@ -109,11 +107,15 @@ class Cohort:
                                str(ref_allele) + "_" + \
                                str(alt_allele) + \
                                ".tsv"
-        if isinstance(case_gt, str):
-            case_gt = [case_gt]
-        if isinstance(control_gt, str):
-            control_gt = [control_gt]
-        gt_list = case_gt + control_gt
+        
+        # prepare genotype dict and check for duplicated genotypes
+        for v in gt_dict.values():
+            if isinstance(v, str):
+                v = [v]
+        if _utils.has_overlapping_values(gt_dict):
+            print("Error: Duplicated genotype(s) detected in genotype dict.")
+            sys.exit(1)
+
         alleles = f"{ref_allele}:{alt_allele}"
         base_locus = f"{chromosome_number}:{genomic_position}"
         if reference_genome == "GRCh38":
@@ -176,21 +178,32 @@ class Cohort:
                 pl.col("GT.alleles").list.get(1).cast(pl.Utf8).alias("GT1"),
             )
             polars_df = polars_df.with_columns((pl.col("GT0") + "/" + pl.col("GT1")).alias("GT"))
-            polars_df = polars_df.filter(pl.col("GT").is_in(gt_list))
-            polars_df = polars_df.with_columns(pl.when(pl.col("GT").is_in(case_gt))
-                                               .then(1)
-                                               .otherwise(0)
-                                               .alias("case"))
+            
+            # keep only participants with genotypes of interest
+            polars_df = polars_df.filter(pl.col("GT").is_in(gt_dict.values()))
+            # map genotype to their int values
+            lookup = {}
+            for key, value in gt_dict.items():
+                if isinstance(value, list):
+                    for v in value:
+                        lookup[v] = key
+                else:
+                    lookup[value] = key
+            polars_df = polars_df.with_columns(
+                pl.col("GT").map_elements(lambda x: lookup.get(x), return_dtype=pl.Int64).alias("genotype")
+            )
+
             cohort = polars_df \
-                .rename({"s": "person_id"})[["person_id", "case"]] \
+                .rename({"s": "person_id"})[["person_id", "genotype"]] \
                 .with_columns(pl.col("person_id").cast(int))
             cohort = cohort.unique()
             cohort.write_csv(output_file_name, separator="\t")
 
             print()
-            print("\033[1mCohort size:", len(cohort))
-            print("\033[1mCases:", cohort["case"].sum())
-            print("\033[1mControls:", len(cohort.filter(pl.col("case") == 0)), "\033[0m")
+            cohort_gt = cohort["genotype"].unique().to_list()
+            print(f"Cohort size: {len(cohort)} participants")
+            for gt in cohort_gt:
+                print(f"Genotype {gt}: {len(cohort.filter(pl.col('genotype')==gt))} participants")
             print()
             print(f"\033[1mCohort data saved as {output_file_name}!\033[0m")
             print()
@@ -387,10 +400,11 @@ class Cohort:
         final_cohort.write_csv(f"{file_name}.tsv", separator="\t")
 
         print()
-        print("Cohort size:", len(final_cohort))
-        if "case" in final_cohort.columns:
-            print("Cases:", final_cohort["case"].sum())
-            print("Controls:", len(final_cohort.filter(pl.col("case") == 0)), "\033[0m")
+        print(f"Cohort size: {len(final_cohort)} participants")
+        if "genotype" in final_cohort.columns:
+            cohort_gt = final_cohort["genotype"].unique().to_list()
+            for gt in cohort_gt:
+                print(f"Genotype {gt}: {len(final_cohort.filter(pl.col('genotype')==gt))} participants")
         print()
         print(f"Cohort data saved as \"{file_name}.tsv\"!\033[0m")
         print()

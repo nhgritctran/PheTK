@@ -126,11 +126,22 @@ As this function uses Hail to extract data from Hail matrix tables, it must be r
 e.g., a dataproc cluster on _All of Us_ researcher workbench or UK Biobank RAP.
 
 For example, we generate cohort for _CFTR_ variant chr7-117559590-ATCT-A with 
-heterozygous (0/1 genotype) participants as cases and homozygous reference (0/0 genotype) participants as controls.
+homozygous alternative and heterozygous (1/1 and 0/1 genotypes) participants labeled as 1 
+and homozygous reference (0/0 genotype) participants labeled as 0.
+
+If there are two genotype labels, it is recommended to use 0 for the baseline/control genotype(s) and 1 for genotype(s) of interest. 
+If there are more than two genotype labels, e.g., 0, 1, and 2, the genotype variable will be treated as ordinal variable in PheWAS.
 
 #### Jupyter Notebook example for _All of Us_ Researcher Workbench:
 For _All of Us_ data version 7 or later, the default Hail matrix table is the ACAF (common variant) table.
 User can use a different table by providing table location in the mt_path parameter.
+
+gt_dict can take either string or list as values.
+
+Please make sure that there are no overlapping genotypes between different genotype labels in gt_dict.
+For example, gt_dict = {0: ["0/0", "0/1"], 1: ["0/1", "1/1"]} will raise error for having duplicated genotype "0/1" 
+between gt_dict[0] and gt_dict[1].
+
 ```
 from PheTK.Cohort import Cohort
 
@@ -143,8 +154,7 @@ cohort.by_genotype(
     genomic_position=117559590,
     ref_allele="ATCT",
     alt_allele="A",
-    case_gt="0/1",
-    control_gt="0/0",
+    gt_dict={0: "0/0", 1: ["0/1", "1/1"]},
     reference_genome="GRCh38",
     mt_path=None,
     output_file_name="cftr_cohort.tsv"
@@ -165,8 +175,7 @@ cohort.by_genotype(
     genomic_position=117559590,
     ref_allele="ATCT",
     alt_allele="A",
-    case_gt="0/1",
-    control_gt="0/0",
+    gt_dict={0: "0/0", 1: ["0/1", "1/1"]}
     reference_genome="GRCh38",
     mt_path="/path/to/hail_matrix_table.mt",
     output_file_name="cftr_cohort.tsv"
@@ -176,7 +185,7 @@ cohort.by_genotype(
 #### 5.1.2. add_covariates
 This function is currently customized for the _All of Us_ Research Platform. 
 It takes a cohort csv/tsv file and covariate selection as input, 
-and generate a new cohort tsv file with covariate data added as output. 
+and generates a new cohort tsv file with covariate data added as output. 
 Input cohort data must have a "person_id" column.
 
 For non-_All of Us_ platforms, a Google BigQuery dataset ID must be provided.
@@ -186,7 +195,7 @@ These options were set to True (or 10 for first_n_pcs).
 
 The covariates shown in this example are currently supported by PheTK. Users should only change the parameter value to True 
 for covariates to be used in subsequent PheWAS. All parameters are set to False by default, i.e., users only need to 
-specify parameters of interest as shown in the "short version" 
+specify parameters of interest as shown in the "short version"
 
 It is highly recommended that users should decide which covariates to use for the study based on their data, 
 and it is perfectly fine to add or use their own covariate data if necessary. 
@@ -204,7 +213,7 @@ cohort = Cohort(platform="aou", aou_db_version=7)
 # add covariates - long version, including all currently supported covariate options
 cohort.add_covariates(
     cohort_file_path="cftr_cohort.tsv",
-    natural_age=False,
+    current_age=False,
     age_at_last_event=True,
     sex_at_birth=True,
     ehr_length=False,
@@ -228,7 +237,7 @@ cohort.add_covariates(
 ```
 
 Covariate descriptions:
-- _natural_age_: current age or age at death
+- _current_age_: current age or age at death
 - _age_at_last_event_: age at last diagnosis event (ICD or SNOMED) in EHR.
 - _sex_at_birth_: sex at birth
 - _ehr_length_: EHR duration, in year, from first to last diagnosis code
