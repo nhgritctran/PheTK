@@ -182,40 +182,54 @@ def polars_gbq_chunk(query_list):
     return final_result
 
 def detect_delimiter(file_path):
-    # Check if it's a GCP bucket path
+    # Check if it's a GCP bucket path and if we're running in dsub environment
     if file_path.startswith('gs://'):
-        # Parse bucket and blob name
-        path_parts = file_path[5:].split('/', 1)  # Remove 'gs://' prefix
-        bucket_name = path_parts[0]
-        blob_name = path_parts[1]
+        # Check if we're in a dsub worker (the file might be locally mounted)
+        # dsub typically mounts gs:// files to /mnt/data or similar
+        local_path = file_path.replace('gs://', '/mnt/data/')
         
-        # Read first line from GCP bucket
-        client = storage.Client()
-        bucket = client.bucket(bucket_name)
-        blob = bucket.blob(blob_name)
-        
-        # Read first 1024 bytes to get first line
-        first_chunk = blob.download_as_bytes(start=0, end=1024).decode('utf-8')
-        first_line = first_chunk.split('\n')[0]
-        
-        if "\t" in first_line:
-            return "\t"
-        elif "," in first_line:
-            return ","
+        # Try local file first (dsub environment)
+        if os.path.exists(local_path):
+            file_path = local_path
         else:
-            # fallback to sniffer with the chunk
-            sniffer = csv.Sniffer()
-            delimiter = sniffer.sniff(first_chunk).delimiter
-            
-            if delimiter == ",":
-                return ","
-            elif delimiter == "\t":
-                return "\t"
-            else:
-                print(f"Error: File must be CSV or TSV format. Detected delimiter: '{delimiter}'")
+            # Fallback to GCS API (non-dsub environment)
+            try:
+                # Parse bucket and blob name
+                path_parts = file_path[5:].split('/', 1)  # Remove 'gs://' prefix
+                bucket_name = path_parts[0]
+                blob_name = path_parts[1]
+                
+                # Read first line from GCP bucket
+                client = storage.Client()
+                bucket = client.bucket(bucket_name)
+                blob = bucket.blob(blob_name)
+                
+                # Read first 1024 bytes to get first line
+                first_chunk = blob.download_as_bytes(start=0, end=1024).decode('utf-8')
+                first_line = first_chunk.split('\n')[0]
+                
+                if "\t" in first_line:
+                    return "\t"
+                elif "," in first_line:
+                    return ","
+                else:
+                    # fallback to sniffer with the chunk
+                    sniffer = csv.Sniffer()
+                    delimiter = sniffer.sniff(first_chunk).delimiter
+                    
+                    if delimiter == ",":
+                        return ","
+                    elif delimiter == "\t":
+                        return "\t"
+                    else:
+                        print(f"Error: File must be CSV or TSV format. Detected delimiter: '{delimiter}'")
+                        sys.exit(1)
+            except Exception as e:
+                print(f"Error accessing GCS file {file_path}: {e}")
                 sys.exit(1)
-    else:
-        # Local file handling
+    
+    # Local file handling (either original local path or converted GCS path)
+    try:
         with open(file_path, "r") as file:
             first_line = file.readline()
             if "\t" in first_line:
@@ -236,6 +250,12 @@ def detect_delimiter(file_path):
                 else:
                     print(f"Error: File must be CSV or TSV format. Detected delimiter: '{delimiter}'")
                     sys.exit(1)
+    except FileNotFoundError:
+        print(f"Error: File not found: {file_path}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error reading file {file_path}: {e}")
+        sys.exit(1)
 
 def has_overlapping_values(d):
     # Convert all values to sets, handling both single items and lists
