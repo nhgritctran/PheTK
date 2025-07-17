@@ -183,17 +183,25 @@ def polars_gbq_chunk(query_list):
 
 def detect_delimiter(file_path):
     with open(file_path, "r") as file:
-        sample = file.read(1024)  # Read the first 1KB
-        sniffer = csv.Sniffer()
-        delimiter = sniffer.sniff(sample).delimiter
-
-        if delimiter == ",":
-            return ","
-        elif delimiter == "\t":
+        first_line = file.readline()
+        if "\t" in first_line:
             return "\t"
+        elif "," in first_line:
+            return ","
         else:
-            print(f"Error: File must be CSV or TSV format. Detected delimiter: '{delimiter}'")
-            sys.exit(1)
+            # fallback to sniffer
+            file.seek(0)
+            sample = file.read(1024)
+            sniffer = csv.Sniffer()
+            delimiter = sniffer.sniff(sample).delimiter
+            
+            if delimiter == ",":
+                return ","
+            elif delimiter == "\t":
+                return "\t"
+            else:
+                print(f"Error: File must be CSV or TSV format. Detected delimiter: '{delimiter}'")
+                sys.exit(1)
 
 def has_overlapping_values(d):
     # Convert all values to sets, handling both single items and lists
