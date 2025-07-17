@@ -63,15 +63,19 @@ class Phecode:
 
         print("Done!")
 
-    def count_phecode(self, phecode_version="X", icd_version="US",
-                      phecode_map_file_path=None, output_file_name=None):
+    def count_phecode(
+            self,
+            phecode_version="X",
+            icd_version="US",
+            phecode_map_file_path=None,
+            output_file_path=None):
         """
         Generate phecode counts from ICD counts
         :param phecode_version: defaults to "X"; other option is "1.2"
         :param icd_version: defaults to "US"; other options are "WHO" and "custom";
                             if "custom", users need to provide phecode_map_path
-        :param phecode_map_file_path: path to custom phecode map table
-        :param output_file_name: user-specified output file name
+        :param phecode_map_file_path: path to the custom phecode map table
+        :param output_file_path: path to the output file
         :return: phecode counts tsv file
         """        
         # load the phecode mapping file by version or by custom path
@@ -117,26 +121,31 @@ class Phecode:
 
         # report result
         if not phecode_counts.is_empty():
-            if output_file_name is None:
-                file_name = "{0}_{1}_phecode{2}_counts.tsv".format(self.platform, icd_version,
+            if output_file_path is None:
+                file_path = "{0}_{1}_phecode{2}_counts.tsv".format(self.platform, icd_version,
                                                                    phecode_version.upper().replace(".", ""))
             else:
-                file_name = output_file_name
-            phecode_counts.write_csv(file_name, separator="\t")
+                file_path = output_file_path
+            phecode_counts.write_csv(file_path, separator="\t")
             print(f"Successfully generated phecode{phecode_version} counts for cohort participants!")
             print()
-            print(f"Saved to\033[1m {file_name}\033[0m")
+            print(f"Saved to\033[1m {file_path}\033[0m")
             print()
 
         else:
             print("\033[1mNo phecode count generated. Check your input data.\033[0m")
             print()
 
-    def add_age_at_first_event(self, phecode_count_file_path):
+    def add_age_at_first_event(
+            self,
+            phecode_count_file_path,
+            output_file_path=None,
+    ):
         """
         Calculate age at the first event based on input date at the first event and birthdays from OMOP data
         :param phecode_count_file_path: the path to the phecode count /tsv file; must have columns "person_id", "phecode",
             and "first_event_date"
+        :param output_file_path: the path to the output file
         :return: new phecode counts tsv file with age at the first event
         """
         print("Calculating age at first event...")
@@ -175,10 +184,12 @@ class Phecode:
         )
         phecode_counts = phecode_counts[["person_id", "phecode", "count", "first_event_date", "age_at_first_event"]]
 
-        phecode_counts.write_csv("phecode_counts_with_event_age.tsv", separator="\t")
+        if output_file_path is None:
+            output_file_path = phecode_count_file_path.replace(".tsv", "_with_age_at_first_event.tsv")
+        phecode_counts.write_csv(output_file_path, separator="\t")
         print("Done!")
         print()
-        print(f"Saved to\033[1m phecode_counts_with_event_age.tsv\033[0m. "
+        print(f"Saved to\033[1m {output_file_path}\033[0m. "
               f"Age at first event column name is {col_name}.")
         print()
 
@@ -187,7 +198,8 @@ class Phecode:
             phecode_count_file_path,
             cohort_file_path,
             study_start_date_col,
-            time_unit="days"
+            time_unit="days",
+            output_file_path=None,
     ):
         """
         Calculate time to event for each phecode, based on the study start date of each participant in the study cohort
@@ -195,6 +207,7 @@ class Phecode:
         :param cohort_file_path: path to cohort csv/tsv file
         :param study_start_date_col: column name of study start date
         :param time_unit: unit of time to calculate phecode time, defaults to "days", accepts "days" or "years"
+        :param output_file_path: path to the output file
         :return: new phecode counts tsv file with time to event
         """
 
@@ -230,9 +243,11 @@ class Phecode:
 
         phecode_counts = phecode_counts[["person_id", "phecode", "count", "first_event_date", "phecode_time_to_event"]]
 
-        phecode_counts.write_csv("phecode_counts_with_phecode_time_to_event.tsv", separator="\t")
+        if output_file_path is None:
+            output_file_path = phecode_count_file_path.replace(".tsv", "_with_phecode_time_to_event.tsv")
+        phecode_counts.write_csv(output_file_path, separator="\t")
         print("Done!")
         print()
-        print(f"Saved to\033[1m phecode_counts_with_phecode_time_to_event.tsv\033[0m. "
+        print(f"Saved to\033[1m {output_file_path}\033[0m. "
               f"Phecode time to event column name is {col_name}.")
         print()
