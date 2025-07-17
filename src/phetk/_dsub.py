@@ -191,7 +191,7 @@ class Dsub:
                     if "success" in status_text or "succeeded" in status_text:
                         print("\nJob completed successfully!")
                         break
-                    elif "failed" in status_text or "failure" in status_text:
+                    elif "failed" in status_text or "failure" in status_text or "error" in status_text:
                         print("\nJob failed!")
                         break
 

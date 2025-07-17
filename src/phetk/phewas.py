@@ -753,7 +753,7 @@ class PheWAS:
             "--phecode_version": self.phecode_version,
             "--phecode_count_file_path": "$PHECODE_COUNT_FILE_PATH",  #  Must be a gcp bucket path
             "--cohort_file_path": "$COHORT_FILE_PATH",  #  Must be a gcp bucket path
-            "--covariates": self.input_covariate_cols,
+            "--covariates": " ".join(self.input_covariate_cols),
             "--independent_variable_of_interest": self.independent_variable_of_interest,
             "--sex_at_birth_col": self.sex_at_birth_col,
             "--male_as_one": self.male_as_one,
