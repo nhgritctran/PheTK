@@ -204,26 +204,46 @@ class Dsub:
         )
         subprocess.run([kill_job], shell=True)
 
-    def run(self, show_command=False):
-
-        s = subprocess.run([self._dsub_script()], shell=True, capture_output=True, text=True)
-
-        if s.returncode == 0:
-            print(f"Successfully run dsub to schedule job {self.job_name}.")
-            self.job_id = s.stdout.strip()
-            print("job-id:", s.stdout)
-            print()
-            self.dsub_command = s.args[0].replace("--", "\\ \n--")
+    def run(self, show_command=False, timeout=60):
+        process = None
+        try:
+            process = subprocess.Popen(
+                [self._dsub_script()], 
+                shell=True, 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                universal_newlines=True
+            )
+            
+            stdout, stderr = process.communicate(timeout=timeout)
+            
+            if process.returncode == 0:
+                print(f"Successfully run dsub to schedule job {self.job_name}.")
+                self.job_id = stdout.strip()
+                print("job-id:", stdout)
+                print()
+                self.dsub_command = self._dsub_script().replace("--", "\\ \n--")
+                if show_command:
+                    print("dsub command:")
+                    print(self.dsub_command)
+            else:
+                print(f"Failed to run dsub to schedule job {self.job_name}.")
+                print()
+                print("Error information:")
+                print(stderr)
+                self.dsub_command = self._dsub_script().replace("--", "\\ \n--")
+                if show_command:
+                    print("dsub command:")
+                    print(self.dsub_command)
+                    
+        except subprocess.TimeoutExpired:
+            if process:
+                process.kill()
+            print(f"dsub command timed out after {timeout} seconds")
+            print("This may indicate authentication or connectivity issues with GCP")
+            self.dsub_command = self._dsub_script().replace("--", "\\ \n--")
             if show_command:
-                print("dsub command:")
-                print(self.dsub_command)
-
-        else:
-            print(f"Failed to run dsub to schedule job {self.job_name}.")
-            print()
-            print("Error information:")
-            print(s.stderr)
-            self.dsub_command = s.args[0].replace("--", "\\ \n--")
-            if show_command:
-                print("dsub command:")
+                print("dsub command that timed out:")
                 print(self.dsub_command)
