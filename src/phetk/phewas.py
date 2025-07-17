@@ -1031,7 +1031,7 @@ def main():
                         type=bool, required=False, default=False,
                         help="Whether to use phecode exclusions. Only applicable for phecode 1.2.")
     parser.add_argument("-mc",
-                        "--min_case",
+                        "--min_cases",
                         type=int, required=False, default=50,
                         help="Minimum number of cases required to be tested.")
     parser.add_argument("-mpc",
@@ -1068,7 +1068,7 @@ def main():
         cox_fallback_step_size=args.cox_fallback_step_size,
         phecode_to_process=args.phecode_to_process,
         use_exclusion=args.use_exclusion,
-        min_cases=args.min_case,
+        min_cases=args.min_cases,
         min_phecode_count=args.min_phecode_count,
         output_file_path=args.output_file_path,
         method=args.method,
