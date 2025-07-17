@@ -818,11 +818,13 @@ class PheWAS:
             boot_disk_size=50,
             disk_size=256,
             region="us-central1",
-            provider="google-cls-v2",
+            provider="google-batch",
             preemptible=False,
+            use_private_address=True,
             parallelization=None,
             n_workers=None,
-            show_dsub_command=True
+            custom_args=None,
+            show_dsub_command=True,
     ):
         # input_dict
         if input_dict is None:
@@ -861,7 +863,9 @@ class PheWAS:
             region=region,
             provider=provider,
             preemptible=preemptible,
+            use_private_address=use_private_address,
             log_file_path = None,
+            custom_args=custom_args,
         )
         dsub.run(show_command=show_dsub_command)
 

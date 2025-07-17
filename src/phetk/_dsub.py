@@ -32,8 +32,9 @@ class Dsub:
         bucket=os.getenv("WORKSPACE_BUCKET"),
         google_project=os.getenv("GOOGLE_PROJECT"),
         region="us-central1",
-        provider="google-cls-v2",
+        provider="google-batch",
         preemptible=False,
+        use_private_address=True,
         custom_args=None,
     ):
         # Standard attributes
@@ -55,12 +56,16 @@ class Dsub:
         self.region = region
         self.provider = provider
         self.preemptible = preemptible
+        self.use_private_address = use_private_address
         self.custom_args = custom_args
 
         # job_name
         if job_name is None:
-            job_name = "phewas_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.job_name = job_name.replace("_", "-")
+            job_name = "phewas-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        # ensure it starts with a letter
+        if not job_name[0].isalpha():
+            job_name = "job-" + job_name
+        self.job_name = job_name.replace("_", "-").lower()
 
         # Internal attributes for optional naming conventions
         self.date = datetime.date.today().strftime("%Y%m%d")
@@ -130,6 +135,10 @@ class Dsub:
         # add preemptible argument if used
         if self.preemptible:
             script += " --preemptible"
+
+        # add use-private-address if used
+        if self.use_private_address:
+            script += " --use-private-address"
 
         # add custom arguments
         if self.custom_args is not None:
