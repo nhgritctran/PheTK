@@ -827,7 +827,7 @@ class PheWAS:
             custom_args=None,
             show_dsub_command=True,
     ):
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Setting up dsub    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    Setting up dsub    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print()
 
         # input_dict

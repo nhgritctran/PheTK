@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from google.cloud import bigquery, storage
+from google.cloud import bigquery
 from itertools import combinations
 from tqdm import tqdm
 
@@ -194,6 +194,9 @@ def detect_delimiter(file_path):
         else:
             # Fallback to GCS API (non-dsub environment)
             try:
+                # Import storage only when needed
+                from google.cloud import storage
+                
                 # Parse bucket and blob name
                 path_parts = file_path[5:].split('/', 1)  # Remove 'gs://' prefix
                 bucket_name = path_parts[0]

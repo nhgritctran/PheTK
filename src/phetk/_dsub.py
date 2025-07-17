@@ -174,21 +174,22 @@ class Dsub:
             except ImportError:
                 is_notebook = False
 
-            interval_count = 0
-            while True:
-                interval_count += 1
-                
-                # Clear output
-                if is_notebook:
-                    clear_output(wait=True)
-                else:
-                    os.system("clear" if os.name == "posix" else "cls")
+            print(f"Refresh interval: {update_interval}s")
+            print()
 
+            last_status = ""
+            while True:
                 # Run command and capture output
                 result = subprocess.run([check_status], shell=True, capture_output=True, text=True)
-                print(f"\nRefresh interval: {update_interval}s | Check #{interval_count}")
-                print()
-                print(result.stdout)
+                current_status = result.stdout.strip()
+                
+                # Only update if status changed
+                if current_status != last_status:
+                    current_time = datetime.datetime.now().strftime("%H:%M:%S")
+                    print(f"\n[{current_time}] Status update:")
+                    print(current_status)
+                    print()
+                    last_status = current_status
                 
                 # Check for terminal states
                 if result.stdout:
