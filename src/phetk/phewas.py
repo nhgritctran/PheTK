@@ -826,6 +826,7 @@ class PheWAS:
             n_workers=None,
             custom_args=None,
             show_dsub_command=True,
+            use_aou_docker_prefix=True,
     ):
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    Setting up dsub    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print()
@@ -872,6 +873,7 @@ class PheWAS:
             use_private_address=use_private_address,
             log_file_path = None,
             custom_args=custom_args,
+            use_aou_docker_prefix=use_aou_docker_prefix,
         )
         self.dsub.run(show_command=show_dsub_command)
 

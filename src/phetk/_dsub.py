@@ -36,6 +36,7 @@ class Dsub:
         preemptible: bool = False,
         use_private_address: bool = True,
         custom_args: str = None,
+        use_aou_docker_prefix: bool = True,
     ):
         # Standard attributes
         self.docker_image = docker_image
@@ -58,6 +59,7 @@ class Dsub:
         self.preemptible = preemptible
         self.use_private_address = use_private_address
         self.custom_args = custom_args
+        self.use_aou_docker_prefix = use_aou_docker_prefix
 
         # job_name
         if job_name is None:
@@ -88,6 +90,11 @@ class Dsub:
 
     def _dsub_script(self):
 
+        if self.use_aou_docker_prefix:
+            aou_docker_prefix = os.getenv("ARTIFACT_REGISTRY_DOCKER_REPO")
+            image_tag = f"{aou_docker_prefix}/{self.docker_image}"
+        else:
+            image_tag = self.docker_image
         base_script = (
             f"dsub" + " " +
             f"--provider \"{self.provider}\"" + " " +
@@ -98,7 +105,7 @@ class Dsub:
             f"--disk-size {self.disk_size}" + " " +
             f"--user-project \"{self.user_project}\"" + " " +
             f"--project \"{self.project}\"" + " " +
-            f"--image \"{self.docker_image}\"" + " " +
+            f"--image \"{image_tag}\"" + " " +
             f"--network \"global/networks/network\"" + " " +
             f"--subnetwork \"regions/{self.region}/subnetworks/subnetwork\"" + " " +
             f"--service-account \"$(gcloud config get-value account)\"" + " " +
