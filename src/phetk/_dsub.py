@@ -99,8 +99,8 @@ class Dsub:
             f"--user-project \"{self.user_project}\"" + " " +
             f"--project \"{self.project}\"" + " " +
             f"--image \"{self.docker_image}\"" + " " +
-            f"--network \"network\"" + " " +
-            f"--subnetwork \"subnetwork\"" + " " +
+            f"--network \"global/networks/network\"" + " " +
+            f"--subnetwork \"regions/{self.region}/subnetworks/subnetwork\"" + " " +
             f"--service-account \"$(gcloud config get-value account)\"" + " " +
             f"--user \"{self.dsub_user_name}\"" + " " +
             f"--logging {self.log_file_path} $@" + " " +
