@@ -14,7 +14,7 @@ import statsmodels.api as sm
 import sys
 import warnings
 # noinspection PyUnresolvedReferences,PyProtectedMember
-from phetk import _dsub, _utils
+from phetk import _utils
 
 
 class PheWAS:
@@ -853,6 +853,8 @@ class PheWAS:
         )
 
         # run dsub
+        # noinspection PyUnresolvedReferences,PyProtectedMember
+        from phetk import _dsub
         self.dsub = _dsub.Dsub(
             docker_image=docker_image,
             job_script_name=job_script_name,
