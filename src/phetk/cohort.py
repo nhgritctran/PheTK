@@ -96,11 +96,7 @@ class Cohort:
             sys.exit(1)
 
         # basic data processing
-        if output_file_name is not None:
-            if ".tsv" in output_file_name:
-                output_file_name = output_file_name.replace(".tsv", "")
-            output_file_name = f"{output_file_name}.tsv"
-        else:
+        if output_file_name is None:
             output_file_name = "aou_chr" + \
                                str(chromosome_number) + "_" + \
                                str(genomic_position) + "_" + \
@@ -109,9 +105,11 @@ class Cohort:
                                ".tsv"
         
         # prepare genotype dict and check for duplicated genotypes
+        gt_list = []
         for v in gt_dict.values():
             if isinstance(v, str):
                 v = [v]
+            gt_list.extend(v)
         if _utils.has_overlapping_values(gt_dict):
             print("Error: Duplicated genotype(s) detected in genotype dict.")
             sys.exit(1)
@@ -180,7 +178,7 @@ class Cohort:
             polars_df = polars_df.with_columns((pl.col("GT0") + "/" + pl.col("GT1")).alias("GT"))
             
             # keep only participants with genotypes of interest
-            polars_df = polars_df.filter(pl.col("GT").is_in(gt_dict.values()))
+            polars_df = polars_df.filter(pl.col("GT").is_in(gt_list))
             # map genotype to their int values
             lookup = {}
             for key, value in gt_dict.items():
@@ -392,12 +390,9 @@ class Cohort:
         if drop_nulls:
             final_cohort = final_cohort.drop_nulls()
 
-        file_name = "cohort"
-        if output_file_name is not None:
-            if ".tsv" in output_file_name:
-                output_file_name = output_file_name.replace(".tsv", "")
-            file_name = output_file_name
-        final_cohort.write_csv(f"{file_name}.tsv", separator="\t")
+        if output_file_name is None:
+            output_file_name = "cohort.tsv"
+        final_cohort.write_csv(f"{output_file_name}", separator="\t")
 
         print()
         print(f"Cohort size: {len(final_cohort)} participants")
@@ -406,5 +401,5 @@ class Cohort:
             for gt in cohort_gt:
                 print(f"Genotype {gt}: {len(final_cohort.filter(pl.col('genotype')==gt))} participants")
         print()
-        print(f"Cohort data saved as \"{file_name}.tsv\"!\033[0m")
+        print(f"Cohort data saved as \"{output_file_name}\"!\033[0m")
         print()

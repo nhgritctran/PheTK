@@ -14,7 +14,7 @@ import statsmodels.api as sm
 import sys
 import warnings
 # noinspection PyUnresolvedReferences,PyProtectedMember
-from phetk import _utils
+from phetk import _dsub, _utils
 
 
 class PheWAS:
@@ -39,7 +39,7 @@ class PheWAS:
         min_cases=50,
         min_phecode_count=2,
         use_exclusion=False,
-        output_file_name=None,
+        output_file_path=None,
         verbose=False,
         suppress_warnings=True,
         method="logit",
@@ -63,7 +63,7 @@ class PheWAS:
         :param cox_phecode_observed_time_col: the name of a column in phecode counts dataframe,
                                               containing time to event (phecode) for cases in Cox regression.
         :param cox_stratification_col: name of a column that is used for stratification in Cox regression.
-        :param cox_fallback_step_size: defaults to 0.1. When the original step_size=0.95 failed, it will run again with the fallback stepsize.
+        :param cox_fallback_step_size: defaults to 0.1. when the original step_size=0.95 failed, it will run again with the fallback stepsize.
         :param icd_version: defaults to "US"; other option are "WHO" and "custom";
                             if "custom", user need to provide phecode_map_path
         :param phecode_map_file_path: path to custom phecode map table
@@ -72,7 +72,7 @@ class PheWAS:
         :param min_phecode_count: defaults to 2; minimum number of phecode count to qualify as case for PheWAS
         :param use_exclusion: defaults to True for phecode 1.2; always False for phecode X;
                               whether to use additional exclusion range in control for PheWAS
-        :param output_file_name: if None, defaults to "phewas_{timestamp}.tsv"
+        :param output_file_path: if None, defaults to "phewas_{timestamp}.tsv"
         :param verbose: defaults to False; if True, print brief result of each phecode run
         :param method: defaults to "logit"; supports:
             "logit": logistic regression
@@ -81,9 +81,21 @@ class PheWAS:
         :param suppress_warnings: defaults to True;
                                   if True, ignore common exception warnings such as ConvergenceWarnings, etc.
         """
+
+        # For dsub
+        self.phecode_version = phecode_version
+        self.phecode_count_file_path = phecode_count_file_path
+        self.cohort_file_path = cohort_file_path
+        self.input_covariate_cols = covariate_cols
+        self.male_as_one = male_as_one
+        self.icd_version = icd_version
+        self.phecode_map_file_path = phecode_map_file_path
+        self.phecode_to_process = phecode_to_process
+
+        # Even when running with dsub, the instantiation steps below will still be run as a good check for input issue(s)
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        # load the phecode mapping file by version or by custom path
+        # Load the phecode mapping file by version or by custom path
         self.phecode_df = _utils.get_phecode_mapping_table(
             phecode_version=phecode_version,
             icd_version=icd_version,
@@ -91,7 +103,7 @@ class PheWAS:
             keep_all_columns=True
         )
 
-        # load phecode counts data for all participants
+        # Load phecode counts data for all participants
         # noinspection PyTypeChecker
         phecode_sep = _utils.detect_delimiter(phecode_count_file_path)
         self.phecode_counts = pl.read_csv(
@@ -101,8 +113,8 @@ class PheWAS:
             try_parse_dates=True
         )
 
-        # load covariate data
-        # make sure person_id in covariate data has the same type as person_id in phecode count
+        # Load covariate data
+        # Make sure person_id in covariate data has the same type as person_id in phecode count
         cohort_sep = _utils.detect_delimiter(cohort_file_path)
         self.covariate_df = pl.read_csv(
             cohort_file_path,
@@ -110,7 +122,7 @@ class PheWAS:
             try_parse_dates=True
         )
 
-        # basic attributes from instantiation
+        # Basic attributes from instantiation
         self.sex_at_birth_col = sex_at_birth_col
         if isinstance(covariate_cols, str):
             self.covariate_cols = [copy.deepcopy(covariate_cols)]
@@ -124,14 +136,17 @@ class PheWAS:
         self.method = method
         self.batch_size = batch_size
 
-        # for Cox regression:
-        if (method == "cox") and ((cox_control_observed_time_col is None) |
-                                  (cox_phecode_observed_time_col is None)):
+        # For Cox regression:
+        if (method == "cox") and (
+                (cox_start_date_col is None) |
+                (cox_control_observed_time_col is None) |
+                (cox_phecode_observed_time_col is None)
+        ):
             print()
             print("Warning: Both cox_observed_time_col and cox_phecode_observed_time_col are required for Cox "
                   "regression.")
             print()
-            sys.exit(0)
+            sys.exit(1)
         else:
             self.cox_control_observed_time_col = cox_control_observed_time_col
             self.cox_phecode_observed_time_col = cox_phecode_observed_time_col
@@ -143,7 +158,7 @@ class PheWAS:
             self.cox_stratification_by_sex = False
         self.cox_fallback_step_size = cox_fallback_step_size
 
-        # assign 1 & 0 to male & female based on male_as_one parameter
+        # Assign 1 & 0 to male and female based on the male_as_one parameter
         if male_as_one:
             self.male_value = 1
             self.female_value = 0
@@ -151,7 +166,7 @@ class PheWAS:
             self.male_value = 0
             self.female_value = 1
 
-        # exclusion:
+        # Exclusion:
         # - phecode 1.2: user can choose to use exclusion or not
         # - phecode X: exclusion is removed, therefore, this parameter will be False for Phecode X regardless of input
         # to prevent user error
@@ -160,7 +175,7 @@ class PheWAS:
         elif phecode_version == "X":
             self.use_exclusion = False
 
-        # check if variable_of_interest is included in covariate_cols
+        # Check if variable_of_interest is included in covariate_cols
         self.variable_of_interest_in_covariates = False
         if self.independent_variable_of_interest in self.covariate_cols:
             self.variable_of_interest_in_covariates = True
@@ -170,34 +185,34 @@ class PheWAS:
                   "since it was already specified as variable of interest.")
             print()
 
-        # remove the sex_at_birth column from covariates if it is included, just for processing purpose
+        # Remove the sex_at_birth column from covariates if it is included, just for processing purpose
         self.sex_as_covariate = False
         if self.sex_at_birth_col in self.covariate_cols:
             self.sex_as_covariate = True
             self.covariate_cols.remove(self.sex_at_birth_col)
 
-        # check for sex in data
+        # Check for sex in data
         self.data_has_single_sex = False
         self.gender_specific_var_cols = [self.independent_variable_of_interest] + self.covariate_cols
         self.sex_values = self.covariate_df[sex_at_birth_col].unique().to_list()
-        # when cohort only has 1 sex with 0 or 1 as value
+        # When cohort only has 1 sex with 0 or 1 as value
         if (len(self.sex_values) == 1) and ((0 in self.sex_values) or (1 in self.sex_values)):
             self.data_has_single_sex = True
             self.single_sex_value = self.covariate_df[sex_at_birth_col].unique().to_list()[0]
             self.var_cols = [self.independent_variable_of_interest] + self.covariate_cols
-            # when cohort only has 1 sex, and sex was chosen as a covariate
+            # When cohort only has 1 sex, and sex was chosen as a covariate
             if self.sex_as_covariate:
                 print()
                 print(f"Note: \"{self.sex_at_birth_col}\" will not be used as covariate",
                       "since there is only one sex in data.")
                 print()
-            # when cohort only has 1 sex, and variable_of_interest is also sex_at_birth column
+            # When cohort only has 1 sex, and variable_of_interest is also sex_at_birth column
             if self.independent_variable_of_interest == self.sex_at_birth_col:
                 print()
                 print(f"Warning: Cannot use \"{self.sex_at_birth_col}\" as variable of interest in single sex cohorts.")
                 print()
-                sys.exit(0)
-        # when cohort has 2 sexes
+                sys.exit(1)
+        # When cohort has 2 sexes
         elif len(self.sex_values) == 2 and ((0 in self.sex_values) and (1 in self.sex_values)):
             if self.independent_variable_of_interest == self.sex_at_birth_col:
                 self.var_cols = self.covariate_cols + [self.sex_at_birth_col]
@@ -208,21 +223,21 @@ class PheWAS:
                     print("         Running PheWAS without sex as a covariate.")
                     print()
                 self.var_cols = [self.independent_variable_of_interest] + self.covariate_cols + [self.sex_at_birth_col]
-        # all other cases where sex_at_birth_column not coded probably
+        # All other cases where sex_at_birth_column not coded probably
         else:
             print(f"Warning: Please check column {self.sex_at_birth_col}.")
             print("          This column should have upto 2 unique values, 0 for female and 1 for male.")
-            sys.exit(0)
+            sys.exit(1)
 
-        # check for string type variables among covariates
+        # Check for string type variables among covariates
         if pl.Utf8 in self.covariate_df[self.var_cols].schema.values():
             str_cols = [k for k, v in self.covariate_df.schema.items() if v is pl.Utf8]
             print(f"Column(s) {str_cols} contain(s) string type. Only numerical types are accepted.")
-            sys.exit(0)
+            sys.exit(1)
 
-        # keep only relevant columns in covariate_df
+        # Keep only relevant columns in covariate_df
         cols_to_keep = list(set(["person_id"] + self.var_cols))
-        # for Cox regression add stratification & observed time to covariate df
+        # For Cox regression add stratification and observed time to covariate df
         if method == "cox":
             cols_to_keep = cols_to_keep + [cox_control_observed_time_col]
             if cox_start_date_col is not None:
@@ -233,7 +248,7 @@ class PheWAS:
         self.covariate_df = self.covariate_df.drop_nulls()
         self.cohort_size = self.covariate_df.n_unique()
 
-        # update phecode_counts to only participants of interest
+        # Update phecode_counts to only participants of interest
         self.cohort_ids = self.covariate_df["person_id"].unique().to_list()
         self.phecode_counts = self.phecode_counts.filter(pl.col("person_id").is_in(self.cohort_ids))
         if (cox_start_date_col is not None) and (method == "cox"):
@@ -248,7 +263,7 @@ class PheWAS:
             self.phecode_list = phecode_to_process
         self.phecode_batch_list = self._split_phecode_list(phecode_list=self.phecode_list, batch_size=self.batch_size)
 
-        # attributes for reporting PheWAS results
+        # Attributes for reporting PheWAS results
         self._phecode_summary_statistics = None
         self._cases = None
         self._controls = None
@@ -259,14 +274,14 @@ class PheWAS:
         self.phecodes_above_bonferroni = None
         self.above_bonferroni_count = None
 
-        # for saving results
-        if output_file_name is not None:
-            if ".tsv" in output_file_name:
-                output_file_name = output_file_name.replace(".tsv", "")
-            self.output_file_name = output_file_name + ".tsv"
+        # For saving results
+        if output_file_path is not None:
+            if ".tsv" in output_file_path:
+                output_file_path = output_file_path.replace(".tsv", "")
+            self.output_file_path = output_file_path + ".tsv"
         else:
             self._timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.output_file_name = f"phewas_{self._timestamp}.tsv"
+            self.output_file_path = f"phewas_{self._timestamp}.tsv"
 
     @staticmethod
     def _to_polars(df):
@@ -285,9 +300,9 @@ class PheWAS:
     def _split_phecode_list(phecode_list, batch_size):
         """
         Split phecode_list into batches of phecodes based on batch size. Used for parallel processing.
-        :param phecode_list: list of all phecodes in cohort
+        :param phecode_list: List of all phecodes in cohort
         :param batch_size: phecode batch size
-        :return: list of batches of phecodes
+        :return: list containing batches of phecodes
         """
         sublists = []
         for i in range(0, len(phecode_list), batch_size):
@@ -305,8 +320,8 @@ class PheWAS:
         if phecode_df is None:
             phecode_df = self.phecode_df
 
-        # not all phecode has exclude_range
-        # exclude_range can be single code (e.g., "777"), single range (e.g., "777-780"),
+        # Not all phecode has exclude_range
+        # Exclude_range can be single code (e.g., "777"), single range (e.g., "777-780"),
         # or multiple ranges/codes (e.g., "750-777,586.2")
         phecodes_without_exclude_range = phecode_df.filter(
             pl.col("exclude_range").is_null()
@@ -314,17 +329,17 @@ class PheWAS:
         if phecode in phecodes_without_exclude_range:
             exclude_range = []
         else:
-            # get exclude_range value of phecode
+            # Get exclude_range value of phecode
             ex_val = phecode_df.filter(pl.col("phecode") == phecode)["exclude_range"].unique().to_list()[0]
 
-            # split multiple codes/ranges
+            # Split multiple codes/ranges
             comma_split = ex_val.split(",")
             if len(comma_split) == 1:
                 exclude_range = comma_split
             else:
                 exclude_range = []
                 for item in comma_split:
-                    # process range in text form
+                    # Process range in text form
                     if "-" in item:
                         first_code = item.split("-")[0]
                         last_code = item.split("-")[1]
@@ -388,13 +403,13 @@ class PheWAS:
 
         # FILTER COVARIATE DATA BY PHECODE SEX RESTRICTION
         if not data_has_single_sex:
-            # filter cohort for just sex of phecode
+            # Filter cohort for just sex of phecode
             if sex_restriction == "Male":
                 covariate_df = covariate_df.filter(pl.col(sex_at_birth_col) == male_value)
             elif sex_restriction == "Female":
                 covariate_df = covariate_df.filter(pl.col(sex_at_birth_col) == female_value)
         else:
-            # if data has single sex and different from sex of phecode, return empty dfs
+            # If data has single sex and different from sex of phecode, return empty dfs
             # otherwise, data is fine as is, i.e., nothing needed to be done
             if (
                 (sex_restriction == "Male" and male_value not in sex_values)
@@ -402,7 +417,7 @@ class PheWAS:
             ):
                 return pl.DataFrame(), pl.DataFrame(), []
 
-        # exclude participants with existing condition if a cox_start_date_col is provided
+        # Exclude participants with existing condition if a cox_start_date_col is provided
         # (cox_start_date_col is not None and method = "cox" during class PheWAS instantiation)
         if cox_start_date_col in phecode_counts.columns:
             cox_exclude_ids = phecode_counts.filter(
@@ -419,19 +434,19 @@ class PheWAS:
         # GENERATE CASES & CONTROLS
         if len(covariate_df) > 0:
             # CASES
-            # participants with at least <min_phecode_count> phecodes
+            # Participants with at least <min_phecode_count> phecodes
             case_ids = phecode_counts.filter(
                 (pl.col("phecode") == phecode) & (pl.col("count") >= min_phecode_count)
             )["person_id"].unique().to_list()
             cases = covariate_df.filter(pl.col("person_id").is_in(case_ids))
 
             # CONTROLS
-            # phecode exclusions
+            # Phecode exclusions
             if use_exclusion:
                 exclude_range = [phecode] + self._exclude_range(phecode, phecode_df=phecode_df)
             else:
                 exclude_range = [phecode]
-            # get participants ids to exclude and filter covariate df
+            # Get participants ids to exclude and filter covariate df
             exclude_ids = phecode_counts.filter(
                 pl.col("phecode").is_in(exclude_range)
             )["person_id"].unique().to_list()
@@ -455,7 +470,7 @@ class PheWAS:
                 controls = controls.rename({cox_control_observed_time_col: "observed_time"})
 
             # DUPLICATE CHECK
-            # drop duplicates
+            # Drop duplicates
             duplicate_check_cols = ["person_id"] + analysis_var_cols
             cases = cases.unique(subset=duplicate_check_cols)
             controls = controls.unique(subset=duplicate_check_cols)
@@ -491,11 +506,11 @@ class PheWAS:
             cases = cases.with_columns(pl.lit(True).alias("is_phecode_case"))
             controls = controls.with_columns(pl.lit(False).alias("is_phecode_case"))
             phecode_data = cases.vstack(controls)
-
             return phecode_data
 
         else:
             print(f"No phecode data for {phecode}")
+            return None
 
     @staticmethod
     def _logit_result_prep(result, var_of_interest_index):
@@ -593,7 +608,7 @@ class PheWAS:
                                                                      var_cols=var_cols,
                                                                      gender_specific_var_cols=gender_specific_var_cols)
 
-        # only run regression if number of cases > min_cases
+        # Only run regression if number of cases > min_cases
         if (len(cases) >= min_cases) and (len(controls) > min_cases):
 
             if suppress_warnings:
@@ -601,24 +616,24 @@ class PheWAS:
             else:
                 warnings.simplefilter("always")
 
-            # add case/control values
+            # Add case/control values
             cases = cases.with_columns(pl.Series([1] * len(cases)).alias("y"))
             controls = controls.with_columns(pl.Series([0] * len(controls)).alias("y"))
 
-            # merge cases & controls
+            # Merge cases & controls
             regressors = cases.vstack(controls)
 
-            # convert to numpy series
+            # Convert to numpy series
             y = regressors["y"].to_numpy()
 
-            # base result dict
+            # Base result dict
             base_dict = {"phecode": phecode,
                          "cases": len(cases),
                          "controls": len(controls)}
 
             # OPTION 1: COX REGRESSION
             if method == "cox":
-                # for cox regression, warnings are always on to catch convergence status
+                # For cox regression, warnings are always on to catch convergence status
                 warnings.simplefilter("always")
 
                 strata = None
@@ -628,7 +643,7 @@ class PheWAS:
                 cox = CoxPHFitter()
                 combined_warning = "Converged"
                 try:
-                    # wrap fit() in warning handler
+                    # Wrap fit() in warning handler
                     captured_warnings = []
                     with warnings.catch_warnings(record=True) as w:
                         result = cox.fit(
@@ -643,7 +658,6 @@ class PheWAS:
                     if captured_warnings:
                         combined_warning = "\n".join(captured_warnings)
                 except u.ConvergenceError:
-                    # print(f"Convergence error for phecode {phecode}. Lowering step_size to {cox_fallback_step_size}.")
                     combined_warning = f"Convergence error. step_size was lowered to {cox_fallback_step_size} (default is 0.95)."
                     result = cox.fit(
                         df=regressors.to_pandas(),
@@ -656,7 +670,7 @@ class PheWAS:
                     print("Exception:", e)
                     result = None
 
-                # process result
+                # Process result
                 if result is not None:
                     stats_dict = self._cox_result_prep(
                         result,
@@ -665,7 +679,7 @@ class PheWAS:
                     )
                     result_dict = {**base_dict, **stats_dict}
 
-                    # choose to see results on the fly
+                    # Choose to see results on the fly
                     if verbose:
                         print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls): {result_dict}\n")
 
@@ -674,13 +688,13 @@ class PheWAS:
             # OPTION 2: LOGISTIC REGRESSION
             if method == "logit":
                 regressors = regressors[analysis_var_cols]
-                # get index of variable of interest
+                # Get index of variable of interest
                 var_index = regressors.columns.index(independent_variable_of_interest)
                 regressors = regressors.to_numpy()
                 regressors = sm.tools.add_constant(regressors, prepend=False)
                 logit = sm.Logit(y, regressors, missing="drop")
 
-                # catch Singular matrix error
+                # Catch Singular matrix error
                 try:
                     result = logit.fit(disp=False)
                 except (np.linalg.linalg.LinAlgError, statsmodels.tools.sm_exceptions.PerfectSeparationError) as err:
@@ -693,12 +707,12 @@ class PheWAS:
                     result = None
 
                 if result is not None:
-                    # process result
+                    # Process result
                     stats_dict = self._logit_result_prep(result=result, var_of_interest_index=var_index)
                     result_dict = {**base_dict, **stats_dict}  # python 3.5 or later
                     # result_dict = base_dict | stats_dict  # python 3.9 or later
 
-                    # choose to see results on the fly
+                    # Choose to see results on the fly
                     if verbose:
                         print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls): {result_dict}\n")
 
@@ -722,6 +736,135 @@ class PheWAS:
                 results.append(result)
         return results
 
+    def generate_phewas_script(
+            self,
+            script_name="phewas_script.sh",
+            parallelization=None,
+            n_workers=None
+    ):
+        """
+        Generate a bash script to run PheWAS analysis with the parameters used to initialize this object
+        """
+
+        phewas_script = "python3 -m phetk.phewas"
+
+        param_dict = {
+            "--phecode_version": self.phecode_version,
+            "--phecode_count_file_path": "$PHECODE_COUNT_FILE_PATH",  #  Must be a gcp bucket path
+            "--cohort_file_path": "$COHORT_FILE_PATH",  #  Must be a gcp bucket path
+            "--covariates": self.input_covariate_cols,
+            "--independent_variable_of_interest": self.independent_variable_of_interest,
+            "--sex_at_birth_col": self.sex_at_birth_col,
+            "--male_as_one": self.male_as_one,
+            "--output_file_path": "$OUTPUT_FILE_PATH",  #  Must be a gcp bucket path
+            "--min_cases": self.min_cases,
+            "--min_phecode_count": self.min_phecode_count,
+            "--phecode_to_process": self.phecode_to_process,
+            "--method": self.method,
+            "--batch_size": self.batch_size,
+        }
+        # Add cox params when method = cox
+        if self.method == "cox":
+            if self.cox_start_date_col is not None:
+                param_dict["--cox_start_date_col"] = self.cox_start_date_col
+            if self.cox_control_observed_time_col is not None:
+                param_dict["--cox_control_observed_time_col"] = self.cox_control_observed_time_col
+            if self.cox_phecode_observed_time_col is not None:
+                param_dict["--cox_phecode_observed_time_col"] = self.cox_phecode_observed_time_col
+            if self.cox_stratification_col is not None:
+                param_dict["--cox_stratification_col"] = self.cox_stratification_col
+            if self.cox_fallback_step_size is not None:
+                param_dict["--cox_fallback_step_size"] = self.cox_fallback_step_size
+        # These params are optional; default values will be used without being listed
+        # and will only be listed in the script if different from default values
+        if self.icd_version != "US":
+            param_dict["--icd_version"] = self.icd_version
+        if self.phecode_map_file_path is not None:
+            param_dict["--phecode_map_file_path"] = "$PHECODE_MAP_FILE_PATH"
+        if self.use_exclusion:
+            param_dict["--use_exclusion"] = "True"
+        if self.verbose:
+            param_dict["--verbose"] = "True"
+        if not self.suppress_warnings:
+            param_dict["--suppress_warnings"] = "False"
+        # Finally, add parallelization and n_workers
+        if n_workers is not None:
+            param_dict["--n_workers"] = n_workers
+        if parallelization is not None:
+            param_dict["--parallelization"] = parallelization
+
+        for k,v in param_dict.items():
+            if v is not None:
+                phewas_script += f" {k} {v}"
+
+        _dsub.generate_sh_script(script_name=script_name, commands=[phewas_script])
+
+        print()
+        print("PheWAS script content:")
+        with open(script_name, "r") as f:
+            print(f.read())
+        print()
+
+    def run_dsub(
+            self,
+            docker_image,
+            job_script_name="phewas_script.sh",
+            job_name=None,
+            input_dict=None,
+            output_dict=None,
+            env_dict=None,
+            machine_type="c4d-highcpu-4",
+            disk_type="hyperdisk-balanced",
+            boot_disk_size=50,
+            disk_size=256,
+            region="us-central1",
+            provider="google-cls-v2",
+            preemptible=False,
+            parallelization=None,
+            n_workers=None,
+            show_dsub_command=True
+    ):
+        # input_dict
+        if input_dict is None:
+            input_dict = {
+                "PHECODE_COUNT_FILE_PATH": self.phecode_count_file_path,
+                "COHORT_FILE_PATH": self.cohort_file_path,
+            }
+            if self.phecode_map_file_path is not None:
+                input_dict["PHECODE_MAP_FILE_PATH"] = self.phecode_map_file_path
+
+        # output_dict
+        if output_dict is None:
+            output_dict = {
+                "OUTPUT_FILE_PATH": self.output_file_path,
+            }
+
+        # generate phewas script to run in dsub workers
+        self.generate_phewas_script(
+            script_name=job_script_name,
+            parallelization=parallelization,
+            n_workers=n_workers
+        )
+
+        # run dsub
+        dsub = _dsub.Dsub(
+            docker_image=docker_image,
+            job_script_name=job_script_name,
+            job_name=job_name,
+            input_dict=input_dict,
+            output_dict=output_dict,
+            env_dict=env_dict,
+            machine_type=machine_type,
+            disk_type=disk_type,
+            boot_disk_size=boot_disk_size,
+            disk_size=disk_size,
+            region=region,
+            provider=provider,
+            preemptible=preemptible,
+            log_file_path = None,
+        )
+        dsub.run(show_command=show_dsub_command)
+
     # noinspection PyUnreachableCode
     def run(self,
             parallelization=None,
@@ -734,7 +877,7 @@ class PheWAS:
         """
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Running PheWAS    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        # assign an optimal parallelization method when it is not specified
+        # Assign an optimal parallelization method when it is not specified
         if parallelization is None:
             if self.method == "logit":
                 parallelization = "multithreading"
@@ -797,8 +940,8 @@ class PheWAS:
             self.phecodes_above_bonferroni = self.results.filter(pl.col("neg_log_p_value") > self.bonferroni)
             self.above_bonferroni_count = len(self.phecodes_above_bonferroni)
 
-            # save results
-            self.results.write_csv(self.output_file_name, separator="\t")
+            # Save results
+            self.results.write_csv(self.output_file_path, separator="\t")
 
             print("Number of participants in cohort:", self.cohort_size)
             print("Number of phecodes in cohort:", len(self.phecode_list))
@@ -807,7 +950,7 @@ class PheWAS:
             print(u"Suggested Bonferroni correction (-log\u2081\u2080 scale):", self.bonferroni)
             print("Number of phecodes above Bonferroni correction:", self.above_bonferroni_count)
             print()
-            print("PheWAS results saved to\033[1m", self.output_file_name, "\033[0m")
+            print("PheWAS results saved to\033[1m", self.output_file_path, "\033[0m")
         else:
             print("No analysis done. Please check your PheWAS settings/inputs.")
 
@@ -816,7 +959,7 @@ class PheWAS:
 
 def main():
 
-    # parse args
+    # Parse args
     parser = argparse.ArgumentParser(description="PheWAS analysis tool.")
     parser.add_argument("-p",
                         "--phecode_count_file_path",
@@ -887,7 +1030,7 @@ def main():
                         type=int, required=False, default=round(os.cpu_count()*2/3),
                         help="Number of threads to use for parallel.")
     parser.add_argument("-o",
-                        "--output_file_name",
+                        "--output_file_path",
                         type=str, required=False, default="phewas_results.tsv")
     parser.add_argument("--parallelization",
                         type=str, required=False, default="multithreading")
@@ -897,7 +1040,7 @@ def main():
                         type=bool, required=False, default=True, help="Whether to suppress warnings.")
     args = parser.parse_args()
 
-    # run PheWAS
+    # Run PheWAS
     phewas = PheWAS(
         phecode_version=args.phecode_version,
         phecode_count_file_path=args.phecode_count_file_path,
@@ -915,7 +1058,7 @@ def main():
         use_exclusion=args.use_exclusion,
         min_cases=args.min_case,
         min_phecode_count=args.min_phecode_count,
-        output_file_name=args.output_file_name,
+        output_file_path=args.output_file_path,
         method=args.method,
         batch_size=args.batch_size,
         suppress_warnings=args.suppress_warnings
