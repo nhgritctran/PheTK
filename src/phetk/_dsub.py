@@ -20,22 +20,22 @@ class Dsub:
         input_dict: dict = None,
         output_dict: dict = None,
         env_dict: dict = None,
-        log_file_path=None,
+        log_file_path: str = None,
         machine_type: str = "n2d-highcpu-4",
-        disk_type="pd-standard",
-        boot_disk_size=50,
-        disk_size=256,
-        user_project=os.getenv("GOOGLE_PROJECT"),
-        project=os.getenv("GOOGLE_PROJECT"),
-        dsub_user_name=os.getenv("OWNER_EMAIL").split("@")[0],
-        user_name=os.getenv("OWNER_EMAIL").split("@")[0].replace(".", "-"),
-        bucket=os.getenv("WORKSPACE_BUCKET"),
-        google_project=os.getenv("GOOGLE_PROJECT"),
-        region="us-central1",
-        provider="google-batch",
-        preemptible=False,
-        use_private_address=True,
-        custom_args=None,
+        disk_type: str = "pd-standard",
+        boot_disk_size: int = 50,
+        disk_size: int = 256,
+        user_project: str = os.getenv("GOOGLE_PROJECT"),
+        project: str = os.getenv("GOOGLE_PROJECT"),
+        dsub_user_name: str = os.getenv("OWNER_EMAIL").split("@")[0],
+        user_name: str = os.getenv("OWNER_EMAIL").split("@")[0].replace(".", "-"),
+        bucket: str = os.getenv("WORKSPACE_BUCKET"),
+        google_project: str = os.getenv("GOOGLE_PROJECT"),
+        region: str = "us-central1",
+        provider: str = "google-batch",
+        preemptible: bool = False,
+        use_private_address: bool = True,
+        custom_args: str = None,
     ):
         # Standard attributes
         self.docker_image = docker_image
@@ -174,7 +174,10 @@ class Dsub:
             except ImportError:
                 is_notebook = False
 
+            interval_count = 0
             while True:
+                interval_count += 1
+                
                 # Clear output
                 if is_notebook:
                     clear_output(wait=True)
@@ -183,6 +186,8 @@ class Dsub:
 
                 # Run command and capture output
                 result = subprocess.run([check_status], shell=True, capture_output=True, text=True)
+                print(f"\nRefresh interval: {update_interval}s | Check #{interval_count}")
+                print()
                 print(result.stdout)
                 
                 # Check for terminal states

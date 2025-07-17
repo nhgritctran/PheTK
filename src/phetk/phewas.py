@@ -814,8 +814,8 @@ class PheWAS:
             input_dict=None,
             output_dict=None,
             env_dict=None,
-            machine_type="c4d-highcpu-4",
-            disk_type="hyperdisk-balanced",
+            machine_type="n2d-highcpu-4",
+            disk_type="pd-standard",
             boot_disk_size=50,
             disk_size=256,
             region="us-central1",
@@ -827,6 +827,9 @@ class PheWAS:
             custom_args=None,
             show_dsub_command=True,
     ):
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Setting up dsub    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print()
+
         # input_dict
         if input_dict is None:
             input_dict = {
