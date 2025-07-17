@@ -797,7 +797,7 @@ class PheWAS:
             if v is not None:
                 phewas_script += f" {k} {v}"
 
-        _dsub.generate_sh_script(script_name=script_name, commands=[phewas_script])
+        _utils.generate_sh_script(script_name=script_name, commands=[phewas_script])
 
         print()
         print("PheWAS script content:")

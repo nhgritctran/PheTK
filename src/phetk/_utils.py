@@ -252,3 +252,14 @@ def has_overlapping_values(d):
             return True
 
     return False
+
+def generate_sh_script(script_name, commands):
+    with open(script_name, 'w') as f:
+        f.write("#!/bin/bash\n")  # Shebang line for bash
+        for command in commands:
+            f.write(command + "\n")
+
+    # Make script executable
+    os.chmod(script_name, 0o755)
+
+    print(f"Generated script: {script_name}")

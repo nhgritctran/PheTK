@@ -3,7 +3,8 @@ import os
 import subprocess
 import sys
 import time
-
+# noinspection PyUnresolvedReferences,PyProtectedMember
+from phetk import _utils
 
 class Dsub:
     """
@@ -79,19 +80,6 @@ class Dsub:
         self.job_id = ""
         self.job_stdout = self.log_file_path.replace(".log", "-stdout.log")
         self.job_stderr = self.log_file_path.replace(".log", "-stderr.log")
-
-    @staticmethod
-    def generate_sh_script(script_name, commands):
-        with open(script_name, 'w') as f:
-            f.write("#!/bin/bash\n")  # Shebang line for bash
-            for command in commands:
-                f.write(command + "\n")
-
-        # Make script executable
-        import os
-        os.chmod(script_name, 0o755)
-
-        print(f"Generated script: {script_name}")
 
     def _dsub_script(self):
 
