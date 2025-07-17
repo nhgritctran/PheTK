@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from google.cloud import bigquery
+from google.cloud import bigquery, storage
 from itertools import combinations
 from tqdm import tqdm
 
@@ -182,18 +182,30 @@ def polars_gbq_chunk(query_list):
     return final_result
 
 def detect_delimiter(file_path):
-    with open(file_path, "r") as file:
-        first_line = file.readline()
+    # Check if it's a GCP bucket path
+    if file_path.startswith('gs://'):
+        # Parse bucket and blob name
+        path_parts = file_path[5:].split('/', 1)  # Remove 'gs://' prefix
+        bucket_name = path_parts[0]
+        blob_name = path_parts[1]
+        
+        # Read first line from GCP bucket
+        client = storage.Client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        
+        # Read first 1024 bytes to get first line
+        first_chunk = blob.download_as_bytes(start=0, end=1024).decode('utf-8')
+        first_line = first_chunk.split('\n')[0]
+        
         if "\t" in first_line:
             return "\t"
         elif "," in first_line:
             return ","
         else:
-            # fallback to sniffer
-            file.seek(0)
-            sample = file.read(1024)
+            # fallback to sniffer with the chunk
             sniffer = csv.Sniffer()
-            delimiter = sniffer.sniff(sample).delimiter
+            delimiter = sniffer.sniff(first_chunk).delimiter
             
             if delimiter == ",":
                 return ","
@@ -202,6 +214,28 @@ def detect_delimiter(file_path):
             else:
                 print(f"Error: File must be CSV or TSV format. Detected delimiter: '{delimiter}'")
                 sys.exit(1)
+    else:
+        # Local file handling
+        with open(file_path, "r") as file:
+            first_line = file.readline()
+            if "\t" in first_line:
+                return "\t"
+            elif "," in first_line:
+                return ","
+            else:
+                # fallback to sniffer
+                file.seek(0)
+                sample = file.read(1024)
+                sniffer = csv.Sniffer()
+                delimiter = sniffer.sniff(sample).delimiter
+                
+                if delimiter == ",":
+                    return ","
+                elif delimiter == "\t":
+                    return "\t"
+                else:
+                    print(f"Error: File must be CSV or TSV format. Detected delimiter: '{delimiter}'")
+                    sys.exit(1)
 
 def has_overlapping_values(d):
     # Convert all values to sets, handling both single items and lists
