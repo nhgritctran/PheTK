@@ -91,6 +91,7 @@ class PheWAS:
         self.icd_version = icd_version
         self.phecode_map_file_path = phecode_map_file_path
         self.phecode_to_process = phecode_to_process
+        self.dsub = None
 
         # Even when running with dsub, the instantiation steps below will still be run as a good check for input issue(s)
         print("~~~~~~~~~~~~~~~~~~~~~~~~    Creating PheWAS Object    ~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -849,7 +850,7 @@ class PheWAS:
         )
 
         # run dsub
-        dsub = _dsub.Dsub(
+        self.dsub = _dsub.Dsub(
             docker_image=docker_image,
             job_script_name=job_script_name,
             job_name=job_name,
@@ -867,7 +868,7 @@ class PheWAS:
             log_file_path = None,
             custom_args=custom_args,
         )
-        dsub.run(show_command=show_dsub_command)
+        self.dsub.run(show_command=show_dsub_command)
 
     # noinspection PyUnreachableCode
     def run(self,
