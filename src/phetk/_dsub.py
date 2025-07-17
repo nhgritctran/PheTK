@@ -181,8 +181,19 @@ class Dsub:
                 else:
                     os.system("clear" if os.name == "posix" else "cls")
 
-                # Run command and print output
-                subprocess.run([check_status], shell=True)
+                # Run command and capture output
+                result = subprocess.run([check_status], shell=True, capture_output=True, text=True)
+                print(result.stdout)
+                
+                # Check for terminal states
+                if result.stdout:
+                    status_text = result.stdout.lower()
+                    if "success" in status_text or "succeeded" in status_text:
+                        print("\nJob completed successfully!")
+                        break
+                    elif "failed" in status_text or "failure" in status_text:
+                        print("\nJob failed!")
+                        break
 
                 # Wait
                 time.sleep(update_interval)
