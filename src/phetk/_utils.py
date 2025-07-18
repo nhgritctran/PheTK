@@ -185,8 +185,8 @@ def detect_delimiter(file_path):
     # Check if it's a GCP bucket path and if we're running in dsub environment
     if file_path.startswith('gs://'):
         # Check if we're in a dsub worker (the file might be locally mounted)
-        # dsub typically mounts gs:// files to /mnt/data or similar
-        local_path = file_path.replace('gs://', '/mnt/data/')
+        # dsub typically mounts input gs:// files to /mnt/data/input/gs/
+        local_path = file_path.replace('gs://', '/mnt/data/input/gs/')
         
         # Try local file first (dsub environment)
         if os.path.exists(local_path):
