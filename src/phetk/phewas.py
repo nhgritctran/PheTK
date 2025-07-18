@@ -21,29 +21,29 @@ class PheWAS:
 
     def __init__(
         self,
-        phecode_version,
-        phecode_count_file_path,
-        cohort_file_path,
-        covariate_cols,
-        independent_variable_of_interest,
-        sex_at_birth_col,
-        male_as_one=True,
-        cox_start_date_col=None,
-        cox_control_observed_time_col=None,
-        cox_phecode_observed_time_col=None,
-        cox_stratification_col=None,
-        cox_fallback_step_size=0.1,
-        icd_version="US",
-        phecode_map_file_path=None,
-        phecode_to_process="all",
-        min_cases=50,
-        min_phecode_count=2,
-        use_exclusion=False,
-        output_file_path=None,
-        verbose=False,
-        suppress_warnings=True,
-        method="logit",
-        batch_size=1
+        phecode_version: str,
+        phecode_count_file_path: str,
+        cohort_file_path: str,
+        covariate_cols: list[str] | str,
+        independent_variable_of_interest: str,
+        sex_at_birth_col: str,
+        male_as_one: bool = True,
+        cox_start_date_col: str | None = None,
+        cox_control_observed_time_col: str | None = None,
+        cox_phecode_observed_time_col: str | None = None,
+        cox_stratification_col: str | None = None,
+        cox_fallback_step_size: float = 0.1,
+        icd_version: str = "US",
+        phecode_map_file_path: str | None = None,
+        phecode_to_process: list[str] | str | None = None,
+        min_cases: int = 50,
+        min_phecode_count: int = 2,
+        use_exclusion: bool = False,
+        output_file_path: str | None = None,
+        verbose: bool = False,
+        suppress_warnings: bool = True,
+        method: str = "logit",
+        batch_size: int = 1
     ):
         """
         :param phecode_version: accepts "1.2" or "X"
@@ -67,7 +67,7 @@ class PheWAS:
         :param icd_version: defaults to "US"; other option are "WHO" and "custom";
                             if "custom", user need to provide phecode_map_path
         :param phecode_map_file_path: path to custom phecode map table
-        :param phecode_to_process: defaults to "all"; otherwise, a list of phecodes must be provided
+        :param phecode_to_process: defaults to None; otherwise, a list of phecodes must be provided
         :param min_cases: defaults to 50; minimum number of cases for each phecode to be considered for PheWAS
         :param min_phecode_count: defaults to 2; minimum number of phecode count to qualify as case for PheWAS
         :param use_exclusion: defaults to True for phecode 1.2; always False for phecode X;
@@ -256,7 +256,7 @@ class PheWAS:
             self.phecode_counts = self.phecode_counts.join(
                 self.covariate_df[["person_id", cox_start_date_col]], how="left", on="person_id"
             )
-        if phecode_to_process == "all":
+        if phecode_to_process is None:
             self.phecode_list = self.phecode_counts["phecode"].unique().to_list()
         else:
             if isinstance(phecode_to_process, str):
@@ -296,12 +296,10 @@ class PheWAS:
                 f"{self.independent_variable_of_interest} descriptions: ",
                 self.covariate_df[self.independent_variable_of_interest].describe()
             )
-        print("Sample of cohort data: ", self.covariate_df.head(5))
+        print("Sample of cohort data: ", self.covariate_df[cols_to_keep].head(5))
         print()
         print("Number of unique phecodes in cohort: ", len(self.phecode_list))
-        print(self.phecode_list[:10])
         print("Total number of phecode events: ", self.phecode_counts.shape[0])
-        print(self.phecode_counts["phecode"].unique().to_list()[:10])
         print("Number of phecode batches to process: ", len(self.phecode_batch_list))
         print("Sample of phecode count data: ", self.phecode_counts.head(5))
         print()
@@ -314,7 +312,7 @@ class PheWAS:
         print()
 
     @staticmethod
-    def _to_polars(df):
+    def _to_polars(df: pd.DataFrame | pl.DataFrame) -> pl.DataFrame:
         """
         Check and convert pandas dataframe object to polars dataframe, if applicable
         :param df: dataframe object
@@ -327,7 +325,10 @@ class PheWAS:
         return polars_df
 
     @staticmethod
-    def _split_phecode_list(phecode_list, batch_size):
+    def _split_phecode_list(
+            phecode_list: list[str], 
+            batch_size: int
+    ) -> list[list[str]]:
         """
         Split phecode_list into batches of phecodes based on batch size. Used for parallel processing.
         :param phecode_list: List of all phecodes in cohort
@@ -341,7 +342,11 @@ class PheWAS:
             sublists.append(phecode_list[i:end_idx])
         return sublists
 
-    def _exclude_range(self, phecode, phecode_df=None):
+    def _exclude_range(
+            self, 
+            phecode: str, 
+            phecode_df: pl.DataFrame | None = None
+    ) -> list[str]:
         """
         Process text data in the exclude_range column; exclusively for phecodeX
         :param phecode: phecode of interest
@@ -380,9 +385,16 @@ class PheWAS:
 
         return exclude_range
 
-    def _case_control_prep(self, phecode,
-                           phecode_counts=None, covariate_df=None, phecode_df=None,
-                           var_cols=None, gender_specific_var_cols=None, keep_ids=False):
+    def _case_control_prep(
+            self, 
+            phecode: str,
+            phecode_counts: pl.DataFrame | None = None, 
+            covariate_df: pl.DataFrame | None = None, 
+            phecode_df: pl.DataFrame | None = None,
+            var_cols: list[str] | None = None, 
+            gender_specific_var_cols: list[str] | None = None, 
+            keep_ids: bool = False
+    ) -> tuple[pl.DataFrame, pl.DataFrame, list[str]]:
         """
         :param phecode: phecode of interest
         :param phecode_counts: phecode counts table for cohort
@@ -526,7 +538,10 @@ class PheWAS:
         else:
             return pl.DataFrame(), pl.DataFrame(), []
 
-    def get_phecode_data(self, phecode):
+    def get_phecode_data(
+            self, 
+            phecode: str
+    ) -> pl.DataFrame | None:
         cases, controls, analysis_var_cols = self._case_control_prep(
             phecode=phecode,
             keep_ids=True
@@ -543,7 +558,10 @@ class PheWAS:
             return None
 
     @staticmethod
-    def _logit_result_prep(result, var_of_interest_index):
+    def _logit_result_prep(
+            result, 
+            var_of_interest_index: int
+    ) -> dict[str, float | str]:
         """
         Process result from statsmodels
         :param result: logistic regression result
@@ -576,7 +594,12 @@ class PheWAS:
             "converged": converged
         }
 
-    def _cox_result_prep(self, result, stratified_by, warning_message=None):
+    def _cox_result_prep(
+            self, 
+            result, 
+            stratified_by: str, 
+            warning_message: str | None = None
+    ) -> dict[str, float | str]:
         """
         Process result from statsmodels
         :param result: cox regression results
@@ -613,7 +636,10 @@ class PheWAS:
         return result_dict
 
     # noinspection PyInconsistentReturns
-    def _regression(self, phecode):
+    def _regression(
+            self, 
+            phecode: str
+    ) -> dict[str, float | str | int] | None:
         """
         Logistic regression of a single phecode
         :param phecode: a phecode of interest
@@ -753,7 +779,10 @@ class PheWAS:
                 print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls):",
                       "Not enough cases or controls. Pass.\n")
 
-    def _batch_regression(self, phecode_batch):
+    def _batch_regression(
+            self, 
+            phecode_batch: list[str]
+    ) -> list[dict[str, float | str | int]]:
         """
         Run regression for a batch of phecodes
         :param phecode_batch: batch of phecodes to run the regression
@@ -768,10 +797,10 @@ class PheWAS:
 
     def generate_phewas_script(
             self,
-            script_name="phewas_script.sh",
-            parallelization=None,
-            n_workers=None
-    ):
+            script_name: str = "phewas_script.sh",
+            parallelization: str | None = None,
+            n_workers: int | None = None
+    ) -> None:
         """
         Generate a bash script to run PheWAS analysis with the parameters used to initialize this object
         """
@@ -837,26 +866,26 @@ class PheWAS:
 
     def run_dsub(
             self,
-            docker_image,
-            job_script_name="phewas_script.sh",
-            job_name=None,
-            input_dict=None,
-            output_dict=None,
-            env_dict=None,
-            machine_type="n2d-highcpu-4",
-            disk_type="pd-standard",
-            boot_disk_size=50,
-            disk_size=256,
-            region="us-central1",
-            provider="google-batch",
-            preemptible=False,
-            use_private_address=True,
-            parallelization=None,
-            n_workers=None,
-            custom_args=None,
-            show_dsub_command=True,
-            use_aou_docker_prefix=True,
-    ):
+            docker_image: str,
+            job_script_name: str = "phewas_script.sh",
+            job_name: str | None = None,
+            input_dict: dict[str, str] | None = None,
+            output_dict: dict[str, str] | None = None,
+            env_dict: dict[str, str] | None = None,
+            machine_type: str = "n2d-highcpu-4",
+            disk_type: str = "pd-standard",
+            boot_disk_size: int = 50,
+            disk_size: int = 256,
+            region: str = "us-central1",
+            provider: str = "google-batch",
+            preemptible: bool = False,
+            use_private_address: bool = True,
+            parallelization: str | None = None,
+            n_workers: int | None = None,
+            custom_args: str | None = None,
+            show_dsub_command: bool = True,
+            use_aou_docker_prefix: bool = True,
+    ) -> None:
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~    Setting up dsub    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print()
 
@@ -907,9 +936,11 @@ class PheWAS:
         self.dsub.run(show_command=show_dsub_command)
 
     # noinspection PyUnreachableCode
-    def run(self,
-            parallelization=None,
-            n_workers=None):
+    def run(
+            self,
+            parallelization: str | None = None,
+            n_workers: int | None = None
+    ) -> str | None:
         """
         Run parallel logistic regression
         :param parallelization: defaults to "multithreading"; the other option is "serial"
@@ -998,24 +1029,20 @@ class PheWAS:
         print()
 
 
-def main():
+def main() -> None:
 
     # Parse args
     parser = argparse.ArgumentParser(description="PheWAS analysis tool.")
-    parser.add_argument("-p",
-                        "--phecode_count_file_path",
+    parser.add_argument("--phecode_count_file_path",
                         type=str, required=True,
                         help="Path to the phecode count csv/tsv file.")
-    parser.add_argument("-c",
-                        "--cohort_file_path",
+    parser.add_argument("--cohort_file_path",
                         type=str, required=True,
                         help="Path to the cohort csv/tsv file.")
-    parser.add_argument("-pv",
-                        "--phecode_version",
+    parser.add_argument("--phecode_version",
                         type=str, required=True, choices=["1.2", "X"],
                         help="Phecode version.")
-    parser.add_argument("-m",
-                        "--method",
+    parser.add_argument("--method",
                         type=str, required=False, choices=["logit", "cox"],
                         help="Phecode regression method. Can be 'logit' or 'cox'.")
     parser.add_argument("--cox_start_date_col",
@@ -1033,45 +1060,36 @@ def main():
     parser.add_argument("--cox_fallback_step_size",
                         type=int, required=False,
                         help="Cox fallback step size used when regression fails to converge with the default step size of 0.95.")
-    parser.add_argument("-cv",
-                        "--covariates",
+    parser.add_argument("--covariates",
                         nargs="+",
                         type=str, required=True,
                         help="List of covariates to use in PheWAS analysis.")
-    parser.add_argument("-i",
-                        "--independent_variable_of_interest",
+    parser.add_argument("--independent_variable_of_interest",
                         type=str, required=True,
                         help="Independent variable of interest.")
-    parser.add_argument("-s",
-                        "--sex_at_birth_col",
+    parser.add_argument("--sex_at_birth_col",
                         type=str, required=True,
                         help="Sex at birth column.")
-    parser.add_argument("-mso",
-                        "--male_as_one",
+    parser.add_argument("--male_as_one",
                         type=bool, required=False,
                         help="Whether male was assigned as 1 in data.")
-    parser.add_argument("-pl",
-                        "--phecode_to_process",
+    parser.add_argument("--phecode_to_process",
                         nargs="+",
-                        type=str, required=False, default="all",
+                        type=str, required=False, default=None,
                         help="List of specific phecodes to use in PheWAS analysis.")
-    parser.add_argument("-e",
-                        "--use_exclusion",
+    parser.add_argument("--use_exclusion",
                         type=bool, required=False, default=False,
                         help="Whether to use phecode exclusions. Only applicable for phecode 1.2.")
-    parser.add_argument("-mc",
-                        "--min_cases",
+    parser.add_argument("--min_cases",
                         type=int, required=False, default=50,
                         help="Minimum number of cases required to be tested.")
-    parser.add_argument("-mpc",
-                        "--min_phecode_count",
+    parser.add_argument("--min_phecode_count",
                         type=int, required=False, default=2,
                         help="Minimum number of phecode counts required to be considered as case.")
     parser.add_argument("--n_workers",
                         type=int, required=False, default=round(os.cpu_count()*2/3),
                         help="Number of threads to use for parallel.")
-    parser.add_argument("-o",
-                        "--output_file_path",
+    parser.add_argument("--output_file_path",
                         type=str, required=False, default="phewas_results.tsv")
     parser.add_argument("--parallelization",
                         type=str, required=False, default="multithreading")

@@ -12,7 +12,11 @@ class Phecode:
     For other databases, the user is expected to provide an ICD code table for all participants in the cohort of interest.
     """
 
-    def __init__(self, platform="aou", icd_file_path=None):
+    def __init__(
+            self,
+            platform: str = "aou",
+            icd_file_path: str | None = None
+    ):
         """
         Instantiate based on parameter db
         :param platform: supports:
@@ -65,10 +69,11 @@ class Phecode:
 
     def count_phecode(
             self,
-            phecode_version="X",
-            icd_version="US",
-            phecode_map_file_path=None,
-            output_file_path=None):
+            phecode_version: str = "X",
+            icd_version: str = "US",
+            phecode_map_file_path: str | None = None,
+            output_file_path: str | None = None
+    ) -> None:
         """
         Generate phecode counts from ICD counts
         :param phecode_version: defaults to "X"; other option is "1.2"
@@ -138,9 +143,9 @@ class Phecode:
 
     def add_age_at_first_event(
             self,
-            phecode_count_file_path,
-            output_file_path=None,
-    ):
+            phecode_count_file_path: str,
+            output_file_path: str | None = None,
+    ) -> None:
         """
         Calculate age at the first event based on input date at the first event and birthdays from OMOP data
         :param phecode_count_file_path: the path to the phecode count /tsv file; must have columns "person_id", "phecode",
@@ -195,12 +200,12 @@ class Phecode:
 
     @staticmethod
     def add_phecode_time_to_event(
-            phecode_count_file_path,
-            cohort_file_path,
-            study_start_date_col,
-            time_unit="days",
-            output_file_path=None,
-    ):
+            phecode_count_file_path: str,
+            cohort_file_path: str,
+            study_start_date_col: str,
+            time_unit: str = "days",
+            output_file_path: str | None = None,
+    ) -> None:
         """
         Calculate time to event for each phecode, based on the study start date of each participant in the study cohort
         :param phecode_count_file_path: path to phecode count csv/tsv file

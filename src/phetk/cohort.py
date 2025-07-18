@@ -11,10 +11,10 @@ import sys
 class Cohort:
 
     def __init__(self,
-                 platform="aou",
-                 aou_db_version=8,
-                 aou_omop_cdr=None,
-                 gbq_dataset_id=None):
+                 platform: str = "aou",
+                 aou_db_version: int = 8,
+                 aou_omop_cdr: str | None = None,
+                 gbq_dataset_id: str | None = None):
         """
         :param platform: database; currently supports "aou" (All of Us) or "custom".
         :param aou_db_version: int type, version of the database, e.g., 7 for All of Us CDR v7
@@ -62,14 +62,14 @@ class Cohort:
         self.first_n_pcs = 0
 
     def by_genotype(self,
-                    chromosome_number,
-                    genomic_position,
-                    ref_allele,
-                    alt_allele,
-                    gt_dict=None,
-                    reference_genome="GRCh38",
-                    mt_path=None,
-                    output_file_name=None):
+                    chromosome_number: int,
+                    genomic_position: int,
+                    ref_allele: str,
+                    alt_allele: str,
+                    gt_dict: dict[int, str | list[str]] | None = None,
+                    reference_genome: str = "GRCh38",
+                    mt_path: str | None = None,
+                    output_file_name: str | None = None) -> None:
         """
         Generate cohort based on genotype of variant-of-interest
         :param chromosome_number: chromosome number; int
@@ -211,7 +211,11 @@ class Cohort:
             print(f"Variant {variant_string} not found!")
             print()
 
-    def _get_ancestry_preds(self, user_project, participant_ids):
+    def _get_ancestry_preds(
+            self,
+            user_project: str,
+            participant_ids: tuple[int, ...]
+    ) -> pl.DataFrame | None:
         """
         This method specifically designed for All of Us database
         :param user_project: proxy of the GOOGLE_PROJECT environment variable in the All of Us workbench
@@ -239,7 +243,10 @@ class Cohort:
 
         return ancestry_preds
 
-    def _get_covariates(self, participant_ids):
+    def _get_covariates(
+            self,
+            participant_ids: tuple[int, ...]
+    ) -> pl.DataFrame:
         """
         This method specifically designed for All of Us database
         Core internal function to generate covariate data for a set of participant IDs
@@ -301,21 +308,23 @@ class Cohort:
 
         return df
 
-    def add_covariates(self,
-                       cohort_file_path=None,
-                       date_of_birth=False,
-                       current_age=False,
-                       age_at_last_event=False,
-                       sex_at_birth=True,
-                       last_ehr_date=False,
-                       ehr_length=False,
-                       dx_code_occurrence_count=False,
-                       dx_condition_count=False,
-                       genetic_ancestry=False,
-                       first_n_pcs=0,
-                       chunk_size=10000,
-                       drop_nulls=False,
-                       output_file_name=None):
+    def add_covariates(
+            self,
+            cohort_file_path: str | None = None,
+            date_of_birth: bool = False,
+            current_age: bool = False,
+            age_at_last_event: bool = False,
+            sex_at_birth: bool = True,
+            last_ehr_date: bool = False,
+            ehr_length: bool = False,
+            dx_code_occurrence_count: bool = False,
+            dx_condition_count: bool = False,
+            genetic_ancestry: bool = False,
+            first_n_pcs: int = 0,
+            chunk_size: int = 10000,
+            drop_nulls: bool = False,
+            output_file_name: str | None = None
+    ) -> None:
         """
         This method is a proxy for covariate.get_covariates method
         :param cohort_file_path: path to cohort csv or tsv file

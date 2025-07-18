@@ -10,12 +10,14 @@ from phetk import _utils
 
 
 class Plot:
-    def __init__(self,
-                 phewas_result_file_path,
-                 converged_only=True,
-                 bonferroni=None,
-                 phecode_version=None,
-                 color_palette=None):
+    def __init__(
+            self,
+            phewas_result_file_path: str,
+            converged_only: bool = True,
+            bonferroni: float | None = None,
+            phecode_version: str | None = None,
+            color_palette: tuple[str, ...] | None = None
+    ):
         """
         :param phewas_result_file_path: path to PheWAS result csv/tsv file, generated from PheWAS module.
         :param converged_only: whether to plot converged only or not.
@@ -105,7 +107,11 @@ class Plot:
             self.direction_col = "log_hazard_ratio"
 
     @staticmethod
-    def save_plot(plot_type="plot", output_file_name=None, output_file_type="pdf"):
+    def save_plot(
+            plot_type: str = "plot", 
+            output_file_name: str | None = None, 
+            output_file_type: str = "pdf"
+    ) -> None:
         if output_file_name is not None:
             if "." not in output_file_name:
                 output_file_name = output_file_name + "." + output_file_type
@@ -118,7 +124,10 @@ class Plot:
         print()
 
     @staticmethod
-    def _filter_by_phecode_categories(df, phecode_categories=None):
+    def _filter_by_phecode_categories(
+            df: pl.DataFrame, 
+            phecode_categories: list[str] | str | None = None
+    ) -> pl.DataFrame:
         """
         :param df: PheWAS result to filter
         :param phecode_categories: defaults to None, i.e., use all, otherwise, filter what specified
@@ -133,8 +142,10 @@ class Plot:
 
         return df
 
-    @staticmethod
-    def _create_phecode_index(self, df):
+    def _create_phecode_index(
+            self, 
+            df: pl.DataFrame
+    ) -> pl.DataFrame:
         """
         Create phecode index after grouping by phecode_category and phecode;
         Phecode index will be used for plotting purpose
@@ -149,8 +160,11 @@ class Plot:
 
         return df
 
-    @staticmethod
-    def _split_by_beta(self, df, marker_size_by_beta=False):
+    def _split_by_beta(
+            self, 
+            df: pl.DataFrame, 
+            marker_size_by_beta: bool = False
+    ) -> tuple[pl.DataFrame, pl.DataFrame]:
         """
         :param df: data of interest, e.g., full phewas result or result of a phecode_category;
         :return: positive and negative beta polars dataframes
@@ -166,7 +180,11 @@ class Plot:
         return positive_betas, negative_betas
 
     @staticmethod
-    def _x_ticks(plot_df, selected_color_dict, size=8):
+    def _x_ticks(
+            plot_df: pl.DataFrame, 
+            selected_color_dict: dict[str, str], 
+            size: int = 8
+    ) -> None:
         """
         Generate x tick labels and colors
         :param plot_df: plot data
@@ -186,7 +204,12 @@ class Plot:
         for tick_label, tick_color in zip(sorted_labels, selected_color_dict.values()):
             tick_label.set_color(tick_color)
 
-    def _manhattan_scatter(self, ax, marker_size_by_beta, scale_factor=1):
+    def _manhattan_scatter(
+            self, 
+            ax, 
+            marker_size_by_beta: bool, 
+            scale_factor: float = 1
+    ) -> None:
         """
         Generate scatter data points
         :param ax: plot the object
@@ -215,20 +238,22 @@ class Plot:
                    marker="v",
                    alpha=self.negative_alpha)
 
-    def _lines(self,
-               ax,
-               plot_type,
-               plot_df,
-               x_col,
-               nominal_significance_line=False,
-               bonferroni_line=False,
-               infinity_line=False,
-               y_threshold_line=False,
-               y_threshold_value=None,
-               x_positive_threshold_line=False,
-               x_positive_threshold_value=None,
-               x_negative_threshold_line=False,
-               x_negative_threshold_value=None):
+    def _lines(
+            self,
+            ax,
+            plot_type: str,
+            plot_df: pl.DataFrame,
+            x_col: str,
+            nominal_significance_line: bool = False,
+            bonferroni_line: bool = False,
+            infinity_line: bool = False,
+            y_threshold_line: bool = False,
+            y_threshold_value: float | None = None,
+            x_positive_threshold_line: bool = False,
+            x_positive_threshold_value: float | None = None,
+            x_negative_threshold_line: bool = False,
+            x_negative_threshold_value: float | None = None
+    ) -> None:
 
         extra_offset = 0
         if plot_type == "manhattan":
@@ -289,7 +314,10 @@ class Plot:
                       lw=1)
 
     @staticmethod
-    def _split_text(s, threshold=30):
+    def _split_text(
+            s: str, 
+            threshold: int = 30
+    ) -> str:
         """
         Split long text label
         :param s: text string
@@ -310,19 +338,21 @@ class Plot:
 
         return new_s
 
-    def _manhattan_label(self,
-                         plot_df,
-                         label_values,
-                         label_count,
-                         label_categories=None,
-                         label_text_column="phecode_string",
-                         label_value_threshold=0,
-                         label_split_threshold=30,
-                         label_color="label_color",
-                         label_size=8,
-                         label_weight="normal",
-                         y_col="neg_log_p_value",
-                         x_col="phecode_index"):
+    def _manhattan_label(
+            self,
+            plot_df: pl.DataFrame,
+            label_values: str | list[str],
+            label_count: int,
+            label_categories: list[str] | None = None,
+            label_text_column: str = "phecode_string",
+            label_value_threshold: float = 0,
+            label_split_threshold: int = 30,
+            label_color: str = "label_color",
+            label_size: int = 8,
+            label_weight: str = "normal",
+            y_col: str = "neg_log_p_value",
+            x_col: str = "phecode_index"
+    ):
         """
         :param plot_df: plot data
         :param label_values: can take a single phecode, a list of phecodes,
@@ -424,7 +454,11 @@ class Plot:
             return adjustText.adjust_text(texts,
                                           arrowprops=dict(arrowstyle="simple", color="gray", lw=0.5, mutation_scale=2))
 
-    def _manhattan_legend(self, ax, legend_marker_size):
+    def _manhattan_legend(
+            self, 
+            ax, 
+            legend_marker_size: int
+    ) -> None:
         """
         :param ax: plot object
         :param legend_marker_size: size of markers
@@ -445,29 +479,31 @@ class Plot:
                   bbox_to_anchor=(1, 0.5),
                   fontsize=legend_marker_size)
 
-    def manhattan(self,
-                  label_values="p_value",
-                  label_value_threshold=0,
-                  label_count=10,
-                  label_size=8,
-                  label_text_column="phecode_string",
-                  label_color="label_color",
-                  label_weight="normal",
-                  label_split_threshold=30,
-                  marker_size_by_beta=False,
-                  marker_scale_factor=1,
-                  phecode_categories=None,
-                  plot_all_categories=True,
-                  title=None,
-                  title_text_size=10,
-                  y_limit=None,
-                  axis_text_size=8,
-                  show_legend=True,
-                  legend_marker_size=6,
-                  dpi=150,
-                  save_plot=True,
-                  output_file_name=None,
-                  output_file_type="pdf"):
+    def manhattan(
+            self,
+            label_values: str | list[str] = "p_value",
+            label_value_threshold: float = 0,
+            label_count: int = 10,
+            label_size: int = 8,
+            label_text_column: str = "phecode_string",
+            label_color: str = "label_color",
+            label_weight: str = "normal",
+            label_split_threshold: int = 30,
+            marker_size_by_beta: bool = False,
+            marker_scale_factor: float = 1,
+            phecode_categories: list[str] | str | None = None,
+            plot_all_categories: bool = True,
+            title: str | None = None,
+            title_text_size: int = 10,
+            y_limit: float | None = None,
+            axis_text_size: int = 8,
+            show_legend: bool = True,
+            legend_marker_size: int = 6,
+            dpi: int = 150,
+            save_plot: bool = True,
+            output_file_name: str | None = None,
+            output_file_type: str = "pdf"
+    ) -> None:
 
         ############
         # SETTINGS #
@@ -568,26 +604,34 @@ class Plot:
                            output_file_type=output_file_type)
 
     @staticmethod
-    def transform_values(df, col, new_col, new_min, new_max):
+    def transform_values(
+            df: pl.DataFrame, 
+            col: str, 
+            new_col: str, 
+            new_min: float, 
+            new_max: float
+    ) -> pl.DataFrame:
         df = df.with_columns(((pl.col(col) - pl.col(col).min())
                               * (new_max - new_min)
                               / (pl.col(col).max() - pl.col(col).min())
                               + new_min).alias(new_col))
         return df
 
-    def _volcano_scatter(self,
-                         ax,
-                         x_col="log10_odds_ratio",
-                         y_col="neg_log_p_value",
-                         marker_size_col="cases",
-                         marker_shape=".",
-                         positive_beta_color="indianred",
-                         negative_beta_color="darkcyan",
-                         fill_marker=True,
-                         marker_alpha=0.5,
-                         legend_marker_scale=0.5,
-                         legend_label_count=5,
-                         show_legend=False):
+    def _volcano_scatter(
+            self,
+            ax,
+            x_col: str = "log10_odds_ratio",
+            y_col: str = "neg_log_p_value",
+            marker_size_col: str | None = "cases",
+            marker_shape: str = ".",
+            positive_beta_color: str = "indianred",
+            negative_beta_color: str = "darkcyan",
+            fill_marker: bool = True,
+            marker_alpha: float = 0.5,
+            legend_marker_scale: float = 0.5,
+            legend_label_count: int = 5,
+            show_legend: bool = False
+    ) -> None:
 
         # set marker edge and face colors
         if fill_marker:
@@ -655,20 +699,22 @@ class Plot:
                 title=marker_size_col
             )
 
-    def _volcano_label(self,
-                       plot_df,
-                       phecode_list=None,
-                       phecode_string_list=None,
-                       x_col="log10_odds_ratio",
-                       y_col="neg_log_p_value",
-                       label_count=10,
-                       label_text_column="phecode_string",
-                       label_split_threshold=30,
-                       label_size=8,
-                       label_weight="normal",
-                       y_threshold=5,
-                       x_positive_threshold=None,
-                       x_negative_threshold=None):
+    def _volcano_label(
+            self,
+            plot_df: pl.DataFrame,
+            phecode_list: list[str] | str | None = None,
+            phecode_string_list: list[str] | str | None = None,
+            x_col: str = "log10_odds_ratio",
+            y_col: str = "neg_log_p_value",
+            label_count: int = 10,
+            label_text_column: str = "phecode_string",
+            label_split_threshold: int = 30,
+            label_size: int = 8,
+            label_weight: str = "normal",
+            y_threshold: float = 5,
+            x_positive_threshold: float | None = None,
+            x_negative_threshold: float | None = None
+    ):
 
         # Get the data for labeling, either use a list of phecodes/phecode names of choice or use x & y thresholds
         if (phecode_list is not None) or (phecode_string_list is not None):
@@ -727,35 +773,37 @@ class Plot:
                 texts, arrowprops=dict(arrowstyle="simple", color="gray", lw=0.5, mutation_scale=2)
             )
 
-    def volcano(self,
-                phecode_list=None,
-                phecode_string_list=None,
-                label_count=10,
-                x_col="log10_odds_ratio",
-                y_col="neg_log_p_value",
-                x_axis_label=None,
-                exclude_infinity=False,
-                y_threshold=None,
-                x_negative_threshold=None,
-                x_positive_threshold=None,
-                bonferroni_line=False,
-                nominal_significance_line=False,
-                infinity_line=False,
-                y_limit=None,
-                title=None,
-                title_text_size=None,
-                axis_text_size=None,
-                marker_size_col="cases",
-                marker_shape=".",
-                fill_marker=True,
-                marker_alpha=0.5,
-                show_legend=False,
-                legend_marker_scale=0.5,
-                legend_label_count=5,
-                dpi=150,
-                save_plot=True,
-                output_file_name=None,
-                output_file_type="pdf"):
+    def volcano(
+            self,
+            phecode_list: list[str] | str | None = None,
+            phecode_string_list: list[str] | str | None = None,
+            label_count: int = 10,
+            x_col: str = "log10_odds_ratio",
+            y_col: str = "neg_log_p_value",
+            x_axis_label: str | None = None,
+            exclude_infinity: bool = False,
+            y_threshold: float | None = None,
+            x_negative_threshold: float | None = None,
+            x_positive_threshold: float | None = None,
+            bonferroni_line: bool = False,
+            nominal_significance_line: bool = False,
+            infinity_line: bool = False,
+            y_limit: float | None = None,
+            title: str | None = None,
+            title_text_size: int | None = None,
+            axis_text_size: int | None = None,
+            marker_size_col: str | None = "cases",
+            marker_shape: str = ".",
+            fill_marker: bool = True,
+            marker_alpha: float = 0.5,
+            show_legend: bool = False,
+            legend_marker_scale: float = 0.5,
+            legend_label_count: int = 5,
+            dpi: int = 150,
+            save_plot: bool = True,
+            output_file_name: str | None = None,
+            output_file_type: str = "pdf"
+    ) -> None:
 
         # set offset
         self.offset = 0.1
