@@ -289,7 +289,7 @@ class PheWAS:
         if self.covariate_df[self.independent_variable_of_interest].n_unique() < 10:
             print(
                 f"{self.independent_variable_of_interest} descriptions: ",
-                self.covariate_df.group_by(self.independent_variable_of_interest).len().alias("count")
+                self.covariate_df.group_by(self.independent_variable_of_interest).len(name="count")
             )
         else:
             print(
