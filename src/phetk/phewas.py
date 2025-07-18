@@ -1058,7 +1058,7 @@ def main() -> None:
                         type=str, required=False,
                         help="Stratification for cox regression.")
     parser.add_argument("--cox_fallback_step_size",
-                        type=int, required=False,
+                        type=float, required=False,
                         help="Cox fallback step size used when regression fails to converge with the default step size of 0.95.")
     parser.add_argument("--covariates",
                         nargs="+",
