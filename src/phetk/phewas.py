@@ -284,6 +284,20 @@ class PheWAS:
             self._timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             self.output_file_path = f"phewas_{self._timestamp}.tsv"
 
+        # Print some description
+        print("Cohort size: ", self.cohort_size)
+        print(f"{self.independent_variable_of_interest} descriptions: ", self.covariate_df[self.independent_variable_of_interest].describe())
+        print("Number of unique phecodes in cohort: ", len(self.phecode_list))
+        print("Total number of phecode events: ", self.phecode_counts.shape[0])
+        print("Number of phecode batches to process: ", len(self.phecode_batch_list))
+        method_text = ""
+        if self.method == "cox":
+            method_text = "Cox regression"
+        elif self.method == "logit":
+            method_text = "Logistic regression"
+        print("Analysis method: ", method_text)
+        print()
+
     @staticmethod
     def _to_polars(df):
         """
