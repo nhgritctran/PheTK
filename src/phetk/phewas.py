@@ -286,10 +286,23 @@ class PheWAS:
 
         # Print some description
         print("Cohort size: ", self.cohort_size)
-        print(f"{self.independent_variable_of_interest} descriptions: ", self.covariate_df[self.independent_variable_of_interest].describe())
+        if self.covariate_df[self.independent_variable_of_interest].n_unique() < 10:
+            print(
+                f"{self.independent_variable_of_interest} descriptions: ",
+                self.covariate_df.group_by(self.independent_variable_of_interest).len().alias("count")
+            )
+        else:
+            print(
+                f"{self.independent_variable_of_interest} descriptions: ",
+                self.covariate_df[self.independent_variable_of_interest].describe()
+            )
+        print("Sample of cohort data: ", self.covariate_df.head(5))
+        print()
         print("Number of unique phecodes in cohort: ", len(self.phecode_list))
         print("Total number of phecode events: ", self.phecode_counts.shape[0])
         print("Number of phecode batches to process: ", len(self.phecode_batch_list))
+        print("Sample of phecode count data: ", self.phecode_counts.head(5))
+        print()
         method_text = ""
         if self.method == "cox":
             method_text = "Cox regression"
