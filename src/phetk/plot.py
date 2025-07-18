@@ -529,7 +529,7 @@ class Plot:
             selected_color_dict = self.color_dict
             n_categories = len(self.phewas_result.columns)
             # create plot_df containing only necessary data for plotting
-            plot_df = self._create_phecode_index(self, self.phewas_result)
+            plot_df = self._create_phecode_index(self.phewas_result)
         else:
             if phecode_categories:
                 selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
@@ -537,7 +537,6 @@ class Plot:
                 dpi = None
                 # create plot_df containing only necessary data for plotting
                 plot_df = self._create_phecode_index(
-                    self,
                     self._filter_by_phecode_categories(
                         self.phewas_result, phecode_categories=phecode_categories
                     )
@@ -562,7 +561,7 @@ class Plot:
         ax.set_ylabel(r"$-\log_{10}$(p-value)", size=axis_text_size)
 
         # generate positive & negative betas
-        self.positive_betas, self.negative_betas = self._split_by_beta(self, plot_df, marker_size_by_beta)
+        self.positive_betas, self.negative_betas = self._split_by_beta(plot_df, marker_size_by_beta)
 
         ############
         # PLOTTING #
@@ -832,7 +831,7 @@ class Plot:
         if exclude_infinity:
             plot_df = plot_df.filter(pl.col("neg_log_p_value") != self.inf_proxy)
         # generate positive & negative betas
-        self.positive_betas, self.negative_betas = self._split_by_beta(self, plot_df)
+        self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
 
         ############
         # PLOTTING #
