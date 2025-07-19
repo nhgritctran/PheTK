@@ -256,10 +256,21 @@ class Dsub:
                 # Check for terminal states
                 if result.stdout:
                     status_text = result.stdout.lower()
-                    if "success" in status_text or "succeeded" in status_text:
+                    
+                    # Check for success patterns
+                    success_patterns = ["success", "succeeded", "complete", "completed", "finished", "done"]
+                    negative_patterns = ["unsuccessful", "incomplete", "failed", "error", "failure", 
+                                       "cancelled", "canceled", "timeout", "aborted", "terminated"]
+                    
+                    has_success = any(pattern in status_text for pattern in success_patterns)
+                    has_negative = any(pattern in status_text for pattern in negative_patterns)
+                    
+                    if has_success and not has_negative:
                         print("\nJob completed successfully!")
                         break
-                    elif "failed" in status_text or "failure" in status_text or "error" in status_text:
+                    
+                    # Check for failure patterns
+                    if has_negative:
                         print("\nJob failed!")
                         break
 
