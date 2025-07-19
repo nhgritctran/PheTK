@@ -121,9 +121,3 @@ For detailed usage examples and documentation for each module, please refer to t
 - **[Phecode module](docs/phecode-module.md)** - Map ICD codes to phecodes and generate counts
 - **[PheWAS module](docs/phewas-module.md)** - Run PheWAS analysis with logistic or Cox regression
 - **[Plot module](docs/plot-module.md)** - Generate Manhattan plots and other visualizations
-
-Each module documentation includes:
-- Detailed function descriptions
-- Code examples for different platforms
-- Parameter explanations
-- Best practices and tips

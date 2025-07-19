@@ -21,8 +21,8 @@ class Dsub:
         output_dict: dict = None,
         env_dict: dict = None,
         log_file_path: str = None,
-        machine_type: str = "n2d-highcpu-4",
-        disk_type: str = "pd-standard",
+        machine_type: str = "c2d-highcpu-4",
+        disk_type: str | None = None,
         boot_disk_size: int = 50,
         disk_size: int = 256,
         user_project: str = os.getenv("GOOGLE_PROJECT"),
@@ -100,7 +100,6 @@ class Dsub:
             f"--provider \"{self.provider}\"" + " " +
             f"--regions \"{self.region}\"" + " " +
             f"--machine-type \"{self.machine_type}\"" + " " +
-            f"--disk-type \"{self.disk_type}\"" + " " +
             f"--boot-disk-size {self.boot_disk_size}" + " " +
             f"--disk-size {self.disk_size}" + " " +
             f"--user-project \"{self.user_project}\"" + " " +
@@ -114,6 +113,11 @@ class Dsub:
             f"--name \"{self.job_name}\"" + " " +
             f"--env GOOGLE_PROJECT=\"{self.google_project}\"" + " "
         )
+
+        # add disk-type
+        disk_type_flag = ""
+        if self.disk_type is not None:
+            disk_type_flag = f"--disk-type \"{self.disk_type}\"" + " "
 
         # generate input flags
         input_flags = ""
@@ -137,7 +141,7 @@ class Dsub:
         job_script = f"--script {self.job_script_name}" + " "
 
         # combined script
-        script = base_script + env_flags + input_flags + output_flags + job_script
+        script = base_script + disk_type_flag + env_flags + input_flags + output_flags + job_script
 
         # add preemptible argument if used
         if self.preemptible:
