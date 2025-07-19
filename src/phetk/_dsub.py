@@ -240,17 +240,14 @@ class Dsub:
                 result = subprocess.run([check_status], shell=True, capture_output=True, text=True)
                 current_status = result.stdout.strip()
                 
-                # Update display (either when status changes or to show runtime)
-                if current_status != last_status or True:  # Always update to show runtime
-                    if is_notebook:
-                        # Clear previous output in notebook
-                        clear_output(wait=True)
+                # Always update runtime line (overwrite previous)
+                print(f"\rRefresh interval: {update_interval}s | Runtime: {runtime_str}", end="", flush=True)
+                
+                # Only print new status when it changes
+                if current_status != last_status:
                     current_time = datetime.datetime.now().strftime("%H:%M:%S")
-                    print(f"Refresh interval: {update_interval}s | Runtime: {runtime_str}")
-                    print(f"[{current_time}] Job Status:")
+                    print(f"\n[{current_time}] Job Status:")
                     print(current_status)
-                    if not is_notebook:
-                        print()  # Extra line only for CLI
                     last_status = current_status
                 
                 # Check for terminal states
