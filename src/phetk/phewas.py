@@ -17,6 +17,7 @@ import warnings
 from phetk import _utils
 
 
+
 class PheWAS:
 
     def __init__(
@@ -958,7 +959,7 @@ class PheWAS:
 
         result_dicts = []
         if parallelization == "serial":
-            for phecode in tqdm(self.phecode_list, dynamic_ncols=True, mininterval=0):
+            for phecode in tqdm(self.phecode_list, desc="Processed"):
                 result = self._regression(
                     phecode=phecode
                 )
@@ -974,7 +975,7 @@ class PheWAS:
                         phecode_batch
                     ) for phecode_batch in self.phecode_batch_list
                 ]
-                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), dynamic_ncols=True, mininterval=0):
+                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), desc="Processed"):
                     result_dicts.extend(job.result())
 
         elif parallelization == "multiprocessing":
@@ -988,7 +989,7 @@ class PheWAS:
                         phecode_batch
                     ) for phecode_batch in self.phecode_batch_list
                 ]
-                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), dynamic_ncols=True, mininterval=0):
+                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), desc="Processed"):
                     result_dicts.extend(job.result())
 
         else:
@@ -1043,7 +1044,7 @@ def main() -> None:
                         type=str, required=True, choices=["1.2", "X"],
                         help="Phecode version.")
     parser.add_argument("--method",
-                        type=str, required=False, choices=["logit", "cox"],
+                        type=str, required=False, default="logit", choices=["logit", "cox"],
                         help="Phecode regression method. Can be 'logit' or 'cox'.")
     parser.add_argument("--cox_start_date_col",
                         type=str, required=False,
@@ -1094,7 +1095,7 @@ def main() -> None:
     parser.add_argument("--parallelization",
                         type=str, required=False, default="multithreading")
     parser.add_argument("--batch_size",
-                        type=int, required=False, default=10, help="Batch size for parallelization.")
+                        type=int, required=False, default=1, help="Batch size for parallelization.")
     parser.add_argument("--suppress_warnings",
                         type=bool, required=False, default=True, help="Whether to suppress warnings.")
     args = parser.parse_args()
