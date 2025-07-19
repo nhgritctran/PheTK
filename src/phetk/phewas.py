@@ -958,7 +958,7 @@ class PheWAS:
 
         result_dicts = []
         if parallelization == "serial":
-            for phecode in tqdm(self.phecode_list, file=sys.stderr, dynamic_ncols=True):
+            for phecode in tqdm(self.phecode_list, dynamic_ncols=True, mininterval=0):
                 result = self._regression(
                     phecode=phecode
                 )
@@ -974,12 +974,12 @@ class PheWAS:
                         phecode_batch
                     ) for phecode_batch in self.phecode_batch_list
                 ]
-                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), file=sys.stderr, dynamic_ncols=True):
+                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), dynamic_ncols=True, mininterval=0):
                     result_dicts.extend(job.result())
 
         elif parallelization == "multiprocessing":
             if n_workers is None:
-                n_workers = os.cpu_count() - min(round(os.cpu_count()/4), 4)
+                n_workers = os.cpu_count() - 1
             mp_context = get_context("spawn")
             with ProcessPoolExecutor(max_workers=n_workers, mp_context=mp_context) as executor:
                 jobs = [
@@ -988,7 +988,7 @@ class PheWAS:
                         phecode_batch
                     ) for phecode_batch in self.phecode_batch_list
                 ]
-                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), file=sys.stderr, dynamic_ncols=True):
+                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), dynamic_ncols=True, mininterval=0):
                     result_dicts.extend(job.result())
 
         else:
