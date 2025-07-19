@@ -1272,12 +1272,12 @@ def main() -> None:
                         type=int, required=False, default=2,
                         help="Minimum number of phecode counts required to be considered as case.")
     parser.add_argument("--n_workers",
-                        type=int, required=False, default=round(os.cpu_count()*2/3),
+                        type=int, required=False, default=None,
                         help="Number of threads to use for parallel.")
     parser.add_argument("--output_file_path",
                         type=str, required=False, default="phewas_results.tsv")
     parser.add_argument("--parallelization",
-                        type=str, required=False, default="multithreading")
+                        type=str, required=False, default=None)
     parser.add_argument("--batch_size",
                         type=int, required=False, default=1, help="Batch size for parallelization.")
     parser.add_argument("--suppress_warnings",

@@ -61,7 +61,12 @@ class Cohort:
         # attributes for add_covariate method
         self.date_of_birth = False
         self.current_age = False
-        self.age_at_last_event = False
+        self.current_age_squared = False
+        self.current_age_cubed = False
+        self.year_of_birth = False
+        self.age_at_last_ehr_event = False
+        self.age_at_last_ehr_event_squared = False
+        self.age_at_last_ehr_event_cubed = False
         self.sex_at_birth = False
         self.last_ehr_date = False
         self.ehr_length = False
@@ -303,22 +308,32 @@ class Cohort:
         # GET COVARIATES
 
         # current_age
-        if self.current_age or self.date_of_birth:
+        if self.current_age or self.current_age_squared or self.current_age_cubed or self.date_of_birth or self.year_of_birth:
             current_age_df = _utils.polars_gbq(_queries.current_age_query(self.cdr, participant_ids))
             cols_to_keep = ["person_id"]
             if self.current_age:
                 cols_to_keep.append("current_age")
+            if self.current_age_squared:
+                cols_to_keep.append("current_age_squared")
+            if self.current_age_cubed:
+                cols_to_keep.append("current_age_cubed")
             if self.date_of_birth:
                 cols_to_keep.append("date_of_birth")
+            if self.year_of_birth:
+                cols_to_keep.append("year_of_birth")
             df = df.join(current_age_df[cols_to_keep], how="left", on="person_id")
 
-        # age_at_last_event, ehr_length, dx_code_occurrence_count, dx_condition_count
-        if (self.age_at_last_event or self.ehr_length or self.dx_code_occurrence_count
+        # age_at_last_ehr_event, ehr_length, dx_code_occurrence_count, dx_condition_count
+        if (self.age_at_last_ehr_event or self.age_at_last_ehr_event_squared or self.age_at_last_ehr_event_cubed or self.ehr_length or self.dx_code_occurrence_count
                 or self.dx_condition_count or self.last_ehr_date):
             temp_df = _utils.polars_gbq(_queries.ehr_dx_code_query(self.cdr, participant_ids))
             cols_to_keep = ["person_id"]
-            if self.age_at_last_event:
-                cols_to_keep.append("age_at_last_event")
+            if self.age_at_last_ehr_event:
+                cols_to_keep.append("age_at_last_ehr_event")
+            if self.age_at_last_ehr_event_squared:
+                cols_to_keep.append("age_at_last_ehr_event_squared")
+            if self.age_at_last_ehr_event_cubed:
+                cols_to_keep.append("age_at_last_ehr_event_cubed")
             if self.last_ehr_date:
                 cols_to_keep.append("last_ehr_date")
             if self.ehr_length:
@@ -350,10 +365,15 @@ class Cohort:
             self,
             cohort_file_path: str | None = None,
             date_of_birth: bool = False,
+            year_of_birth: bool = False,
             current_age: bool = False,
-            age_at_last_event: bool = False,
+            current_age_squared: bool = False,
+            current_age_cubed: bool = False,
             sex_at_birth: bool = True,
             last_ehr_date: bool = False,
+            age_at_last_ehr_event: bool = False,
+            age_at_last_ehr_event_squared: bool = False,
+            age_at_last_ehr_event_cubed: bool = False,
             ehr_length: bool = False,
             dx_code_occurrence_count: bool = False,
             dx_condition_count: bool = False,
@@ -374,14 +394,24 @@ class Cohort:
         :type cohort_file_path: str | None
         :param date_of_birth: Include participant date of birth.
         :type date_of_birth: bool
+        :param year_of_birth: Include year of birth for participants.
+        :type year_of_birth: bool
         :param current_age: Include current age of participants.
         :type current_age: bool
-        :param age_at_last_event: Include age at last diagnosis event in EHR.
-        :type age_at_last_event: bool
+        :param current_age_squared: Include current age squared for participants.
+        :type current_age_squared: bool
+        :param current_age_cubed: Include current age cubed for participants.
+        :type current_age_cubed: bool
         :param sex_at_birth: Include sex at birth from survey and observation data.
         :type sex_at_birth: bool
         :param last_ehr_date: Include date of last diagnosis event in EHR.
         :type last_ehr_date: bool
+        :param age_at_last_ehr_event: Include age at last diagnosis event in EHR.
+        :type age_at_last_ehr_event: bool
+        :param age_at_last_ehr_event_squared: Include age at last diagnosis event squared.
+        :type age_at_last_ehr_event_squared: bool
+        :param age_at_last_ehr_event_cubed: Include age at last diagnosis event cubed.
+        :type age_at_last_ehr_event_cubed: bool
         :param ehr_length: Include number of days that EHR record spans.
         :type ehr_length: bool
         :param dx_code_occurrence_count: Include count of diagnosis code occurrences on unique dates throughout EHR history.
@@ -404,7 +434,12 @@ class Cohort:
         # assign attributes
         self.date_of_birth = date_of_birth
         self.current_age = current_age
-        self.age_at_last_event = age_at_last_event
+        self.current_age_squared = current_age_squared
+        self.current_age_cubed = current_age_cubed
+        self.year_of_birth = year_of_birth
+        self.age_at_last_ehr_event = age_at_last_ehr_event
+        self.age_at_last_ehr_event_squared = age_at_last_ehr_event_squared
+        self.age_at_last_ehr_event_cubed = age_at_last_ehr_event_cubed
         self.sex_at_birth = sex_at_birth
         self.last_ehr_date = last_ehr_date
         self.ehr_length = ehr_length

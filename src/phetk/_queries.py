@@ -151,11 +151,22 @@ def current_age_query(ds, participant_ids):
         SELECT
             DISTINCT p.person_id, 
             EXTRACT(DATE FROM DATETIME(birth_datetime)) AS date_of_birth,
+            EXTRACT(YEAR FROM DATETIME(birth_datetime)) AS year_of_birth,
             DATETIME_DIFF(
                 IF(DATETIME(death_datetime) IS NULL, CURRENT_DATETIME(), DATETIME(death_datetime)), 
                 DATETIME(birth_datetime), 
                 DAY
-            )/365.2425 AS current_age
+            )/365.2425 AS current_age,
+            POW(DATETIME_DIFF(
+                IF(DATETIME(death_datetime) IS NULL, CURRENT_DATETIME(), DATETIME(death_datetime)), 
+                DATETIME(birth_datetime), 
+                DAY
+            )/365.2425, 2) AS current_age_squared,
+            POW(DATETIME_DIFF(
+                IF(DATETIME(death_datetime) IS NULL, CURRENT_DATETIME(), DATETIME(death_datetime)), 
+                DATETIME(birth_datetime), 
+                DAY
+            )/365.2425, 3) AS current_age_cubed
         FROM
             {ds}.person AS p
         LEFT JOIN
@@ -186,7 +197,9 @@ def ehr_dx_code_query(ds, participant_ids):
             (DATETIME_DIFF(MAX(date), MIN(date), DAY) + 1)/365.2425 AS ehr_length,
             COUNT(code) AS dx_code_occurrence_count,
             COUNT(DISTINCT(code)) AS dx_condition_count,
-            DATETIME_DIFF(MAX(date), MIN(birthday), DAY)/365.2425 AS age_at_last_event,
+            DATETIME_DIFF(MAX(date), MIN(birthday), DAY)/365.2425 AS age_at_last_ehr_event,
+            POW(DATETIME_DIFF(MAX(date), MIN(birthday), DAY)/365.2425, 2) AS age_at_last_ehr_event_squared,
+            POW(DATETIME_DIFF(MAX(date), MIN(birthday), DAY)/365.2425, 3) AS age_at_last_ehr_event_cubed
         FROM
             (
                 (
