@@ -10,6 +10,24 @@ import sys
 
 def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary",
                       data_has_both_sexes=True):
+    """
+    Generate mock cohort and phecode count data for PheWAS demonstration.
+    
+    Creates synthetic datasets with specified characteristics including target
+    phecode enrichment in cases, realistic phecode distributions, and customizable
+    variable types for testing PheWAS functionality.
+    
+    :param phecode: Target phecode to enrich in cases for demonstration.
+    :type phecode: str
+    :param cohort_size: Number of participants in generated cohort.
+    :type cohort_size: int
+    :param var_type: Type of independent variable ("binary" or "continuous").
+    :type var_type: str
+    :param data_has_both_sexes: Whether to include both sexes in generated data.
+    :type data_has_both_sexes: bool
+    :return: Saves example_cohort.tsv and example_phecode_counts.tsv files.
+    :rtype: None
+    """
     # load the phecode mapping file to get all phecodes
     phetk_dir = os.path.dirname(__file__)
     phecode_mapping_file_path = os.path.join(phetk_dir, "phecode")
@@ -87,6 +105,15 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary",
 
 
 def _prompt():
+    """
+    Display interactive prompt for demo progression with quit option.
+    
+    Pauses execution to allow user to read information and provides
+    option to exit demo at any point by typing "quit".
+    
+    :return: Continues execution or exits program based on user input.
+    :rtype: None
+    """
     print()
     answer = input("Press enter to continue...")
     if answer.lower() == "quit":
@@ -100,6 +127,24 @@ def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
         independent_variable_of_interest="independent_variable_of_interest",
         phecode_to_process="all",
         verbose=False):
+    """
+    Execute interactive PheWAS demonstration with mock data generation and analysis.
+    
+    Guides users through complete PheWAS workflow including data generation,
+    parameter configuration, analysis execution, and results interpretation
+    using synthetic datasets.
+    
+    :param covariates_cols: Column names to use as covariates in PheWAS analysis.
+    :type covariates_cols: tuple[str, ...]
+    :param independent_variable_of_interest: Name of primary variable for analysis.
+    :type independent_variable_of_interest: str
+    :param phecode_to_process: Specific phecodes to analyze or "all" for complete analysis.
+    :type phecode_to_process: str
+    :param verbose: Whether to display detailed progress information during analysis.
+    :type verbose: bool
+    :return: Completes demonstration workflow and displays results.
+    :rtype: None
+    """
     print("\033[1mHello and welcome to PheTK PheWAS demo.\033[0m")
     print("This is a quick demonstration to introduce a basic PheWAS analysis using mock data.",
           "It should take less than 1 minute running without pauses.",

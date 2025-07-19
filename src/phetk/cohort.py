@@ -16,11 +16,20 @@ class Cohort:
                  aou_omop_cdr: str | None = None,
                  gbq_dataset_id: str | None = None):
         """
-        :param platform: database; currently supports "aou" (All of Us) or "custom".
-        :param aou_db_version: int type, version of the database, e.g., 7 for All of Us CDR v7
-        :param aou_omop_cdr: cdr string value, define where to query OMOP data;
-                    if None, it will use current workspace CDR value, i.e., os.getenv("WORKSPACE_CDR")
+        Initialize Cohort object for generating genotype-based cohorts and adding covariates.
+        
+        Sets up database connections and validates platform-specific parameters for either
+        All of Us or custom database platforms. Configures database version and CDR paths
+        based on specified platform.
+        
+        :param platform: Database platform, currently supports "aou" (All of Us) or "custom".
+        :type platform: str
+        :param aou_db_version: Version of All of Us database (6-8), e.g., 7 for CDR v7.
+        :type aou_db_version: int
+        :param aou_omop_cdr: CDR string value defining where to query OMOP data, uses workspace CDR if None.
+        :type aou_omop_cdr: str | None
         :param gbq_dataset_id: Google BigQuery dataset ID for custom platforms.
+        :type gbq_dataset_id: str | None
         """
         self.aou_max_version = 8
 
@@ -71,16 +80,31 @@ class Cohort:
                     mt_path: str | None = None,
                     output_file_name: str | None = None) -> None:
         """
-        Generate cohort based on genotype of variant-of-interest
-        :param chromosome_number: chromosome number; int
-        :param genomic_position: genomic position; int;
-        :param ref_allele: the reference allele; str
-        :param alt_allele: alternative allele; str
-        :param gt_dict: genotypes to be labeled, e.g., {0: "0/0". 1: ["0/1", "1/1"]}; dict
-        :param reference_genome: defaults to "GRCh38"; accepts "GRCh37" or "GRCh38"
-        :param mt_path: path to population level Hail variant matrix table
-        :param output_file_name: name of tsv file output
-        :return: genotype cohort tsv file as well as polars dataframe object
+        Generate cohort based on genotype of variant of interest.
+        
+        Extracts genotype data from Hail matrix table for specified genomic variant,
+        filters participants by requested genotype groups, and creates cohort file
+        with person IDs and genotype labels. Handles multi-allelic sites and validates
+        variant existence in dataset.
+        
+        :param chromosome_number: Chromosome number for variant location.
+        :type chromosome_number: int
+        :param genomic_position: Genomic position of variant on chromosome.
+        :type genomic_position: int
+        :param ref_allele: Reference allele for variant.
+        :type ref_allele: str
+        :param alt_allele: Alternative allele for variant.
+        :type alt_allele: str
+        :param gt_dict: Genotype mapping dictionary, e.g., {0: "0/0", 1: ["0/1", "1/1"]}.
+        :type gt_dict: dict[int, str | list[str]] | None
+        :param reference_genome: Reference genome version, accepts "GRCh37" or "GRCh38".
+        :type reference_genome: str
+        :param mt_path: Path to population level Hail variant matrix table.
+        :type mt_path: str | None
+        :param output_file_name: Name of output TSV file.
+        :type output_file_name: str | None
+        :return: Creates genotype cohort TSV file with person IDs and genotype labels.
+        :rtype: None
         """
 
         # import hail and assign hail_init attribute if needed
@@ -217,10 +241,18 @@ class Cohort:
             participant_ids: tuple[int, ...]
     ) -> pl.DataFrame | None:
         """
-        This method specifically designed for All of Us database
-        :param user_project: proxy of the GOOGLE_PROJECT environment variable in the All of Us workbench
-        :param participant_ids: participant IDs of interest
-        :return: ancestry_preds data of a specific version as the polars dataframe object
+        Retrieve ancestry predictions and principal components for specified participants.
+        
+        Loads ancestry prediction data from All of Us CDR, extracts and formats
+        principal components (PCs) from pca_features, and filters for requested
+        participant IDs. Method specifically designed for All of Us database.
+        
+        :param user_project: Google Cloud project ID for requester pays access.
+        :type user_project: str
+        :param participant_ids: Participant IDs to retrieve ancestry data for.
+        :type participant_ids: tuple[int, ...]
+        :return: Ancestry predictions and PCs dataframe, or None if data unavailable.
+        :rtype: pl.DataFrame | None
         """
         n_pc = 16  # AoU specific
         if self.db_version in range(6, self.aou_max_version+1):
@@ -248,10 +280,16 @@ class Cohort:
             participant_ids: tuple[int, ...]
     ) -> pl.DataFrame:
         """
-        This method specifically designed for All of Us database
-        Core internal function to generate covariate data for a set of participant IDs
-        :param participant_ids: IDs of interest
-        :return: polars dataframe object
+        Generate covariate data for specified participant IDs.
+        
+        Core internal function that retrieves demographic, clinical, and genetic
+        covariates based on instance configuration. Queries All of Us database
+        for age, sex, EHR statistics, and ancestry data as requested.
+        
+        :param participant_ids: Participant IDs to retrieve covariates for.
+        :type participant_ids: tuple[int, ...]
+        :return: Dataframe containing requested covariates for participants.
+        :rtype: pl.DataFrame
         """
 
         # initial data prep
@@ -326,23 +364,42 @@ class Cohort:
             output_file_name: str | None = None
     ) -> None:
         """
-        This method is a proxy for covariate.get_covariates method
-        :param cohort_file_path: path to cohort csv or tsv file
-        :param date_of_birth: date of birth
-        :param current_age: age of participants as of today
-        :param age_at_last_event: age of participants at their last diagnosis event in EHR record
-        :param sex_at_birth: sex at birth from survey and observation
-        :param last_ehr_date: last diagnosis event in EHR record
-        :param ehr_length: number of days that EHR record spans
-        :param dx_code_occurrence_count: count of diagnosis code occurrences on unique dates,
-                                         including ICD9CM, ICD10CM & SNOMED, throughout participant EHR history
-        :param dx_condition_count: count of unique condition (dx code) throughout participant EHR history
-        :param genetic_ancestry: predicted ancestry based on sequencing data
-        :param first_n_pcs: number of first principal components to include
-        :param chunk_size: defaults to 10,000; number of IDs per thread
-        :param drop_nulls: defaults to False; drop rows having null values, i.e., participants without all covariates
-        :param output_file_name: name for output tsv file; can include ".tsv"
-        :return: tsv file and polars dataframe object
+        Add demographic, clinical, and genetic covariates to existing cohort.
+        
+        Retrieves specified covariates from database and merges with input cohort file.
+        Uses multi-threading for efficient processing of large cohorts. Supports
+        various demographic, EHR-derived, and genetic ancestry variables.
+        
+        :param cohort_file_path: Path to cohort CSV or TSV file containing person_id column.
+        :type cohort_file_path: str | None
+        :param date_of_birth: Include participant date of birth.
+        :type date_of_birth: bool
+        :param current_age: Include current age of participants.
+        :type current_age: bool
+        :param age_at_last_event: Include age at last diagnosis event in EHR.
+        :type age_at_last_event: bool
+        :param sex_at_birth: Include sex at birth from survey and observation data.
+        :type sex_at_birth: bool
+        :param last_ehr_date: Include date of last diagnosis event in EHR.
+        :type last_ehr_date: bool
+        :param ehr_length: Include number of days that EHR record spans.
+        :type ehr_length: bool
+        :param dx_code_occurrence_count: Include count of diagnosis code occurrences on unique dates throughout EHR history.
+        :type dx_code_occurrence_count: bool
+        :param dx_condition_count: Include count of unique diagnosis conditions throughout EHR history.
+        :type dx_condition_count: bool
+        :param genetic_ancestry: Include predicted ancestry based on sequencing data.
+        :type genetic_ancestry: bool
+        :param first_n_pcs: Number of first principal components to include (0 for none).
+        :type first_n_pcs: int
+        :param chunk_size: Number of participant IDs per processing thread.
+        :type chunk_size: int
+        :param drop_nulls: Whether to drop rows with null values.
+        :type drop_nulls: bool
+        :param output_file_name: Name for output TSV file, can include \".tsv\" extension.
+        :type output_file_name: str | None
+        :return: Creates enhanced cohort TSV file with requested covariates.
+        :rtype: None
         """
         # assign attributes
         self.date_of_birth = date_of_birth
