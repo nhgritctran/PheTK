@@ -38,6 +38,33 @@ class Dsub:
         custom_args: str = None,
         use_aou_docker_prefix: bool = True,
     ):
+        """
+        Initialize a Dsub instance for running jobs on Google Cloud Platform.
+        
+        :param docker_image: Name of the Docker image to use for the job
+        :param job_script_name: Path to the script file to execute in the job
+        :param job_name: Name for the job (auto-generated if None)
+        :param input_dict: Dictionary mapping input variable names to GCS paths
+        :param output_dict: Dictionary mapping output variable names to GCS paths
+        :param env_dict: Dictionary of environment variables to set in the job
+        :param log_file_path: Custom path for log files (auto-generated if None)
+        :param machine_type: GCP machine type to use for the job
+        :param disk_type: Type of disk to use (None for default)
+        :param boot_disk_size: Size of boot disk in GB
+        :param disk_size: Size of additional disk in GB
+        :param user_project: Google Cloud project for billing
+        :param project: Google Cloud project to run the job in
+        :param dsub_user_name: Username for dsub job identification
+        :param user_name: Username for job naming and identification
+        :param bucket: Google Cloud Storage bucket for logs and data
+        :param google_project: Google Cloud project ID
+        :param region: GCP region to run the job in
+        :param provider: Dsub provider to use (google-batch, google-v2, etc.)
+        :param preemptible: Whether to use preemptible instances
+        :param use_private_address: Whether to use private IP addresses
+        :param custom_args: Additional custom arguments for dsub command
+        :param use_aou_docker_prefix: Whether to prepend AoU artifact registry prefix
+        """
         # Standard attributes
         self.docker_image = docker_image
         self.job_script_name = job_script_name
@@ -89,6 +116,11 @@ class Dsub:
         self.job_stderr = self.log_file_path.replace(".log", "-stderr.log")
 
     def _dsub_script(self):
+        """
+        Generate the dsub command script with all configured parameters.
+        
+        :return: Complete dsub command as a string
+        """
 
         if self.use_aou_docker_prefix:
             aou_docker_prefix = os.getenv("ARTIFACT_REGISTRY_DOCKER_REPO")
@@ -161,6 +193,14 @@ class Dsub:
         return script
 
     def check_status(self, full=False, custom_args=None, streaming=False, update_interval=10):
+        """
+        Check the status of the submitted job using dstat command.
+        
+        :param full: Whether to show full detailed status information
+        :param custom_args: Additional custom arguments for dstat command
+        :param streaming: Whether to continuously monitor status with auto-refresh
+        :param update_interval: Seconds between status updates when streaming
+        """
 
         # base command
         check_status = (
@@ -184,22 +224,33 @@ class Dsub:
                 is_notebook = True
             except ImportError:
                 is_notebook = False
+                clear_output = None
 
             print(f"Refresh interval: {update_interval}s")
             print()
 
             last_status = ""
+            start_time = datetime.datetime.now()
             while True:
+                # Calculate runtime
+                runtime = datetime.datetime.now() - start_time
+                runtime_str = str(runtime).split('.')[0]  # Remove microseconds
+                
                 # Run command and capture output
                 result = subprocess.run([check_status], shell=True, capture_output=True, text=True)
                 current_status = result.stdout.strip()
                 
                 # Only update if status changed
                 if current_status != last_status:
+                    if is_notebook:
+                        # Clear previous output in notebook
+                        clear_output(wait=True)
                     current_time = datetime.datetime.now().strftime("%H:%M:%S")
-                    print(f"\n[{current_time}] Status update:")
+                    print(f"Refresh interval: {update_interval}s | Runtime: {runtime_str}")
+                    print(f"[{current_time}] Job Status:")
                     print(current_status)
-                    print()
+                    if not is_notebook:
+                        print()  # Extra line only for CLI
                     last_status = current_status
                 
                 # Check for terminal states
@@ -218,6 +269,12 @@ class Dsub:
             subprocess.run([check_status], shell=True)
 
     def view_log(self, log_type="stdout", n_lines=10):
+        """
+        View the job logs from Google Cloud Storage.
+        
+        :param log_type: Type of log to view ('stdout', 'stderr', or 'full')
+        :param n_lines: Number of lines to display from the log file
+        """
 
         tail = f" | head -n {n_lines}"
 
@@ -234,6 +291,11 @@ class Dsub:
         subprocess.run([full_command], shell=True)
 
     def kill(self):
+        """
+        Kill/cancel the running job using ddel command.
+        
+        Note: Requires that the job has been submitted and job_id is available.
+        """
 
         kill_job = (
             f"ddel --provider {self.provider} --project {self.project} --location {self.region}"
@@ -242,6 +304,12 @@ class Dsub:
         subprocess.run([kill_job], shell=True)
 
     def run(self, show_command=False, timeout=60):
+        """
+        Submit and run the dsub job on Google Cloud Platform.
+        
+        :param show_command: Whether to display the dsub command being executed
+        :param timeout: Maximum time in seconds to wait for job submission
+        """
         process = None
         try:
             process = subprocess.Popen(

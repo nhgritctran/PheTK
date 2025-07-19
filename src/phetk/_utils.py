@@ -156,8 +156,8 @@ def generate_chunk_queries(query_function, ds, id_list, chunk_size=1000):
 def polars_gbq_chunk(query_list):
     """
     This takes a list of queries as input and generates a final merged dataframe from them.
-    :param query_list: list of queries
-    :return: final merged polars dataframe
+    :param query_list: List of queries
+    :return: Final merged polars dataframe
     """
 
     print("Querying data...")
@@ -182,6 +182,12 @@ def polars_gbq_chunk(query_list):
     return final_result
 
 def detect_delimiter(file_path):
+    """
+    Detect delimiter (comma or tab) in a CSV/TSV file
+    Supports both local files and Google Cloud Storage paths
+    :param file_path: Path to the file (local or gs:// URL)
+    :return: Detected delimiter (',' or '\t')
+    """
     # Check if it's a GCP bucket path and if we're running in dsub environment
     if file_path.startswith('gs://'):
         # Check if we're in a dsub worker (the file might be locally mounted)
@@ -261,6 +267,11 @@ def detect_delimiter(file_path):
         sys.exit(1)
 
 def has_overlapping_values(d):
+    """
+    Check if any values in a dictionary have overlapping elements
+    :param d: Dictionary with values that can be single items or lists
+    :return: True if any values overlap, False otherwise
+    """
     # Convert all values to sets, handling both single items and lists
     sets = []
     for value in d.values():
@@ -277,6 +288,11 @@ def has_overlapping_values(d):
     return False
 
 def generate_sh_script(script_name, commands):
+    """
+    Generate an executable bash script with given commands
+    :param script_name: Name of the script file to create
+    :param commands: List of commands to include in the script
+    """
     with open(script_name, 'w') as f:
         f.write("#!/bin/bash\n")  # Shebang line for bash
         for command in commands:
@@ -286,3 +302,43 @@ def generate_sh_script(script_name, commands):
     os.chmod(script_name, 0o755)
 
     print(f"Generated script: {script_name}")
+
+def monitor_cpu_usage_link():
+    """
+    Generate and print a Google Cloud Console link for monitoring CPU utilization
+    Uses the GOOGLE_PROJECT environment variable to construct the link
+    """
+    cpu_utilization = (
+        f'https://console.cloud.google.com/monitoring/metrics-explorer?authuser=0&project='
+        f'{os.getenv("GOOGLE_PROJECT")}&pageState=%7B%22xyChart%22:%7B%22dataSets%22:%5B%7B%22timeSeriesFilter%22:'
+        f'%7B%22filter%22:%22metric.type%3D%5C%22compute.googleapis.com%2Finstance%2Fcpu%2Futilization%5C%22%20resource.'
+        f'type%3D%5C%22gce_instance%5C%22%22,%22minAlignmentPeriod%22:%2260s%22,%22aggregations%22:'
+        f'%5B%7B%22perSeriesAligner%22:%22ALIGN_MEAN%22,%22crossSeriesReducer%22:'
+        f'%22REDUCE_NONE%22,%22alignmentPeriod%22:%2260s%22,%22groupByFields%22:'
+        f'%5B%5D%7D,%7B%22crossSeriesReducer%22:%22REDUCE_NONE%22,%22alignmentPeriod%22:'
+        f'%2260s%22,%22groupByFields%22:%5B%5D%7D%5D%7D,%22targetAxis%22:%22Y1%22,%22plotType%22:'
+        f'%22LINE%22%7D%5D,%22options%22:%7B%22mode%22:%22COLOR%22%7D,%22constantLines%22:'
+        f'%5B%5D,%22timeshiftDuration%22:%220s%22,%22y1Axis%22:%7B%22label%22:%22y1Axis%22,%22scale%22:'
+        f'%22LINEAR%22%7D%7D,%22isAutoRefresh%22:true,%22timeSelection%22:%7B%22timeRange%22:%221h%22%7D%7D'
+    )
+    print(f'To see the CPU utilization of your Cloud analysis environment, click on this link {cpu_utilization}')
+
+
+def print_banner(text: str, char: str = "~") -> None:
+    """
+    Print a centered banner with dynamic width based on terminal size
+    :param text: Text to display in the banner
+    :param char: Character to use for the banner (default: ~)
+    """
+    try:
+        terminal_width = os.get_terminal_size().columns
+    except (OSError, AttributeError):
+        # Fallback for notebooks or environments without terminal
+        terminal_width = 80
+    
+    # Calculate padding around text (4 spaces on each side)
+    padding = max(0, (terminal_width - len(text) - 8) // 2)
+    remaining = terminal_width - padding - len(text) - 8
+    
+    banner = char * padding + "    " + text + "    " + char * remaining
+    print(banner)
