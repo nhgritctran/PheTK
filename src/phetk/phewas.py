@@ -144,8 +144,8 @@ class PheWAS:
                 (cox_phecode_observed_time_col is None)
         ):
             print()
-            print("Warning: Both cox_observed_time_col and cox_phecode_observed_time_col are required for Cox "
-                  "regression.")
+            print("Warning: cox_start_date_col, cox_control_observed_time_col, and cox_phecode_observed_time_col are all required for Cox regression.")
+            print("Please provide these parameters when using --method cox")
             print()
             sys.exit(1)
         else:
@@ -958,7 +958,7 @@ class PheWAS:
 
         result_dicts = []
         if parallelization == "serial":
-            for phecode in tqdm(self.phecode_list):
+            for phecode in tqdm(self.phecode_list, file=sys.stderr, dynamic_ncols=True):
                 result = self._regression(
                     phecode=phecode
                 )
@@ -974,7 +974,7 @@ class PheWAS:
                         phecode_batch
                     ) for phecode_batch in self.phecode_batch_list
                 ]
-                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list)):
+                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), file=sys.stderr, dynamic_ncols=True):
                     result_dicts.extend(job.result())
 
         elif parallelization == "multiprocessing":
@@ -988,7 +988,7 @@ class PheWAS:
                         phecode_batch
                     ) for phecode_batch in self.phecode_batch_list
                 ]
-                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list)):
+                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), file=sys.stderr, dynamic_ncols=True):
                     result_dicts.extend(job.result())
 
         else:
@@ -1058,7 +1058,7 @@ def main() -> None:
                         type=str, required=False,
                         help="Stratification for cox regression.")
     parser.add_argument("--cox_fallback_step_size",
-                        type=float, required=False,
+                        type=float, required=False, default=0.1,
                         help="Cox fallback step size used when regression fails to converge with the default step size of 0.95.")
     parser.add_argument("--covariates",
                         nargs="+",
@@ -1071,7 +1071,7 @@ def main() -> None:
                         type=str, required=True,
                         help="Sex at birth column.")
     parser.add_argument("--male_as_one",
-                        type=bool, required=False,
+                        type=bool, required=False, default=True,
                         help="Whether male was assigned as 1 in data.")
     parser.add_argument("--phecode_to_process",
                         nargs="+",
