@@ -240,8 +240,8 @@ class Dsub:
                 result = subprocess.run([check_status], shell=True, capture_output=True, text=True)
                 current_status = result.stdout.strip()
                 
-                # Only update if status changed
-                if current_status != last_status:
+                # Update display (either when status changes or to show runtime)
+                if current_status != last_status or True:  # Always update to show runtime
                     if is_notebook:
                         # Clear previous output in notebook
                         clear_output(wait=True)

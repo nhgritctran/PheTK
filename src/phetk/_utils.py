@@ -338,7 +338,7 @@ def print_banner(text: str, char: str = "~") -> None:
     
     # Calculate padding around text (4 spaces on each side)
     padding = max(0, (terminal_width - len(text) - 8) // 2)
-    remaining = terminal_width - padding - len(text) - 8
+    remaining = max(0, terminal_width - padding - len(text) - 8)
     
     banner = char * padding + "    " + text + "    " + char * remaining
     print(banner)

@@ -1121,6 +1121,11 @@ class PheWAS:
             elif self.method == "cox":
                 parallelization = "multiprocessing"
 
+        _utils.print_banner("Running PheWAS")
+        print("Parallelization method:", parallelization)
+        print("Number of workers:", n_workers if n_workers else "auto")
+        print()
+
         result_dicts = []
         if parallelization == "serial":
             for phecode in tqdm(self.phecode_list, desc="Processed"):
@@ -1158,11 +1163,6 @@ class PheWAS:
 
         else:
             return "Invalid parallelization method! Select \"multithreading\", \"multiprocessing\", or \"serial\"."
-
-        print("Parallelization method:", parallelization)
-        print("Number of workers:", n_workers)
-        print()
-        _utils.print_banner("Running PheWAS")
 
         result_dicts = [result for result in result_dicts if result is not None]
 
