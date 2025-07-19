@@ -114,6 +114,7 @@ class PheWAS:
 
         # Even when running with dsub, the instantiation steps below will still be run as a good check for input issue(s)
         _utils.print_banner("Creating PheWAS Object")
+        print()
 
         # Load the phecode mapping file by version or by custom path
         self.phecode_df = _utils.get_phecode_mapping_table(
@@ -1122,9 +1123,8 @@ class PheWAS:
                 parallelization = "multiprocessing"
 
         _utils.print_banner("Running PheWAS")
-        print("Parallelization method:", parallelization)
-        print("Number of workers:", n_workers if n_workers else "auto")
         print()
+        print("Parallelization method:", parallelization)
 
         result_dicts = []
         if parallelization == "serial":
@@ -1137,6 +1137,8 @@ class PheWAS:
         elif parallelization == "multithreading":
             if n_workers is None:
                 n_workers = round(os.cpu_count()*2/3)
+            print("Number of workers:", n_workers)
+            print()
             with ThreadPoolExecutor(max_workers=n_workers) as executor:
                 jobs = [
                     executor.submit(
@@ -1150,6 +1152,8 @@ class PheWAS:
         elif parallelization == "multiprocessing":
             if n_workers is None:
                 n_workers = os.cpu_count() - 1
+            print("Number of workers:", n_workers)
+            print()
             mp_context = get_context("spawn")
             with ProcessPoolExecutor(max_workers=n_workers, mp_context=mp_context) as executor:
                 jobs = [
@@ -1175,6 +1179,7 @@ class PheWAS:
                                           on="phecode").rename({"sex": "phecode_sex_restriction"})
 
             _utils.print_banner("PheWAS Completed")
+            print()
 
             self.tested_count = len(self.results)
             self.not_tested_count = len(self.phecode_list) - self.tested_count
