@@ -3,6 +3,7 @@ from google.cloud import bigquery
 from itertools import combinations
 from tqdm import tqdm
 
+import argparse
 import csv
 import os
 import polars as pl
@@ -10,6 +11,25 @@ import psutil
 import pyarrow as pa
 import sys
 import time
+
+
+def str_to_bool(v) -> bool:
+    """
+    Convert string to boolean for argparse.
+    
+    :param v: Input value to convert to boolean
+    :type v: str | bool
+    :return: Boolean value
+    :rtype: bool
+    """
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 def to_polars(df) -> pl.DataFrame:

@@ -1335,14 +1335,14 @@ def main() -> None:
                         type=str, required=True,
                         help="Sex at birth column.")
     parser.add_argument("--male_as_one",
-                        type=bool, required=False, default=True,
+                        type=_utils.str_to_bool, required=False, default=True,
                         help="Whether male was assigned as 1 in data.")
     parser.add_argument("--phecode_to_process",
                         nargs="+",
                         type=str, required=False, default=None,
                         help="List of specific phecodes to use in PheWAS analysis.")
     parser.add_argument("--use_exclusion",
-                        type=bool, required=False, default=False,
+                        type=_utils.str_to_bool, required=False, default=False,
                         help="Whether to use phecode exclusions. Only applicable for phecode 1.2.")
     parser.add_argument("--min_cases",
                         type=int, required=False, default=50,
@@ -1360,9 +1360,9 @@ def main() -> None:
     parser.add_argument("--batch_size",
                         type=int, required=False, default=1, help="Batch size for parallelization.")
     parser.add_argument("--suppress_warnings",
-                        type=bool, required=False, default=True, help="Whether to suppress warnings.")
+                        type=_utils.str_to_bool, required=False, default=True, help="Whether to suppress warnings.")
     parser.add_argument("--verbose",
-                        type=bool, required=False, default=False, help="Whether to print verbose progress information.")
+                        type=_utils.str_to_bool, required=False, default=False, help="Whether to print verbose progress information.")
     args = parser.parse_args()
 
     # Run PheWAS
