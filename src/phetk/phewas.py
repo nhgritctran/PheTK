@@ -1,5 +1,6 @@
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from datetime import datetime
+from io import StringIO
 from lifelines import CoxPHFitter, utils as u
 from multiprocessing import get_context
 from tqdm import tqdm
@@ -649,9 +650,9 @@ class PheWAS:
         :rtype: dict[str, float | str]
         """
         results_as_html = result.summary().tables[0].as_html()
-        converged = pd.read_html(results_as_html)[0].iloc[5, 1]
+        converged = pd.read_html(StringIO(results_as_html))[0].iloc[5, 1]
         results_as_html = result.summary().tables[1].as_html()
-        res = pd.read_html(results_as_html, header=0, index_col=0)[0]
+        res = pd.read_html(StringIO(results_as_html), header=0, index_col=0)[0]
 
         p_value = result.pvalues[var_of_interest_index]
         neg_log_p_value = -np.log10(p_value)
@@ -921,7 +922,9 @@ class PheWAS:
             # Directory not empty or other issue - not critical
             if self.verbose:
                 print(f"Note: Temp directory {self.temp_dir} not removed (may contain other files)")
-        
+
+        print()
+
         # Convert to list of dictionaries for compatibility
         return result_df.to_dicts()
 
