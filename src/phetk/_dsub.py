@@ -225,9 +225,6 @@ class Dsub:
         custom_args: str | None = None, 
         streaming: bool = False, 
         update_interval: int = 10,
-        kill_on_idle: bool = False,
-        idle_time: int = 300,
-        idle_cpu_threshold: float = 5.0,
         verbose: bool = False
     ) -> None:
         """
@@ -241,12 +238,6 @@ class Dsub:
         :type streaming: bool
         :param update_interval: Seconds between status updates when streaming
         :type update_interval: int
-        :param kill_on_idle: Whether to automatically kill job when CPU is idle
-        :type kill_on_idle: bool
-        :param idle_time: Time in seconds CPU must stay below threshold before killing
-        :type idle_time: int
-        :param idle_cpu_threshold: CPU usage threshold percentage for idle detection
-        :type idle_cpu_threshold: float
         :param verbose: Whether to print debug information for status detection
         :type verbose: bool
         :return: None
@@ -276,13 +267,6 @@ class Dsub:
                 pass
 
             last_status = ""
-            status_lines_count = 0
-            
-            # CPU monitoring variables
-            low_cpu_start_time = None
-            if kill_on_idle:
-                print(f"CPU monitoring enabled: will kill job if CPU < {idle_cpu_threshold}% for {idle_time}s")
-                print()
             
             # Print initial runtime line
             print(f"Refresh interval: {update_interval}s | Runtime: Initializing...", end="", flush=True)
@@ -300,28 +284,24 @@ class Dsub:
                 current_status = result.stdout.strip()
                 
                 # Check for empty status (worker shutdown)
-                if not current_status:
-                    print("\nNo job status found - worker has likely shut down")
-                    print()
+                if not current_status and self.dsub_start_time is not None and (datetime.datetime.now() - self.dsub_start_time).total_seconds() > 60:
+                    print("\r" + " " * 80)  # Clear current line
+                    print("\rNo job status found - worker has likely shut down")
                     break
                 
-                # Move cursor to beginning of first line and update runtime
-                print(f"\r\033[{status_lines_count}A\rRefresh interval: {update_interval}s | Runtime: {runtime_str}", end="", flush=True)
-                print()
-                
-                # Move cursor back down to append new status if needed
-                if status_lines_count > 0:
-                    print(f"\033[{status_lines_count}B", end="", flush=True)
-                
-                # Only print new status when it changes (append below runtime line)
+                # Check if status changed
                 if current_status != last_status:
+                    # Clear current runtime line and replace with new status
+                    print("\r" + " " * 80)  # Clear current line
                     current_time = datetime.datetime.now().strftime("%H:%M:%S")
-                    new_status_text = f"\n\n[{current_time}] Job Status:\n{current_status}"
-                    print(new_status_text)
+                    print(f"\r[{current_time}] Job Status:\n{current_status}")
                     print()
-                    # Count lines in the new status for cursor positioning
-                    status_lines_count = new_status_text.count('\n')
                     last_status = current_status
+                    # Print new runtime line below the status
+                    print(f"Refresh interval: {update_interval}s | Runtime: {runtime_str}", end="", flush=True)
+                else:
+                    # Update runtime line in place
+                    print(f"\rRefresh interval: {update_interval}s | Runtime: {runtime_str}", end="", flush=True)
                 
                 # Check for terminal states
                 if result.stdout:
@@ -329,18 +309,19 @@ class Dsub:
                     
                     # Check for success patterns
                     success_patterns = ["success", "succeeded", "complete", "completed", "finished", "done"]
-                    negative_patterns = ["unsuccessful", "incomplete", "failed", "error", "failure", 
-                                       "cancelled", "canceled", "timeout", "aborted", "terminated"]
+                    failed_patterns = ["unsuccessful", "incomplete", "failed", "error", "failure", "timeout"]
+                    canceled_patterns = ["aborted", "terminated", "cancelled", "canceled", "delete", "deleted"]
                     
                     has_success = any(pattern in status_text for pattern in success_patterns)
-                    has_negative = any(pattern in status_text for pattern in negative_patterns)
+                    has_failed = any(pattern in status_text for pattern in failed_patterns)
+                    has_canceled = any(pattern in status_text for pattern in canceled_patterns)
                     
                     if verbose:
                         print(f"\nDEBUG - Raw status text: '{result.stdout}'")
-                        print(f"DEBUG - has_success: {has_success}, has_negative: {has_negative}")
+                        print(f"DEBUG - has_success: {has_success}, has_failed: {has_failed}, has_canceled: {has_canceled}")
                         print()
                     
-                    if has_success and not has_negative:
+                    if has_success:
                         self.dsub_end_time = datetime.datetime.now()
                         if self.dsub_start_time is not None:
                             self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
@@ -349,30 +330,20 @@ class Dsub:
                         break
                     
                     # Check for failure patterns
-                    if has_negative:
+                    if has_failed:
                         self.dsub_end_time = datetime.datetime.now()
                         if self.dsub_start_time is not None:
                             self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
                         print("\nJob failed!")
                         print()
                         break
-
-                # CPU monitoring check (if enabled)
-                if kill_on_idle:
-                    should_kill, low_cpu_start_time = _utils.check_cpu_idle(
-                        cpu_threshold=idle_cpu_threshold,
-                        low_cpu_start_time=low_cpu_start_time,
-                        time_threshold=idle_time,
-                        verbose=True
-                    )
-                    if should_kill:
-                        print(f"Killing job...")
-                        self.kill()
-                        # Set end time and calculate runtime when job is killed
+                    
+                    # Check for canceled/deleted patterns
+                    if has_canceled:
                         self.dsub_end_time = datetime.datetime.now()
                         if self.dsub_start_time is not None:
                             self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
-                        print("Job killed due to idle CPU!")
+                        print("\nJob was canceled or deleted!")
                         print()
                         break
 
