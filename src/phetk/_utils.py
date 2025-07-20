@@ -524,21 +524,11 @@ def sample_tsv_file(file_path: str, sample_ratio: float = 0.1) -> None:
     # Detect delimiter
     delimiter = detect_delimiter(file_path)
     
-    # Check if phecode is one of the columns for schema override
-    schema_overrides = {}
-    with open(file_path, 'r') as f:
-        header = f.readline().strip()
-        columns = header.split(delimiter)
-        for col in columns:
-            if 'phecode' in col.lower():
-                schema_overrides[col] = pl.Utf8
-    
     # Read the file with Polars
     df = pl.read_csv(
         file_path, 
         separator=delimiter, 
-        try_parse_dates=True,
-        schema_overrides=schema_overrides if schema_overrides else None
+        try_parse_dates=True
     )
     total_rows = len(df)
     
