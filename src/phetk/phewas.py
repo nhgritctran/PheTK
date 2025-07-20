@@ -1092,6 +1092,15 @@ class PheWAS:
             use_aou_docker_prefix=use_aou_docker_prefix,
         )
         self.dsub.run(show_command=show_dsub_command)
+        
+        # Save dsub instance as pickle for later access
+        dsub_pickle_path = f"dsub_{self.dsub.job_name}.pkl"
+        _utils.save_pickle_object(self.dsub, dsub_pickle_path)
+        print()
+        print(f"Dsub instance saved as '{dsub_pickle_path}'")
+        print(f"To load and monitor this job later:")
+        print("from phetk._utils import load_dsub_instance")
+        print(f"dsub_instance = load_dsub_instance('{dsub_pickle_path}')")
 
     # noinspection PyUnreachableCode
     def run(
@@ -1154,16 +1163,29 @@ class PheWAS:
                 n_workers = os.cpu_count() - 1
             print("Number of workers:", n_workers)
             print()
-            mp_context = get_context("spawn")
-            with ProcessPoolExecutor(max_workers=n_workers, mp_context=mp_context) as executor:
-                jobs = [
-                    executor.submit(
-                        self._batch_regression,
-                        phecode_batch
-                    ) for phecode_batch in self.phecode_batch_list
-                ]
-                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), desc="Processed"):
-                    result_dicts.extend(job.result())
+            print("Initializing multiprocessing context...")
+            try:
+                mp_context = get_context("spawn")
+                print("Creating ProcessPoolExecutor...")
+                with ProcessPoolExecutor(max_workers=n_workers, mp_context=mp_context) as executor:
+                    print("Submitting jobs to workers...")
+                    jobs = [
+                        executor.submit(
+                            self._batch_regression,
+                            phecode_batch
+                        ) for phecode_batch in self.phecode_batch_list
+                    ]
+                    print(f"Submitted {len(jobs)} jobs. Processing results...")
+                    for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), desc="Processed"):
+                        result_dicts.extend(job.result())
+                print("Multiprocessing completed successfully.")
+            except Exception as e:
+                print(f"Error in multiprocessing: {e}")
+                print("Falling back to serial processing...")
+                for phecode in tqdm(self.phecode_list, desc="Processed"):
+                    result = self._regression(phecode=phecode)
+                    if result is not None:
+                        result_dicts.append(result)
 
         else:
             return "Invalid parallelization method! Select \"multithreading\", \"multiprocessing\", or \"serial\"."

@@ -342,3 +342,42 @@ def print_banner(text: str, char: str = "~") -> None:
     
     banner = char * padding + "    " + text + "    " + char * remaining
     print(banner)
+
+
+def save_pickle_object(obj, file_path: str) -> None:
+    """
+    Save a Python object as a pickle file
+    :param obj: Python object to save
+    :param file_path: Path where to save the pickle file
+    """
+    import pickle
+    
+    with open(file_path, "wb") as f:
+        pickle.dump(obj, f)
+
+
+def load_pickle_object(file_path: str):
+    """
+    Load a Python object from a pickle file
+    :param file_path: Path to the pickle file to load
+    :return: Loaded Python object
+    """
+    import pickle
+    
+    with open(file_path, "rb") as f:
+        return pickle.load(f)
+
+
+def load_dsub_instance(pickle_file_path: str):
+    """
+    Load a previously saved dsub instance from pickle file
+    :param pickle_file_path: Path to the pickle file containing saved dsub instance
+    :return: Loaded dsub instance with all methods available
+    """
+    dsub_instance = load_pickle_object(pickle_file_path)
+    print(f"Dsub instance loaded from '{pickle_file_path}'")
+    print(f"Job ID: {dsub_instance.job_id}")
+    print(f"Job Name: {dsub_instance.job_name}")
+    print("Use dsub_instance.check_status(streaming=True) to monitor job progress")
+    print("Available methods: check_status(), view_log(), kill()")
+    return dsub_instance
