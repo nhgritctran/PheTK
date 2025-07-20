@@ -267,11 +267,14 @@ class Dsub:
                 pass
 
             last_status = ""
+            last_check_time = 0
             
             # Print initial runtime line
             print(f"Refresh interval: {update_interval}s | Runtime: Initializing...", end="", flush=True)
             
             while True:
+                current_time = time.time()
+                
                 # Calculate runtime based on dsub job start time
                 if self.dsub_start_time is not None:
                     runtime = datetime.datetime.now() - self.dsub_start_time
@@ -279,88 +282,98 @@ class Dsub:
                 else:
                     runtime_str = "Unknown (job not started)"
                 
-                # Run command and capture output
-                result = subprocess.run([check_status], shell=True, capture_output=True, text=True)
-                current_status = result.stdout.strip()
+                # Check status only at specified intervals
+                if current_time - last_check_time >= update_interval:
+                    last_check_time = current_time
+                    
+                    # Run command and capture output
+                    result = subprocess.run([check_status], shell=True, capture_output=True, text=True)
+                    current_status = result.stdout.strip()
 
-                # Check for terminal states using full status
-                if result.stdout:
-                    # Get full status to check actual job status line
-                    full_status_cmd = check_status + " --full"
-                    full_result = subprocess.run([full_status_cmd], shell=True, capture_output=True, text=True)
-
-                    # Look for status line in full output
+                    # Check for terminal states using full status
                     status_value = ""
-                    if full_result.stdout:
-                        for line in full_result.stdout.split('\n'):
-                            if line.strip().lower().startswith('status:'):
-                                status_value = line.split(':', 1)[1].strip().lower()
+                    if result.stdout:
+                        # Get full status to check actual job status line
+                        full_status_cmd = check_status + " --full"
+                        full_result = subprocess.run([full_status_cmd], shell=True, capture_output=True, text=True)
+
+                        # Look for status line in full output
+                        if full_result.stdout:
+                            for line in full_result.stdout.split('\n'):
+                                if line.strip().lower().startswith('status:'):
+                                    status_value = line.split(':', 1)[1].strip().lower()
+                                    break
+
+                        if status_value:
+                            # Check for success patterns
+                            success_patterns = ["success", "succeeded", "complete", "completed", "finished", "done"]
+                            failed_patterns = ["unsuccessful", "incomplete", "failed", "error", "failure", "timeout"]
+                            canceled_patterns = ["aborted", "terminated", "cancelled", "canceled", "delete", "deleted"]
+
+                            has_success = any(pattern in status_value for pattern in success_patterns)
+                            has_failed = any(pattern in status_value for pattern in failed_patterns)
+                            has_canceled = any(pattern in status_value for pattern in canceled_patterns)
+
+                            if verbose:
+                                print(f"\nDEBUG - Status value: '{status_value}'")
+                                print(
+                                    f"DEBUG - has_success: {has_success}, has_failed: {has_failed}, has_canceled: {has_canceled}")
+                                print()
+
+                            if has_success:
+                                self.dsub_end_time = datetime.datetime.now()
+                                if self.dsub_start_time is not None:
+                                    self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
+                                print()
+                                print("\nJob completed successfully!")
+                                print()
                                 break
 
-                    if status_value:
-                        # Check for success patterns
-                        success_patterns = ["success", "succeeded", "complete", "completed", "finished", "done"]
-                        failed_patterns = ["unsuccessful", "incomplete", "failed", "error", "failure", "timeout"]
-                        canceled_patterns = ["aborted", "terminated", "cancelled", "canceled", "delete", "deleted"]
+                            # Check for failure patterns
+                            if has_failed:
+                                self.dsub_end_time = datetime.datetime.now()
+                                if self.dsub_start_time is not None:
+                                    self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
+                                print()
+                                print("\nJob failed!")
+                                print()
+                                break
 
-                        has_success = any(pattern in status_value for pattern in success_patterns)
-                        has_failed = any(pattern in status_value for pattern in failed_patterns)
-                        has_canceled = any(pattern in status_value for pattern in canceled_patterns)
-
-                        if verbose:
-                            print(f"\nDEBUG - Status value: '{status_value}'")
-                            print(
-                                f"DEBUG - has_success: {has_success}, has_failed: {has_failed}, has_canceled: {has_canceled}")
-                            print()
-
-                        if has_success:
-                            self.dsub_end_time = datetime.datetime.now()
-                            if self.dsub_start_time is not None:
-                                self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
-                            print("\nJob completed successfully!")
-                            print()
-                            break
-
-                        # Check for failure patterns
-                        if has_failed:
-                            self.dsub_end_time = datetime.datetime.now()
-                            if self.dsub_start_time is not None:
-                                self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
-                            print("\nJob failed!")
-                            print()
-                            break
-
-                        # Check for canceled/deleted patterns
-                        if has_canceled:
-                            self.dsub_end_time = datetime.datetime.now()
-                            if self.dsub_start_time is not None:
-                                self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
-                            print("\nJob was canceled or deleted!")
-                            print()
-                            break
-                
-                # Check for empty status (worker shutdown)
-                if not current_status and self.dsub_start_time is not None and (datetime.datetime.now() - self.dsub_start_time).total_seconds() > 60:
-                    print("\r" + " " * 80)  # Clear current line
-                    print("\rNo job status found - worker has likely shut down")
-                    break
-                
-                # Check if status changed
-                if current_status != last_status:
-                    # Clear current runtime line and replace with new status
-                    print("\r" + " " * 80)  # Clear current line
-                    current_time = datetime.datetime.now().strftime("%H:%M:%S")
-                    print(f"\r[{current_time}] Job Status: {status_value}\n{current_status}")
-                    print()
-                    last_status = current_status
-                    # Print new runtime line below the status
-                    print(f"Refresh interval: {update_interval}s | Runtime: {runtime_str}", end="", flush=True)
+                            # Check for canceled/deleted patterns
+                            if has_canceled:
+                                self.dsub_end_time = datetime.datetime.now()
+                                if self.dsub_start_time is not None:
+                                    self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
+                                print()
+                                print("\nJob was canceled or deleted!")
+                                print()
+                                break
+                    
+                    # Check for empty status (worker shutdown)
+                    if not current_status and self.dsub_start_time is not None and (datetime.datetime.now() - self.dsub_start_time).total_seconds() > 60:
+                        print("\r" + " " * 80)  # Clear current line
+                        print("\rNo job status found - worker has likely shut down")
+                        break
+                    
+                    # Check if status changed
+                    if current_status != last_status:
+                        # Clear current runtime line and replace with new status
+                        print("\r" + " " * 80)  # Clear current line
+                        current_time_str = datetime.datetime.now().strftime("%H:%M:%S")
+                        print(f"\r[{current_time_str}] Job Status: {status_value.upper()}\n{current_status}")
+                        print()
+                        last_status = current_status
+                        # Print new runtime line below the status
+                        print(f"Refresh interval: {update_interval}s | Runtime: {runtime_str}", end="", flush=True)
+                    else:
+                        # Update runtime line in place
+                        print(f"\rRefresh interval: {update_interval}s | Runtime: {runtime_str}", end="", flush=True)
                 else:
-                    # Update runtime line in place
+                    # Just update runtime display every second
                     print(f"\rRefresh interval: {update_interval}s | Runtime: {runtime_str}", end="", flush=True)
 
-                # Wait
-                time.sleep(update_interval)
+                # Sleep for 1 second to create smooth runtime updates
+                time.sleep(1)
         else:
             subprocess.run([check_status], shell=True)
 
