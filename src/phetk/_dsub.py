@@ -114,6 +114,9 @@ class Dsub:
         self.job_id = ""
         self.job_stdout = self.log_file_path.replace(".log", "-stdout.log")
         self.job_stderr = self.log_file_path.replace(".log", "-stderr.log")
+        self.dsub_start_time = None
+        self.dsub_end_time = None
+        self.dsub_runtime = None
 
     def _dsub_script(self):
         """
@@ -226,24 +229,32 @@ class Dsub:
                 is_notebook = False
                 clear_output = None
 
-            print(f"Refresh interval: {update_interval}s")
-            print()
-
             last_status = ""
-            start_time = datetime.datetime.now()
+            status_printed = False
+            
             while True:
-                # Calculate runtime
-                runtime = datetime.datetime.now() - start_time
-                runtime_str = str(runtime).split('.')[0]  # Remove microseconds
+                # Calculate runtime based on dsub job start time
+                if self.dsub_start_time is not None:
+                    runtime = datetime.datetime.now() - self.dsub_start_time
+                    runtime_str = str(runtime).split('.')[0]  # Remove microseconds
+                else:
+                    runtime_str = "Unknown (job not started)"
                 
                 # Run command and capture output
                 result = subprocess.run([check_status], shell=True, capture_output=True, text=True)
                 current_status = result.stdout.strip()
                 
-                # Always update runtime line (overwrite previous)
-                print(f"\rRefresh interval: {update_interval}s | Runtime: {runtime_str}", end="", flush=True)
+                # Always update runtime line (overwrite current line)
+                if status_printed:
+                    # If we've printed status before, just update the runtime on current line
+                    print(f"\rRefresh interval: {update_interval}s | Runtime: {runtime_str}", end="", flush=True)
+                else:
+                    # First time, print runtime normally
+                    print(f"Refresh interval: {update_interval}s | Runtime: {runtime_str}")
+                    status_printed = True
+                print()
                 
-                # Only print new status when it changes
+                # Only print new status when it changes (append below runtime line)
                 if current_status != last_status:
                     current_time = datetime.datetime.now().strftime("%H:%M:%S")
                     print(f"\n[{current_time}] Job Status:")
@@ -263,11 +274,17 @@ class Dsub:
                     has_negative = any(pattern in status_text for pattern in negative_patterns)
                     
                     if has_success and not has_negative:
+                        self.dsub_end_time = datetime.datetime.now()
+                        if self.dsub_start_time is not None:
+                            self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
                         print("\nJob completed successfully!")
                         break
                     
                     # Check for failure patterns
                     if has_negative:
+                        self.dsub_end_time = datetime.datetime.now()
+                        if self.dsub_start_time is not None:
+                            self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
                         print("\nJob failed!")
                         break
 
@@ -309,7 +326,13 @@ class Dsub:
             f"ddel --provider {self.provider} --project {self.project} --location {self.region}"
             f" --jobs \"{self.job_id}\" --users \"{self.user_name}\""
         )
-        subprocess.run([kill_job], shell=True)
+        result = subprocess.run([kill_job], shell=True)
+        
+        # Set end time and calculate runtime when job is killed
+        if result.returncode == 0:
+            self.dsub_end_time = datetime.datetime.now()
+            if self.dsub_start_time is not None:
+                self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
 
     def run(self, show_command=False, timeout=60):
         """
@@ -335,6 +358,7 @@ class Dsub:
             if process.returncode == 0:
                 print(f"Successfully run dsub to schedule job {self.job_name}.")
                 self.job_id = stdout.strip()
+                self.dsub_start_time = datetime.datetime.now()  # Record job start time
                 print("job-id:", stdout)
                 print()
                 self.dsub_command = self._dsub_script().replace("--", "\\ \n--")
