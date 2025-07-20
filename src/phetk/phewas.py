@@ -1098,9 +1098,11 @@ class PheWAS:
         _utils.save_pickle_object(self.dsub, dsub_pickle_path)
         print()
         print(f"Dsub instance saved as '{dsub_pickle_path}'")
-        print(f"To load and monitor this job later:")
+        print()
+        print(f"To load and monitor this job later, run:")
         print("from phetk._utils import load_dsub_instance")
         print(f"dsub_instance = load_dsub_instance('{dsub_pickle_path}')")
+        print()
 
     # noinspection PyUnreachableCode
     def run(
