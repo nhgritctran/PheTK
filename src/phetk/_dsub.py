@@ -224,10 +224,8 @@ class Dsub:
             try:
                 # noinspection PyUnresolvedReferences
                 from IPython.display import clear_output
-                is_notebook = True
             except ImportError:
-                is_notebook = False
-                clear_output = None
+                pass
 
             last_status = ""
             status_printed = False
