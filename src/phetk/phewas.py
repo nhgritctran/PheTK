@@ -1361,6 +1361,8 @@ def main() -> None:
                         type=int, required=False, default=1, help="Batch size for parallelization.")
     parser.add_argument("--suppress_warnings",
                         type=bool, required=False, default=True, help="Whether to suppress warnings.")
+    parser.add_argument("--verbose",
+                        type=bool, required=False, default=False, help="Whether to print verbose progress information.")
     args = parser.parse_args()
 
     # Run PheWAS
@@ -1384,7 +1386,8 @@ def main() -> None:
         output_file_path=args.output_file_path,
         method=args.method,
         batch_size=args.batch_size,
-        suppress_warnings=args.suppress_warnings
+        suppress_warnings=args.suppress_warnings,
+        verbose=args.verbose
     )
     phewas.run(parallelization=args.parallelization, n_workers=args.n_workers)
 

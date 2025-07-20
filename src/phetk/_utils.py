@@ -492,10 +492,9 @@ def load_dsub_instance(pickle_file_path: str):
 
 def sample_tsv_file(file_path: str, sample_ratio: float = 0.1) -> None:
     """
-    Generate a random sample of a TSV file using the fastest available method.
+    Generate a random sample of a TSV file using Polars.
     
-    Uses Linux CLI tools (shuf) if available for maximum speed, otherwise falls back
-    to Polars. Preserves headers and TSV format. Saves the sampled file in the same
+    Preserves headers and TSV format. Saves the sampled file in the same
     directory with a suffix indicating the ratio and 'sample' tag.
     
     :param file_path: Path to the input TSV file to sample
@@ -505,9 +504,6 @@ def sample_tsv_file(file_path: str, sample_ratio: float = 0.1) -> None:
     :return: None
     :rtype: None
     """
-    import subprocess
-    import shutil
-    
     if not (0.0 < sample_ratio <= 1.0):
         raise ValueError("sample_ratio must be between 0.0 and 1.0")
     
@@ -523,57 +519,34 @@ def sample_tsv_file(file_path: str, sample_ratio: float = 0.1) -> None:
         f"{base_name}_sample_{sample_ratio*100:.1f}pct{extension}"
     )
     
-    # Check if shuf command is available (Linux/Unix systems)
-    if shutil.which('shuf') and shutil.which('wc'):
-        try:
-            print(f"Using Linux CLI tools for fast sampling...")
-            
-            # Get total number of lines (excluding header)
-            wc_result = subprocess.run(
-                ['wc', '-l', file_path], 
-                capture_output=True, 
-                text=True, 
-                check=True
-            )
-            total_lines = int(wc_result.stdout.split()[0])
-            data_lines = total_lines - 1  # Exclude header
-            
-            # Calculate number of lines to sample
-            sample_lines = max(1, int(data_lines * sample_ratio))
-            
-            print(f"Sampling {sample_lines} lines from {data_lines} data lines ({sample_ratio*100:.1f}%)")
-            
-            # Create sample file using shell commands
-            with open(sample_file_path, 'w') as output_file:
-                # First, copy the header
-                subprocess.run(
-                    ['head', '-n', '1', file_path],
-                    stdout=output_file,
-                    check=True
-                )
-                
-                # Then, sample the data lines and append
-                subprocess.run(
-                    f"tail -n +2 '{file_path}' | shuf -n {sample_lines}",
-                    shell=True,
-                    stdout=output_file,
-                    check=True
-                )
-            
-            print(f"Sample file created using CLI tools: {sample_file_path}")
-            return
-            
-        except (subprocess.CalledProcessError, Exception) as e:
-            print(f"CLI sampling failed ({e}), falling back to Polars...")
-    
-    # Fallback to Polars method
     print(f"Using Polars for sampling...")
     
     # Detect delimiter
     delimiter = detect_delimiter(file_path)
     
-    # Read the file with Polars
-    df = pl.read_csv(file_path, separator=delimiter)
+    # Check if phecode column exists by reading header
+    try:
+        # Read just the header to check for phecode column
+        header_df = pl.read_csv(file_path, separator=delimiter, n_rows=0)
+        columns = header_df.columns
+        
+        # Set up schema overrides if phecode column exists
+        schema_overrides = {}
+        if 'phecode' in columns:
+            schema_overrides['phecode'] = pl.Utf8
+            print("Detected 'phecode' column - will load as string type")
+        
+        # Read the file with Polars
+        df = pl.read_csv(
+            file_path, 
+            separator=delimiter, 
+            try_parse_dates=True,
+            schema_overrides=schema_overrides if schema_overrides else None
+        )
+    except Exception as e:
+        print(f"Error reading file header, falling back to basic read: {e}")
+        # Fallback to basic read without schema overrides
+        df = pl.read_csv(file_path, separator=delimiter, try_parse_dates=True)
     total_rows = len(df)
     
     # Calculate sample size
@@ -587,4 +560,5 @@ def sample_tsv_file(file_path: str, sample_ratio: float = 0.1) -> None:
     # Write the sampled data
     sampled_df.write_csv(sample_file_path, separator=delimiter)
     
-    print(f"Sample file created using Polars: {sample_file_path}")
+    print(f"Sample file created: {sample_file_path}")
+    print()
