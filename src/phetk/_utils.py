@@ -524,29 +524,22 @@ def sample_tsv_file(file_path: str, sample_ratio: float = 0.1) -> None:
     # Detect delimiter
     delimiter = detect_delimiter(file_path)
     
-    # Check if phecode column exists by reading header
-    try:
-        # Read just the header to check for phecode column
-        header_df = pl.read_csv(file_path, separator=delimiter, n_rows=0)
-        columns = header_df.columns
-        
-        # Set up schema overrides if phecode column exists
-        schema_overrides = {}
-        if 'phecode' in columns:
-            schema_overrides['phecode'] = pl.Utf8
-            print("Detected 'phecode' column - will load as string type")
-        
-        # Read the file with Polars
-        df = pl.read_csv(
-            file_path, 
-            separator=delimiter, 
-            try_parse_dates=True,
-            schema_overrides=schema_overrides if schema_overrides else None
-        )
-    except Exception as e:
-        print(f"Error reading file header, falling back to basic read: {e}")
-        # Fallback to basic read without schema overrides
-        df = pl.read_csv(file_path, separator=delimiter, try_parse_dates=True)
+    # Check if phecode is one of the columns for schema override
+    schema_overrides = {}
+    with open(file_path, 'r') as f:
+        header = f.readline().strip()
+        columns = header.split(delimiter)
+        for col in columns:
+            if 'phecode' in col.lower():
+                schema_overrides[col] = pl.Utf8
+    
+    # Read the file with Polars
+    df = pl.read_csv(
+        file_path, 
+        separator=delimiter, 
+        try_parse_dates=True,
+        schema_overrides=schema_overrides if schema_overrides else None
+    )
     total_rows = len(df)
     
     # Calculate sample size
@@ -561,4 +554,3 @@ def sample_tsv_file(file_path: str, sample_ratio: float = 0.1) -> None:
     sampled_df.write_csv(sample_file_path, separator=delimiter)
     
     print(f"Sample file created: {sample_file_path}")
-    print()
