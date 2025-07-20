@@ -1166,7 +1166,7 @@ class PheWAS:
                             phecode_batch
                         ) for phecode_batch in self.phecode_batch_list
                     ]
-                    print(f"Submitted {len(jobs)} jobs. Processing results...")
+                    print(f"Submitted {len(jobs)} jobs. Running regressions...")
                     if self.verbose:
                         print("Waiting for first job completion...")
                     completed_count = 0
@@ -1215,7 +1215,7 @@ class PheWAS:
                             phecode_batch
                         ) for phecode_batch in self.phecode_batch_list
                     ]
-                    print(f"Submitted {len(jobs)} jobs. Processing results...")
+                    print(f"Submitted {len(jobs)} jobs. Running regressions...")
                     if self.verbose:
                         print("Waiting for first job completion...")
                     completed_count = 0
