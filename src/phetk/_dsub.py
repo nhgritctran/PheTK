@@ -273,7 +273,7 @@ class Dsub:
                 pass
 
             last_status = ""
-            status_printed = False
+            runtime_line_printed = False
             
             # CPU monitoring variables
             low_cpu_start_time = None
@@ -293,20 +293,19 @@ class Dsub:
                 result = subprocess.run([check_status], shell=True, capture_output=True, text=True)
                 current_status = result.stdout.strip()
                 
-                # Always update runtime line (overwrite current line)
-                if status_printed:
-                    # If we've printed status before, just update the runtime on current line
+                # Always update runtime line at the top
+                if runtime_line_printed:
+                    # Move cursor to beginning of line and overwrite
                     print(f"\rRefresh interval: {update_interval}s | Runtime: {runtime_str}", end="", flush=True)
                 else:
                     # First time, print runtime normally
-                    print(f"Refresh interval: {update_interval}s | Runtime: {runtime_str}")
-                    status_printed = True
-                print()
+                    print(f"Refresh interval: {update_interval}s | Runtime: {runtime_str}", end="", flush=True)
+                    runtime_line_printed = True
                 
                 # Only print new status when it changes (append below runtime line)
                 if current_status != last_status:
                     current_time = datetime.datetime.now().strftime("%H:%M:%S")
-                    print(f"\n[{current_time}] Job Status:")
+                    print(f"\n\n[{current_time}] Job Status:")
                     print(current_status)
                     last_status = current_status
                 
@@ -348,6 +347,10 @@ class Dsub:
                     if should_kill:
                         print(f"Killing job...")
                         self.kill()
+                        # Set end time and calculate runtime when job is killed
+                        self.dsub_end_time = datetime.datetime.now()
+                        if self.dsub_start_time is not None:
+                            self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
                         print("Job killed due to idle CPU!")
                         break
 
@@ -396,13 +399,10 @@ class Dsub:
             f"ddel --provider {self.provider} --project {self.project} --location {self.region}"
             f" --jobs \"{self.job_id}\" --users \"{self.user_name}\""
         )
-        result = subprocess.run([kill_job], shell=True)
-        
-        # Set end time and calculate runtime when job is killed
-        if result.returncode == 0:
-            self.dsub_end_time = datetime.datetime.now()
-            if self.dsub_start_time is not None:
-                self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
+        try:
+            subprocess.run([kill_job], shell=True, timeout=30)
+        except subprocess.TimeoutExpired:
+            print("Warning: Kill command timed out after 30 seconds")
 
     def run(self, show_command: bool = False, timeout: int = 60) -> None:
         """
