@@ -412,15 +412,22 @@ class Dsub:
         :return: None
         :rtype: None
         """
-
         kill_job = (
-            f"ddel --provider {self.provider} --project {self.project} --location {self.region}"
-            f" --jobs \"{self.job_id}\" --users \"{self.user_name}\""
+            f"ddel  --users \"{self.user_name}\" --project {self.project} --jobs \"{self.job_id}\""
         )
-        try:
-            subprocess.run([kill_job], shell=True, timeout=30)
-        except subprocess.TimeoutExpired:
-            print("Warning: Kill command timed out after 30 seconds")
+        subprocess.run([kill_job], shell=True)
+
+    def kill_all(self) -> None:
+        """
+        Kill/cancel all running jobs using ddel command.
+
+        :return: None
+        :rtype: None
+        """
+        kill_jobs = (
+            f"ddel --users \"{self.user_name}\" --project {self.project} --jobs \"*\" "
+        )
+        subprocess.run([kill_jobs], shell=True)
 
     def run(self, show_command: bool = False, timeout: int = 60) -> None:
         """

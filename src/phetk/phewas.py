@@ -332,6 +332,10 @@ class PheWAS:
             method_text = "Logistic regression"
         print("Analysis method: ", method_text)
         print()
+        
+        # Create temporary directory for batch results
+        self.temp_dir = "/tmp/phewas_results"
+        os.makedirs(self.temp_dir, exist_ok=True)
 
     @staticmethod
     def _to_polars(df: pd.DataFrame | pl.DataFrame) -> pl.DataFrame:
@@ -873,28 +877,91 @@ class PheWAS:
                 print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls):",
                       "Not enough cases or controls. Pass.\n")
 
+    def _combine_parquet_results(self, result_file_paths: list[str]) -> list[dict]:
+        """
+        Combine multiple parquet result files into a single list of dictionaries.
+        
+        Reads all parquet files, combines them using polars, cleans up temporary files,
+        and returns the combined results as a list of dictionaries for compatibility
+        with the rest of the analysis pipeline.
+        
+        :param result_file_paths: List of file paths to parquet result files.
+        :type result_file_paths: list[str]
+        :return: Combined results as list of dictionaries.
+        :rtype: list[dict]
+        """
+        if not result_file_paths:
+            return []
+            
+        print(f"Combining {len(result_file_paths)} result files...")
+        result_dfs = []
+        
+        # Read all parquet files with progress tracking
+        for file_path in tqdm(result_file_paths, desc="Reading files"):
+            batch_df = pl.read_parquet(file_path)
+            result_dfs.append(batch_df)
+        
+        # Combine all dataframes
+        print("Concatenating results...")
+        result_df = pl.concat(result_dfs)
+        
+        # Clean up temporary files
+        print("Cleaning up temporary files...")
+        for file_path in tqdm(result_file_paths, desc="Cleaning files"):
+            try:
+                os.remove(file_path)
+            except OSError as e:
+                if self.verbose:
+                    print(f"Warning: Could not remove temp file {file_path}: {e}")
+        
+        # Try to remove temp directory if empty
+        try:
+            os.rmdir(self.temp_dir)
+        except OSError:
+            # Directory not empty or other issue - not critical
+            if self.verbose:
+                print(f"Note: Temp directory {self.temp_dir} not removed (may contain other files)")
+        
+        # Convert to list of dictionaries for compatibility
+        return result_df.to_dicts()
+
     def _batch_regression(
             self, 
             phecode_batch: list[str]
-    ) -> list[dict[str, float | str | int]]:
+    ) -> str:
         """
-        Execute regression analysis for a batch of phecodes.
+        Execute regression analysis for a batch of phecodes and save results to parquet.
         
         Processes multiple phecodes sequentially within a single worker,
-        collecting successful results and filtering out failed analyses.
-        Designed for parallel execution across multiple workers.
+        collecting successful results and saving them to a parquet file.
+        Returns the path to the saved file for later combination.
         
         :param phecode_batch: List of phecodes to analyze in this batch.
         :type phecode_batch: list[str]
-        :return: List of successful regression results.
-        :rtype: list[dict[str, float | str | int]]
+        :return: Path to the saved parquet file containing batch results.
+        :rtype: str
         """
         results = []
         for phecode in phecode_batch:
             result = self._regression(phecode=phecode)
             if result is not None:
                 results.append(result)
-        return results
+        
+        # Save results to parquet file
+        if results:
+            # Generate timestamp-based filename for parallel safety
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            batch_filename = f"batch_{timestamp}.parquet"
+            batch_filepath = os.path.join(self.temp_dir, batch_filename)
+            
+            # Convert to polars DataFrame and save
+            batch_df = pl.from_dicts(results)
+            batch_df.write_parquet(batch_filepath)
+            
+            return batch_filepath
+        else:
+            # Return empty string if no results to indicate empty batch
+            return ""
 
     def generate_phewas_script(
             self,
@@ -1155,6 +1222,7 @@ class PheWAS:
             print("Number of workers:", n_workers)
             print()
             print("Creating ThreadPoolExecutor...")
+            result_file_paths = []
             try:
                 with ThreadPoolExecutor(max_workers=n_workers) as executor:
                     if self.verbose:
@@ -1174,10 +1242,19 @@ class PheWAS:
                         completed_count += 1
                         if self.verbose:
                             print(f"Job {completed_count}/{len(jobs)} completed")
-                        result_dicts.extend(job.result())
-                        if self.verbose and completed_count <= 3:
-                            print(f"Job {completed_count} returned {len(job.result())} results")
+                        file_path = job.result()
+                        if file_path:  # Only add non-empty file paths
+                            result_file_paths.append(file_path)
+                        if self.verbose:
+                            if file_path:
+                                temp_df = pl.read_parquet(file_path)
+                                print(f"Job {completed_count} saved {len(temp_df)} results to {os.path.basename(file_path)}")
+                            else:
+                                print(f"Job {completed_count} had no results to save")
                 print("Multithreading completed successfully.")
+                
+                # Combine parquet files
+                result_dicts = self._combine_parquet_results(result_file_paths)
             except Exception as e:
                 print(f"Error in multithreading: {e}")
                 if self.verbose:
@@ -1200,6 +1277,7 @@ class PheWAS:
             print("Number of workers:", n_workers)
             print()
             print("Initializing multiprocessing context...")
+            result_file_paths = []
             try:
                 mp_context = get_context("spawn")
                 if self.verbose:
@@ -1223,10 +1301,19 @@ class PheWAS:
                         completed_count += 1
                         if self.verbose:
                             print(f"Job {completed_count}/{len(jobs)} completed")
-                        result_dicts.extend(job.result())
-                        if self.verbose and completed_count <= 3:
-                            print(f"Job {completed_count} returned {len(job.result())} results")
+                        file_path = job.result()
+                        if file_path:  # Only add non-empty file paths
+                            result_file_paths.append(file_path)
+                        if self.verbose:
+                            if file_path:
+                                temp_df = pl.read_parquet(file_path)
+                                print(f"Job {completed_count} saved {len(temp_df)} results to {os.path.basename(file_path)}")
+                            else:
+                                print(f"Job {completed_count} had no results to save")
                 print("Multiprocessing completed successfully.")
+                
+                # Combine parquet files
+                result_dicts = self._combine_parquet_results(result_file_paths)
             except Exception as e:
                 print(f"Error in multiprocessing: {e}")
                 if self.verbose:
