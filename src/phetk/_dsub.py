@@ -42,28 +42,51 @@ class Dsub:
         Initialize a Dsub instance for running jobs on Google Cloud Platform.
         
         :param docker_image: Name of the Docker image to use for the job
+        :type docker_image: str
         :param job_script_name: Path to the script file to execute in the job
+        :type job_script_name: str
         :param job_name: Name for the job (auto-generated if None)
+        :type job_name: str | None
         :param input_dict: Dictionary mapping input variable names to GCS paths
+        :type input_dict: dict | None
         :param output_dict: Dictionary mapping output variable names to GCS paths
+        :type output_dict: dict | None
         :param env_dict: Dictionary of environment variables to set in the job
+        :type env_dict: dict | None
         :param log_file_path: Custom path for log files (auto-generated if None)
+        :type log_file_path: str | None
         :param machine_type: GCP machine type to use for the job
+        :type machine_type: str
         :param disk_type: Type of disk to use (None for default)
+        :type disk_type: str | None
         :param boot_disk_size: Size of boot disk in GB
+        :type boot_disk_size: int
         :param disk_size: Size of additional disk in GB
+        :type disk_size: int
         :param user_project: Google Cloud project for billing
+        :type user_project: str
         :param project: Google Cloud project to run the job in
+        :type project: str
         :param dsub_user_name: Username for dsub job identification
+        :type dsub_user_name: str
         :param user_name: Username for job naming and identification
+        :type user_name: str
         :param bucket: Google Cloud Storage bucket for logs and data
+        :type bucket: str
         :param google_project: Google Cloud project ID
+        :type google_project: str
         :param region: GCP region to run the job in
+        :type region: str
         :param provider: Dsub provider to use (google-batch, google-v2, etc.)
+        :type provider: str
         :param preemptible: Whether to use preemptible instances
+        :type preemptible: bool
         :param use_private_address: Whether to use private IP addresses
+        :type use_private_address: bool
         :param custom_args: Additional custom arguments for dsub command
+        :type custom_args: str | None
         :param use_aou_docker_prefix: Whether to prepend AoU artifact registry prefix
+        :type use_aou_docker_prefix: bool
         """
         # Standard attributes
         self.docker_image = docker_image
@@ -118,11 +141,12 @@ class Dsub:
         self.dsub_end_time = None
         self.dsub_runtime = None
 
-    def _dsub_script(self):
+    def _dsub_script(self) -> str:
         """
         Generate the dsub command script with all configured parameters.
         
         :return: Complete dsub command as a string
+        :rtype: str
         """
 
         if self.use_aou_docker_prefix:
@@ -195,14 +219,35 @@ class Dsub:
 
         return script
 
-    def check_status(self, full=False, custom_args=None, streaming=False, update_interval=10):
+    def check_status(
+        self, 
+        full: bool = False, 
+        custom_args: str | None = None, 
+        streaming: bool = False, 
+        update_interval: int = 10,
+        kill_on_idle: bool = False,
+        idle_time: int = 300,
+        idle_cpu_threshold: float = 5.0
+    ) -> None:
         """
         Check the status of the submitted job using dstat command.
         
         :param full: Whether to show full detailed status information
+        :type full: bool
         :param custom_args: Additional custom arguments for dstat command
+        :type custom_args: str | None
         :param streaming: Whether to continuously monitor status with auto-refresh
+        :type streaming: bool
         :param update_interval: Seconds between status updates when streaming
+        :type update_interval: int
+        :param kill_on_idle: Whether to automatically kill job when CPU is idle
+        :type kill_on_idle: bool
+        :param idle_time: Time in seconds CPU must stay below threshold before killing
+        :type idle_time: int
+        :param idle_cpu_threshold: CPU usage threshold percentage for idle detection
+        :type idle_cpu_threshold: float
+        :return: None
+        :rtype: None
         """
 
         # base command
@@ -229,6 +274,12 @@ class Dsub:
 
             last_status = ""
             status_printed = False
+            
+            # CPU monitoring variables
+            low_cpu_start_time = None
+            if kill_on_idle:
+                print(f"CPU monitoring enabled: will kill job if CPU < {idle_cpu_threshold}% for {idle_time}s")
+                print()
             
             while True:
                 # Calculate runtime based on dsub job start time
@@ -286,17 +337,35 @@ class Dsub:
                         print("\nJob failed!")
                         break
 
+                # CPU monitoring check (if enabled)
+                if kill_on_idle:
+                    should_kill, low_cpu_start_time = _utils.check_cpu_idle(
+                        cpu_threshold=idle_cpu_threshold,
+                        low_cpu_start_time=low_cpu_start_time,
+                        time_threshold=idle_time,
+                        verbose=True
+                    )
+                    if should_kill:
+                        print(f"Killing job...")
+                        self.kill()
+                        print("Job killed due to idle CPU!")
+                        break
+
                 # Wait
                 time.sleep(update_interval)
         else:
             subprocess.run([check_status], shell=True)
 
-    def view_log(self, log_type="stdout", n_lines=10):
+    def view_log(self, log_type: str = "stdout", n_lines: int = 10) -> None:
         """
         View the job logs from Google Cloud Storage.
         
         :param log_type: Type of log to view ('stdout', 'stderr', or 'full')
+        :type log_type: str
         :param n_lines: Number of lines to display from the log file
+        :type n_lines: int
+        :return: None
+        :rtype: None
         """
 
         tail = f" | head -n {n_lines}"
@@ -313,11 +382,14 @@ class Dsub:
 
         subprocess.run([full_command], shell=True)
 
-    def kill(self):
+    def kill(self) -> None:
         """
         Kill/cancel the running job using ddel command.
         
         Note: Requires that the job has been submitted and job_id is available.
+        
+        :return: None
+        :rtype: None
         """
 
         kill_job = (
@@ -332,12 +404,16 @@ class Dsub:
             if self.dsub_start_time is not None:
                 self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
 
-    def run(self, show_command=False, timeout=60):
+    def run(self, show_command: bool = False, timeout: int = 60) -> None:
         """
         Submit and run the dsub job on Google Cloud Platform.
         
         :param show_command: Whether to display the dsub command being executed
+        :type show_command: bool
         :param timeout: Maximum time in seconds to wait for job submission
+        :type timeout: int
+        :return: None
+        :rtype: None
         """
         process = None
         try:

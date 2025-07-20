@@ -6,15 +6,20 @@ from tqdm import tqdm
 import csv
 import os
 import polars as pl
+import psutil
 import pyarrow as pa
 import sys
+import time
 
 
-def to_polars(df):
+def to_polars(df) -> pl.DataFrame:
     """
-    Check and convert pandas dataframe object to polars dataframe, if applicable
-    :param df: dataframe object
-    :return: polars dataframe
+    Check and convert pandas dataframe object to polars dataframe, if applicable.
+    
+    :param df: Input dataframe object (pandas DataFrame or polars DataFrame)
+    :type df: Any
+    :return: Polars DataFrame
+    :rtype: pl.DataFrame
     """
     if not isinstance(df, pl.DataFrame):
         return pl.from_pandas(df)
@@ -22,11 +27,14 @@ def to_polars(df):
         return df
 
 
-def spark_to_polars(spark_df):
+def spark_to_polars(spark_df) -> pl.DataFrame:
     """
-    Convert spark df to polars df
-    :param spark_df: spark df
-    :return: polars df
+    Convert Spark DataFrame to Polars DataFrame.
+    
+    :param spark_df: Input Spark DataFrame
+    :type spark_df: Any
+    :return: Converted Polars DataFrame
+    :rtype: pl.DataFrame
     """
     # noinspection PyProtectedMember,PyArgumentList
     polars_df = pl.from_arrow(pa.Table.from_batches(spark_df._collect_as_arrow()))
@@ -34,11 +42,14 @@ def spark_to_polars(spark_df):
     return polars_df
 
 
-def polars_gbq(query):
+def polars_gbq(query: str) -> pl.DataFrame:
     """
-    Take a SQL query and return result as polars dataframe
-    :param query: BigQuery SQL query
-    :return: polars dataframe
+    Execute a SQL query on Google BigQuery and return result as Polars DataFrame.
+    
+    :param query: BigQuery SQL query string
+    :type query: str
+    :return: Query results as Polars DataFrame
+    :rtype: pl.DataFrame
     """
     client = bigquery.Client()
     query_job = client.query(query)
@@ -48,15 +59,25 @@ def polars_gbq(query):
     return df
 
 
-def get_phecode_mapping_table(phecode_version, icd_version, phecode_map_file_path, keep_all_columns=True):
+def get_phecode_mapping_table(
+    phecode_version: str, 
+    icd_version: str, 
+    phecode_map_file_path: str | None, 
+    keep_all_columns: bool = True
+) -> pl.DataFrame:
     """
-    Load phecode mapping table
-    :param phecode_version: defaults to "X"; the other option is "1.2"
-    :param icd_version: defaults to "US"; the other options are "WHO" and "custom";
-                        if "custom", users need to provide phecode_map_path
-    :param phecode_map_file_path: path to custom phecode map table
-    :param keep_all_columns: defaults to True
-    :return: phecode mapping table as polars dataframe
+    Load phecode mapping table based on version specifications.
+    
+    :param phecode_version: Phecode version to use ("X" or "1.2")
+    :type phecode_version: str
+    :param icd_version: ICD version ("US", "WHO", or "custom")
+    :type icd_version: str
+    :param phecode_map_file_path: Path to custom phecode mapping file (required if icd_version="custom")
+    :type phecode_map_file_path: str | None
+    :param keep_all_columns: Whether to keep all columns in the mapping table
+    :type keep_all_columns: bool
+    :return: Phecode mapping table as Polars DataFrame
+    :rtype: pl.DataFrame
     """
     # load a phecode mapping file by version or by custom path
     phetk_dir = os.path.dirname(__file__)
@@ -119,14 +140,20 @@ def get_phecode_mapping_table(phecode_version, icd_version, phecode_map_file_pat
     return phecode_df
 
 
-def generate_chunk_queries(query_function, ds, id_list, chunk_size=1000):
+def generate_chunk_queries(query_function, ds: str, id_list: list, chunk_size: int = 1000) -> list[str]:
     """
-    Generate a list of queries using a query generating function, each takes a chunk of IDs as input
-    :param query_function: query function
-    :param ds: input dataset
-    :param id_list: list of IDs
-    :param chunk_size: chunk size
-    :return: list of queries
+    Generate a list of queries using a query generating function, each takes a chunk of IDs as input.
+    
+    :param query_function: Query function that generates SQL queries from chunks
+    :type query_function: callable
+    :param ds: Input dataset identifier
+    :type ds: str
+    :param id_list: List of IDs to chunk and process
+    :type id_list: list
+    :param chunk_size: Size of each chunk for processing
+    :type chunk_size: int
+    :return: List of generated SQL queries
+    :rtype: list[str]
     """
     chunks = [
         list(id_list)[i * chunk_size:(i + 1) * chunk_size] for i in
@@ -153,11 +180,14 @@ def generate_chunk_queries(query_function, ds, id_list, chunk_size=1000):
     return query_list
 
 
-def polars_gbq_chunk(query_list):
+def polars_gbq_chunk(query_list: list[str]) -> pl.DataFrame:
     """
-    This takes a list of queries as input and generates a final merged dataframe from them.
-    :param query_list: List of queries
-    :return: Final merged polars dataframe
+    Execute a list of BigQuery SQL queries and merge results into a single DataFrame.
+    
+    :param query_list: List of SQL query strings to execute
+    :type query_list: list[str]
+    :return: Final merged Polars DataFrame with unique rows
+    :rtype: pl.DataFrame
     """
 
     print("Querying data...")
@@ -181,12 +211,15 @@ def polars_gbq_chunk(query_list):
 
     return final_result
 
-def detect_delimiter(file_path):
+def detect_delimiter(file_path: str) -> str:
     """
-    Detect delimiter (comma or tab) in a CSV/TSV file
-    Supports both local files and Google Cloud Storage paths
-    :param file_path: Path to the file (local or gs:// URL)
+    Detect delimiter (comma or tab) in a CSV/TSV file.
+    Supports both local files and Google Cloud Storage paths.
+    
+    :param file_path: Path to the file (local path or gs:// URL)
+    :type file_path: str
     :return: Detected delimiter (',' or '\t')
+    :rtype: str
     """
     # Check if it's a GCP bucket path and if we're running in dsub environment
     if file_path.startswith('gs://'):
@@ -266,11 +299,14 @@ def detect_delimiter(file_path):
         print(f"Error reading file {file_path}: {e}")
         sys.exit(1)
 
-def has_overlapping_values(d):
+def has_overlapping_values(d: dict) -> bool:
     """
-    Check if any values in a dictionary have overlapping elements
+    Check if any values in a dictionary have overlapping elements.
+    
     :param d: Dictionary with values that can be single items or lists
+    :type d: dict
     :return: True if any values overlap, False otherwise
+    :rtype: bool
     """
     # Convert all values to sets, handling both single items and lists
     sets = []
@@ -287,11 +323,16 @@ def has_overlapping_values(d):
 
     return False
 
-def generate_sh_script(script_name, commands):
+def generate_sh_script(script_name: str, commands: list[str]) -> None:
     """
-    Generate an executable bash script with given commands
+    Generate an executable bash script with given commands.
+    
     :param script_name: Name of the script file to create
+    :type script_name: str
     :param commands: List of commands to include in the script
+    :type commands: list[str]
+    :return: None
+    :rtype: None
     """
     with open(script_name, 'w') as f:
         f.write("#!/bin/bash\n")  # Shebang line for bash
@@ -303,10 +344,13 @@ def generate_sh_script(script_name, commands):
 
     print(f"Generated script: {script_name}")
 
-def monitor_cpu_usage_link():
+def monitor_cpu_usage_link() -> None:
     """
-    Generate and print a Google Cloud Console link for monitoring CPU utilization
-    Uses the GOOGLE_PROJECT environment variable to construct the link
+    Generate and print a Google Cloud Console link for monitoring CPU utilization.
+    Uses the GOOGLE_PROJECT environment variable to construct the link.
+    
+    :return: None
+    :rtype: None
     """
     cpu_utilization = (
         f'https://console.cloud.google.com/monitoring/metrics-explorer?authuser=0&project='
@@ -323,12 +367,64 @@ def monitor_cpu_usage_link():
     )
     print(f'To see the CPU utilization of your Cloud analysis environment, click on this link {cpu_utilization}')
 
+def check_cpu_idle(
+    cpu_threshold: float,
+    low_cpu_start_time: float | None,
+    time_threshold: int,
+    verbose: bool = True
+) -> tuple[bool, float | None]:
+    """
+    Check if CPU usage is below threshold and track idle time.
+    
+    :param cpu_threshold: CPU usage threshold percentage
+    :type cpu_threshold: float
+    :param low_cpu_start_time: When CPU first dropped below threshold (None if not tracking)
+    :type low_cpu_start_time: float | None
+    :param time_threshold: Maximum time CPU can stay below threshold (seconds)
+    :type time_threshold: int
+    :param verbose: Whether to print status messages
+    :type verbose: bool
+    :return: Tuple of (should_kill, new_low_cpu_start_time)
+    :rtype: tuple[bool, float | None]
+    """
+    try:
+        cpu_percent = psutil.cpu_percent(interval=1)
+        current_time = time.time()
+        
+        if cpu_percent < cpu_threshold:
+            if low_cpu_start_time is None:
+                low_cpu_start_time = current_time
+                if verbose:
+                    print(f"CPU usage dropped below {cpu_threshold}% at {time.strftime('%H:%M:%S')}")
+                return False, low_cpu_start_time
+            else:
+                elapsed_time = current_time - low_cpu_start_time
+                if elapsed_time >= time_threshold:
+                    if verbose:
+                        print(f"CPU usage below {cpu_threshold}% for {time_threshold}s. Should kill job.")
+                    return True, low_cpu_start_time
+                return False, low_cpu_start_time
+        else:
+            if low_cpu_start_time is not None:
+                if verbose:
+                    print(f"CPU usage recovered to {cpu_percent:.1f}%. Resetting timer.")
+                return False, None
+            return False, low_cpu_start_time
+    except Exception as e:
+        if verbose:
+            print(f"Error in CPU monitoring: {e}")
+        return False, low_cpu_start_time
 
 def print_banner(text: str, char: str = "~") -> None:
     """
-    Print a centered banner with dynamic width based on terminal size
+    Print a centered banner with dynamic width based on terminal size.
+    
     :param text: Text to display in the banner
+    :type text: str
     :param char: Character to use for the banner (default: ~)
+    :type char: str
+    :return: None
+    :rtype: None
     """
     try:
         terminal_width = os.get_terminal_size().columns
@@ -346,9 +442,14 @@ def print_banner(text: str, char: str = "~") -> None:
 
 def save_pickle_object(obj, file_path: str) -> None:
     """
-    Save a Python object as a pickle file
+    Save a Python object as a pickle file.
+    
     :param obj: Python object to save
+    :type obj: Any
     :param file_path: Path where to save the pickle file
+    :type file_path: str
+    :return: None
+    :rtype: None
     """
     import pickle
     
@@ -358,9 +459,12 @@ def save_pickle_object(obj, file_path: str) -> None:
 
 def load_pickle_object(file_path: str):
     """
-    Load a Python object from a pickle file
+    Load a Python object from a pickle file.
+    
     :param file_path: Path to the pickle file to load
+    :type file_path: str
     :return: Loaded Python object
+    :rtype: Any
     """
     import pickle
     
@@ -370,9 +474,12 @@ def load_pickle_object(file_path: str):
 
 def load_dsub_instance(pickle_file_path: str):
     """
-    Load a previously saved dsub instance from pickle file
+    Load a previously saved dsub instance from pickle file.
+    
     :param pickle_file_path: Path to the pickle file containing saved dsub instance
+    :type pickle_file_path: str
     :return: Loaded dsub instance with all methods available
+    :rtype: Any
     """
     dsub_instance = load_pickle_object(pickle_file_path)
     print(f"Dsub instance loaded from '{pickle_file_path}'")
@@ -381,3 +488,103 @@ def load_dsub_instance(pickle_file_path: str):
     print("Use dsub_instance.check_status(streaming=True) to monitor job progress")
     print("Available methods: check_status(), view_log(), kill()")
     return dsub_instance
+
+
+def sample_tsv_file(file_path: str, sample_ratio: float = 0.1) -> None:
+    """
+    Generate a random sample of a TSV file using the fastest available method.
+    
+    Uses Linux CLI tools (shuf) if available for maximum speed, otherwise falls back
+    to Polars. Preserves headers and TSV format. Saves the sampled file in the same
+    directory with a suffix indicating the ratio and 'sample' tag.
+    
+    :param file_path: Path to the input TSV file to sample
+    :type file_path: str
+    :param sample_ratio: Ratio of rows to sample (0.1 = 10%, default: 0.1)
+    :type sample_ratio: float
+    :return: None
+    :rtype: None
+    """
+    import subprocess
+    import shutil
+    
+    if not (0.0 < sample_ratio <= 1.0):
+        raise ValueError("sample_ratio must be between 0.0 and 1.0")
+    
+    # Generate output file path
+    file_dir = os.path.dirname(file_path)
+    file_name = os.path.basename(file_path)
+    name_parts = os.path.splitext(file_name)
+    base_name = name_parts[0]
+    extension = name_parts[1] if name_parts[1] else '.tsv'
+    
+    sample_file_path = os.path.join(
+        file_dir, 
+        f"{base_name}_sample_{sample_ratio*100:.1f}pct{extension}"
+    )
+    
+    # Check if shuf command is available (Linux/Unix systems)
+    if shutil.which('shuf') and shutil.which('wc'):
+        try:
+            print(f"Using Linux CLI tools for fast sampling...")
+            
+            # Get total number of lines (excluding header)
+            wc_result = subprocess.run(
+                ['wc', '-l', file_path], 
+                capture_output=True, 
+                text=True, 
+                check=True
+            )
+            total_lines = int(wc_result.stdout.split()[0])
+            data_lines = total_lines - 1  # Exclude header
+            
+            # Calculate number of lines to sample
+            sample_lines = max(1, int(data_lines * sample_ratio))
+            
+            print(f"Sampling {sample_lines} lines from {data_lines} data lines ({sample_ratio*100:.1f}%)")
+            
+            # Create sample file using shell commands
+            with open(sample_file_path, 'w') as output_file:
+                # First, copy the header
+                subprocess.run(
+                    ['head', '-n', '1', file_path],
+                    stdout=output_file,
+                    check=True
+                )
+                
+                # Then, sample the data lines and append
+                subprocess.run(
+                    f"tail -n +2 '{file_path}' | shuf -n {sample_lines}",
+                    shell=True,
+                    stdout=output_file,
+                    check=True
+                )
+            
+            print(f"Sample file created using CLI tools: {sample_file_path}")
+            return
+            
+        except (subprocess.CalledProcessError, Exception) as e:
+            print(f"CLI sampling failed ({e}), falling back to Polars...")
+    
+    # Fallback to Polars method
+    print(f"Using Polars for sampling...")
+    
+    # Detect delimiter
+    delimiter = detect_delimiter(file_path)
+    
+    # Read the file with Polars
+    df = pl.read_csv(file_path, separator=delimiter)
+    total_rows = len(df)
+    
+    # Calculate sample size
+    sample_size = max(1, int(total_rows * sample_ratio))
+    
+    print(f"Sampling {sample_size} rows from {total_rows} total rows ({sample_ratio*100:.1f}%)")
+    
+    # Sample the data
+    sampled_df = df.sample(n=sample_size, seed=42)
+    
+    # Write the sampled data
+    sampled_df.write_csv(sample_file_path, separator=delimiter)
+    
+    print(f"Sample file created using Polars: {sample_file_path}")

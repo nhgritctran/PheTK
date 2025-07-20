@@ -44,7 +44,8 @@ class PheWAS:
         verbose: bool = False,
         suppress_warnings: bool = True,
         method: str = "logit",
-        batch_size: int = 1
+        batch_size: int = 1,
+        fall_back_to_serial: bool = False
     ):
         """
         Initialize PheWAS analysis object with configuration parameters and input data.
@@ -99,6 +100,8 @@ class PheWAS:
         :type method: str
         :param batch_size: Number of phecodes to process per batch for parallelization.
         :type batch_size: int
+        :param fall_back_to_serial: Whether to fall back to serial processing when parallelization fails.
+        :type fall_back_to_serial: bool
         """
 
         # For dsub
@@ -156,6 +159,7 @@ class PheWAS:
         self.suppress_warnings = suppress_warnings
         self.method = method
         self.batch_size = batch_size
+        self.fall_back_to_serial = fall_back_to_serial
 
         # For Cox regression:
         if (method == "cox") and (
@@ -316,12 +320,10 @@ class PheWAS:
                 f"{self.independent_variable_of_interest} descriptions: ",
                 self.covariate_df[self.independent_variable_of_interest].describe()
             )
-        print("Sample of cohort data: ", self.covariate_df[cols_to_keep].head(5))
         print()
         print("Number of unique phecodes in cohort: ", len(self.phecode_list))
         print("Total number of phecode events: ", self.phecode_counts.shape[0])
         print("Number of phecode batches to process: ", len(self.phecode_batch_list))
-        print("Sample of phecode count data: ", self.phecode_counts.head(5))
         print()
         method_text = ""
         if self.method == "cox":
@@ -759,6 +761,8 @@ class PheWAS:
 
             if suppress_warnings:
                 warnings.simplefilter("ignore")
+                # Specifically suppress pandas BlockManager warnings
+                warnings.filterwarnings("ignore", category=FutureWarning, message=".*BlockManager.*")
             else:
                 warnings.simplefilter("always")
 
@@ -1150,15 +1154,45 @@ class PheWAS:
                 n_workers = round(os.cpu_count()*2/3)
             print("Number of workers:", n_workers)
             print()
-            with ThreadPoolExecutor(max_workers=n_workers) as executor:
-                jobs = [
-                    executor.submit(
-                        self._batch_regression,
-                        phecode_batch
-                    ) for phecode_batch in self.phecode_batch_list
-                ]
-                for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), desc="Processed"):
-                    result_dicts.extend(job.result())
+            print("Creating ThreadPoolExecutor...")
+            try:
+                with ThreadPoolExecutor(max_workers=n_workers) as executor:
+                    if self.verbose:
+                        print(f"ThreadPoolExecutor created with {n_workers} workers")
+                    print("Submitting jobs to workers...")
+                    jobs = [
+                        executor.submit(
+                            self._batch_regression,
+                            phecode_batch
+                        ) for phecode_batch in self.phecode_batch_list
+                    ]
+                    print(f"Submitted {len(jobs)} jobs. Processing results...")
+                    if self.verbose:
+                        print("Waiting for first job completion...")
+                    completed_count = 0
+                    for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), desc="Processed"):
+                        completed_count += 1
+                        if self.verbose:
+                            print(f"Job {completed_count}/{len(jobs)} completed")
+                        result_dicts.extend(job.result())
+                        if self.verbose and completed_count <= 3:
+                            print(f"Job {completed_count} returned {len(job.result())} results")
+                print("Multithreading completed successfully.")
+            except Exception as e:
+                print(f"Error in multithreading: {e}")
+                if self.verbose:
+                    import traceback
+                    print("Full traceback:")
+                    traceback.print_exc()
+                if self.fall_back_to_serial:
+                    print("Falling back to serial processing...")
+                    for phecode in tqdm(self.phecode_list, desc="Processed"):
+                        result = self._regression(phecode=phecode)
+                        if result is not None:
+                            result_dicts.append(result)
+                else:
+                    print("Fallback to serial processing is disabled. Exiting.")
+                    raise e
 
         elif parallelization == "multiprocessing":
             if n_workers is None:
@@ -1168,8 +1202,12 @@ class PheWAS:
             print("Initializing multiprocessing context...")
             try:
                 mp_context = get_context("spawn")
+                if self.verbose:
+                    print("Multiprocessing context created successfully")
                 print("Creating ProcessPoolExecutor...")
                 with ProcessPoolExecutor(max_workers=n_workers, mp_context=mp_context) as executor:
+                    if self.verbose:
+                        print(f"ProcessPoolExecutor created with {n_workers} workers")
                     print("Submitting jobs to workers...")
                     jobs = [
                         executor.submit(
@@ -1178,16 +1216,32 @@ class PheWAS:
                         ) for phecode_batch in self.phecode_batch_list
                     ]
                     print(f"Submitted {len(jobs)} jobs. Processing results...")
+                    if self.verbose:
+                        print("Waiting for first job completion...")
+                    completed_count = 0
                     for job in tqdm(as_completed(jobs), total=len(self.phecode_batch_list), desc="Processed"):
+                        completed_count += 1
+                        if self.verbose:
+                            print(f"Job {completed_count}/{len(jobs)} completed")
                         result_dicts.extend(job.result())
+                        if self.verbose and completed_count <= 3:
+                            print(f"Job {completed_count} returned {len(job.result())} results")
                 print("Multiprocessing completed successfully.")
             except Exception as e:
                 print(f"Error in multiprocessing: {e}")
-                print("Falling back to serial processing...")
-                for phecode in tqdm(self.phecode_list, desc="Processed"):
-                    result = self._regression(phecode=phecode)
-                    if result is not None:
-                        result_dicts.append(result)
+                if self.verbose:
+                    import traceback
+                    print("Full traceback:")
+                    traceback.print_exc()
+                if self.fall_back_to_serial:
+                    print("Falling back to serial processing...")
+                    for phecode in tqdm(self.phecode_list, desc="Processed"):
+                        result = self._regression(phecode=phecode)
+                        if result is not None:
+                            result_dicts.append(result)
+                else:
+                    print("Fallback to serial processing is disabled. Exiting.")
+                    raise e
 
         else:
             return "Invalid parallelization method! Select \"multithreading\", \"multiprocessing\", or \"serial\"."
@@ -1226,6 +1280,7 @@ class PheWAS:
             print("No analysis done. Please check your PheWAS settings/inputs.")
 
         print()
+        return None
 
 
 def main() -> None:
