@@ -417,9 +417,21 @@ class Dsub:
         )
         subprocess.run([kill_job], shell=True)
 
+    def view_all(self) -> None:
+        """
+        View all running jobs linked to user account and project using dstat command.
+
+        :return: None
+        :rtype: None
+        """
+        view_jobs = (
+            f"ddel --users \"{self.user_name}\" --project {self.project} --jobs \"*\" "
+        )
+        subprocess.run([view_jobs], shell=True)
+
     def kill_all(self) -> None:
         """
-        Kill/cancel all running jobs using ddel command.
+        Kill/cancel all running jobs linked to user account and project using ddel command.
 
         :return: None
         :rtype: None
