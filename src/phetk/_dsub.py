@@ -425,7 +425,7 @@ class Dsub:
         :rtype: None
         """
         view_jobs = (
-            f"ddel --users \"{self.user_name}\" --project {self.project} --jobs \"*\" "
+            f"dstat --users \"{self.user_name}\" --project {self.project} --jobs \"*\" "
         )
         subprocess.run([view_jobs], shell=True)
 
