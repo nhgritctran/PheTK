@@ -98,10 +98,9 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary",
     # save data
     cohort.write_csv("example_cohort.tsv", separator="\t")
     phecode_counts.write_csv("example_phecode_counts.tsv", separator="\t")
-    print(
-        "Generated data saved to \033[1m\"example_cohort.tsv\"\033[0m",
-        "and \033[1m\"example_phecode_counts.tsv\"\033[0m"
-    )
+    print("Generated data saved to:")
+    print("  - \033[1mexample_cohort.tsv\033[0m")
+    print("  - \033[1mexample_phecode_counts.tsv\033[0m")
 
 
 def _prompt():
@@ -115,17 +114,17 @@ def _prompt():
     :rtype: None
     """
     print()
-    answer = input("Press enter to continue...")
+    answer = input("Press Enter to continue (or 'quit' to exit)...")
     if answer.lower() == "quit":
         print()
-        print("\033[1mGood luck!\033[0m")
+        print("\033[1mExiting demo. Thank you!\033[0m")
         sys.exit(0)
     print()
 
 
 def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
         independent_variable_of_interest="independent_variable_of_interest",
-        phecode_to_process="all",
+        phecode_to_process=None,
         verbose=False):
     """
     Execute interactive PheWAS demonstration with mock data generation and analysis.
@@ -145,38 +144,35 @@ def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
     :return: Completes demonstration workflow and displays results.
     :rtype: None
     """
-    print("\033[1mHello and welcome to PheTK PheWAS demo.\033[0m")
-    print("This is a quick demonstration to introduce a basic PheWAS analysis using mock data.",
-          "It should take less than 1 minute running without pauses.",
-          "For a detailed tutorial, please check out the included jupyter notebooks.",
-          "Enter \"quit\" in any prompt to quit.")
+    print("\033[1mWelcome to PheTK PheWAS Demo\033[0m")
+    print("This quick demo shows PheWAS analysis using mock data (~1 minute).")
+    print("For detailed tutorials, see the included documentations.")
+    print("Type 'quit' at any prompt to exit.")
     _prompt()
-    print("\033[1mFirst, let's create some example data.\033[0m")
+    print("\033[1mStep 1: Generate Example Data\033[0m")
     print()
-    print(f"We will create an example cohort with covariates {covariates_cols}.",
-          "This data also contains our variable of interest which can be binary or continuous, "
-          "and it would change depending on your study.",
-          "For example, it can be whether a person having a specific genotype or not, or a continuous lab measurement "
-          "data, etc.")
+    print(f"Creating cohort with covariates: {covariates_cols}")
+    print("The variable of interest can be:")
+    print("  - Binary (e.g., genotype present/absent)")
+    print("  - Continuous (e.g., lab measurements)")
     print()
-    print("In addition, we will also create an example phenotype profile data for this cohort.",
-          "This table contains all phecodes mapped from ICD codes from each person's EHR and their counts.")
+    print("Also creating phecode counts from ICD codes in EHR data.")
     print()
     var_type = input("Which data type would you like the variable of interest to be? (binary/continuous) ")
     while (var_type.lower() != "binary") and (var_type.lower() != "continuous") and (var_type.lower() != "quit"):
-        var_type = input("Please enter either binary or continuous:")
+        var_type = input("Please enter either binary or continuous: ")
     if var_type.lower() == "quit":
         print()
-        print("\033[1mGood luck!\033[0m")
+        print("\033[1mExiting demo. Thank you!\033[0m")
     else:
         data_has_both_sexes = input("Would you like data to have both sexes? (yes/no) ")
         while (data_has_both_sexes.lower() != "yes") \
                 and (data_has_both_sexes.lower() != "no") \
                 and (data_has_both_sexes.lower() != "quit"):
-            data_has_both_sexes = input("Please enter either yes or no:")
+            data_has_both_sexes = input("Please enter either yes or no: ")
         if data_has_both_sexes.lower() == "quit":
             print()
-            print("\033[1mGood luck!\033[0m")
+            print("\033[1mExiting demo. Thank you!\033[0m")
         else:
             if data_has_both_sexes.lower() == "yes":
                 data_has_both_sexes = True
@@ -184,29 +180,28 @@ def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
                 data_has_both_sexes = False
             generate_examples(var_type=var_type, data_has_both_sexes=data_has_both_sexes)
     _prompt()
-    print("\033[1mWe created a cohort of 500 people and here is how the cohort data look like:\033[0m")
+    print("\033[1mCohort Data Preview (500 participants):\033[0m")
     print(pl.read_csv("example_cohort.tsv", separator="\t").head())
     _prompt()
-    print("\033[1mHere is how the phecode count data look like:\033[0m")
+    print("\033[1mPhecode Count Data Preview:\033[0m")
     print(pl.read_csv("example_phecode_counts.tsv", separator="\t", schema_overrides={"phecode": str}).head())
     print()
-    print("Phecode count or phecode profile table contains all phecodes mapped from ICD codes from EHR "
-          "of each individual, and their counts.")
+    print("This shows phecodes mapped from each person's ICD codes and their counts.")
     _prompt()
-    print("\033[1mNow we are ready to run PheWAS!\033[0m")
+    print("\033[1mStep 2: Run PheWAS Analysis\033[0m")
     print()
-    print("If run in command line interface, the analysis below can be run with the following command:")
-    print("\033[1mpython3 -m phetk.PheWAS --cohort_file_path\033[0m example_cohort.tsv",
+    print("Command line equivalent:")
+    print("\033[1mpython3 -m phetk.phewas --cohort_file_path\033[0m example_cohort.tsv",
           "\033[1m--phecode_count_file_path\033[0m example_phecode_counts.tsv",
           "\033[1m--phecode_version\033[0m X",
           "\033[1m--sex_at_birth_col\033[0m sex",
           "\033[1m--covariates\033[0m age sex pc1 pc2 pc3",
           "\033[1m--independent_variable_of_interest\033[0m independent_variable_of_interest",
-          "\033[1m--min_case\033[0m 50",
+          "\033[1m--min_cases\033[0m 50",
           "\033[1m--min_phecode_count\033[0m 2",
-          "\033[1m--output_file_name\033[0m example_phewas_results.tsv")
+          "\033[1m--output_file_path\033[0m example_phewas_results.tsv")
     print()
-    input("\033[1mPress enter to run PheWAS!\033[0m")
+    input("\033[1mPress enter to run PheWAS...\033[0m")
     print()
     if isinstance(covariates_cols, tuple):
         covariates_cols = list(covariates_cols)
@@ -220,27 +215,23 @@ def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
         independent_variable_of_interest=independent_variable_of_interest,
         min_cases=50,
         min_phecode_count=2,
-        output_file_name="example_phewas_results.tsv",
+        output_file_path="example_phewas_results.tsv",
         verbose=verbose)
     phewas.run()
-    print("\033[1mHere is how example_phewas_results.tsv look like:\033[0m")
+    print("\033[1mTop Results (sorted by p-value):\033[0m")
     print(pl.read_csv("example_phewas_results.tsv", separator="\t", schema_overrides={"phecode": str}).sort(by="p_value").head())
     print()
-    print("In PheWAS, we ran a series of logistic regressions: phecode ~ independent_variable_of_interest + covariates.")
+    print("PheWAS ran logistic regressions: phecode ~ independent_variable + covariates")
     print()
-    print("Each phecode regression was done with a subset of your original cohort, depending on who had/didnt have "
-          "that phecode.",
-          "This was decided based on minimum number of phecode counts (min_phecode_count). "
-          "A phecode regression was only run if the minimum number of cases or controls (min_cases) was met.")
+    print("Key parameters:")
+    print(f"  - min_phecode_count: {2} (minimum count to be a case)")
+    print(f"  - min_cases: {50} (minimum cases/controls to run regression)")
     print()
-    print("Cases and controls here are the numbers of individuals in your cohort who are considered as case or control "
-          "for each specific phecode, based on their phecode counts data.")
+    print("Each phecode was tested only if sufficient cases and controls were available.")
     print()
-    print("In this example, we intentionally generated data with Cystic Fibrosis (GE_979.2) as a significant hit.")
+    print("Note: Cystic Fibrosis (GE_979.2) was enriched in the data as an example hit.")
     print()
-    print("\033[1mThis is the end of the demo!\033[0m")
-    print()
-    print("\033[1mGood luck!\033[0m")
+    print("\033[1mDemo Complete!\033[0m")
 
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ class Plot:
             converged_only: bool = True,
             bonferroni: float | None = None,
             phecode_version: str | None = None,
-            color_palette: tuple[str, ...] | None = None
+            color_palette: tuple[str, ...] | str | None = None
     ):
         """
         Initialize Plot object for creating PheWAS visualization plots.
@@ -32,8 +32,8 @@ class Plot:
         :type bonferroni: float | None
         :param phecode_version: Phecode version ("1.2" or "X"), defaults to "X" if None.
         :type phecode_version: str | None
-        :param color_palette: Custom color palette for phecode categories, uses internal palette if None.
-        :type color_palette: tuple[str, ...] | None
+        :param color_palette: Color palette - "default", "colorblind", "rainbow", or custom tuple of colors.
+        :type color_palette: tuple[str, ...] | str | None
         """
 
         # load PheWAS results
@@ -79,12 +79,44 @@ class Plot:
         self.phecode_categories = None
 
         # color mapping
-        if color_palette is not None:
-            self.color_palette = color_palette
+        if color_palette is None or color_palette == "default":
+            self.color_palette = (
+                "blue", "indianred", "darkcyan", "goldenrod", "darkblue", 
+                "magenta", "green", "red", "darkturquoise", "olive", 
+                "black", "royalblue", "maroon", "darkolivegreen", "coral", 
+                "purple", "gray"
+            )
+        elif color_palette == "colorblind":
+            # Color blind friendly palette based on Wong (2011) and other accessible colors
+            self.color_palette = (
+                "#0173B2",  # blue
+                "#DE8F05",  # orange
+                "#029E73",  # green
+                "#CC78BC",  # light purple
+                "#CA9161",  # light brown
+                "#FBAFE4",  # light pink
+                "#949494",  # gray
+                "#ECE133",  # yellow
+                "#56B4E9",  # sky blue
+                "#F0E442",  # light yellow
+                "#0072B2",  # dark blue
+                "#D55E00",  # vermillion
+                "#CC79A7",  # reddish purple
+                "#999999",  # medium gray
+                "#E69F00",  # orange yellow
+                "#009E73",  # bluish green
+                "#000000"   # black
+            )
+        elif color_palette == "rainbow":
+            # Rainbow gradient with 17 distinct colors
+            import matplotlib.cm as cm
+            rainbow_colors = cm.rainbow(np.linspace(0, 1, 17))
+            self.color_palette = tuple([mc.to_hex(color) for color in rainbow_colors])
+        elif isinstance(color_palette, (tuple, list)):
+            self.color_palette = tuple(color_palette)
         else:
-            self.color_palette = ("blue", "indianred", "darkcyan", "goldenrod", "darkblue", "magenta",
-                                  "green", "red", "darkturquoise", "olive", "black", "royalblue",
-                                  "maroon", "darkolivegreen", "coral", "purple", "gray")
+            raise ValueError(f"Invalid color_palette: {color_palette}. Use 'default', 'colorblind', 'rainbow', or a tuple of colors.")
+
         self.phecode_categories = self.phewas_result["phecode_category"].unique().to_list()
         self.phecode_categories.sort()
         self.color_dict = {self.phecode_categories[i]: self.color_palette[i % len(self.color_palette)]
@@ -118,34 +150,36 @@ class Plot:
 
     @staticmethod
     def save_plot(
-            plot_type: str = "plot", 
-            output_file_name: str | None = None, 
-            output_file_type: str = "pdf"
+            plot_type: str = "manhattan",
+            output_file_path: str | None = None
     ) -> None:
         """
         Save current matplotlib plot to file with automatic filename generation.
         
         Creates timestamped filename if none provided and saves plot with
-        specified file format and tight bounding box.
+        specified file format and tight bounding box. File format is automatically
+        detected from file extension or defaults to PDF.
         
-        :param plot_type: Type of plot for filename generation.
+        :param plot_type: Type of plot for filename generation when auto-generating.
         :type plot_type: str
-        :param output_file_name: Custom output filename, auto-generated with timestamp if None.
-        :type output_file_name: str | None
-        :param output_file_type: File format for saved plot.
-        :type output_file_type: str
+        :param output_file_path: Full path including extension (e.g., "plot.png", "results.pdf"), 
+                                auto-generated with timestamp if None.
+        :type output_file_path: str | None
         :return: Saves plot file and prints confirmation message.
         :rtype: None
         """
-        if output_file_name is not None:
-            if "." not in output_file_name:
-                output_file_name = output_file_name + "." + output_file_type
+        if output_file_path is not None:
+            # If no extension provided, default to PDF
+            if "." not in output_file_path:
+                output_file_path = output_file_path + ".pdf"
         else:
+            # Auto-generate filename with timestamp
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_file_name = f"{plot_type}_{timestamp}.{output_file_type}"
-        plt.savefig(output_file_name, bbox_inches="tight")
+            output_file_path = f"{plot_type}_{timestamp}.pdf"
+        
+        plt.savefig(output_file_path, bbox_inches="tight")
         print()
-        print("Plot saved to", output_file_name)
+        print("Plot saved to", output_file_path)
         print()
 
     @staticmethod
@@ -250,12 +284,14 @@ class Plot:
         """
         x_ticks = plot_df[["phecode_category", "phecode_index"]].group_by("phecode_category").mean()
         # create x ticks labels and colors
-        adjustText.plt.xticks(x_ticks["phecode_index"],
-                              x_ticks["phecode_category"],
-                              rotation=45,
-                              ha="right",
-                              weight="normal",
-                              size=size)
+        adjustText.plt.xticks(
+                x_ticks["phecode_index"],
+                x_ticks["phecode_category"],
+                rotation=45,
+                ha="right",
+                weight="normal",
+                size=size
+            )
         tick_labels = adjustText.plt.gca().get_xticklabels()
         sorted_labels = sorted(tick_labels, key=lambda label: label.get_text())
         for tick_label, tick_color in zip(sorted_labels, selected_color_dict.values()):
@@ -290,19 +326,23 @@ class Plot:
             s_positive = None
             s_negative = None
 
-        ax.scatter(x=self.positive_betas["phecode_index"].to_numpy(),
-                   y=self.positive_betas["neg_log_p_value"],
-                   s=s_positive,
-                   c=self.positive_betas["label_color"],
-                   marker="^",
-                   alpha=self.positive_alpha)
+        ax.scatter(
+                x=self.positive_betas["phecode_index"].to_numpy(),
+                y=self.positive_betas["neg_log_p_value"],
+                s=s_positive,
+                c=self.positive_betas["label_color"],
+                marker="^",
+                alpha=self.positive_alpha
+            )
 
-        ax.scatter(x=self.negative_betas["phecode_index"].to_numpy(),
-                   y=self.negative_betas["neg_log_p_value"],
-                   s=s_negative,
-                   c=self.negative_betas["label_color"],
-                   marker="v",
-                   alpha=self.negative_alpha)
+        ax.scatter(
+                x=self.negative_betas["phecode_index"].to_numpy(),
+                y=self.negative_betas["neg_log_p_value"],
+                s=s_negative,
+                c=self.negative_betas["label_color"],
+                marker="v",
+                alpha=self.negative_alpha
+            )
 
     def _lines(
             self,
@@ -363,55 +403,67 @@ class Plot:
 
         # nominal significance line
         if nominal_significance_line:
-            ax.hlines(y=-adjustText.np.log10(.05),
-                      xmin=plot_df[x_col].min() - self.offset - extra_offset,
-                      xmax=plot_df[x_col].max() + self.offset + extra_offset,
-                      colors="red",
-                      lw=1)
+            ax.hlines(
+                y=-adjustText.np.log10(.05),
+                xmin=plot_df[x_col].min() - self.offset - extra_offset,
+                xmax=plot_df[x_col].max() + self.offset + extra_offset,
+                colors="red",
+                lw=1
+            )
 
         # bonferroni
         if bonferroni_line:
-            ax.hlines(y=self.bonferroni,
-                      xmin=plot_df[x_col].min() - self.offset - extra_offset,
-                      xmax=plot_df[x_col].max() + self.offset + extra_offset,
-                      colors="green",
-                      lw=1)
+            ax.hlines(
+                y=self.bonferroni,
+                xmin=plot_df[x_col].min() - self.offset - extra_offset,
+                xmax=plot_df[x_col].max() + self.offset + extra_offset,
+                colors="green",
+                lw=1
+            )
 
         # infinity
         if infinity_line:
             if self.inf_proxy is not None:
                 ax.yaxis.get_major_ticks()[-2].set_visible(False)
-                ax.hlines(y=self.inf_proxy * 0.98,
-                          xmin=plot_df[x_col].min() - self.offset - extra_offset,
-                          xmax=plot_df[x_col].max() + self.offset + extra_offset,
-                          colors="blue",
-                          linestyle="dashdot",
-                          lw=1)
+                ax.hlines(
+                        y=self.inf_proxy * 0.98,
+                        xmin=plot_df[x_col].min() - self.offset - extra_offset,
+                        xmax=plot_df[x_col].max() + self.offset + extra_offset,
+                        colors="blue",
+                        linestyle="dashdot",
+                        lw=1
+                    )
 
         # y threshold line
         if y_threshold_line:
-            ax.hlines(y=y_threshold_value,
-                      xmin=plot_df[x_col].min() - self.offset - extra_offset,
-                      xmax=plot_df[x_col].max() + self.offset + extra_offset,
-                      colors="gray",
-                      linestyles="dashed",
-                      lw=1)
+            ax.hlines(
+                y=y_threshold_value,
+                xmin=plot_df[x_col].min() - self.offset - extra_offset,
+                xmax=plot_df[x_col].max() + self.offset + extra_offset,
+                colors="gray",
+                linestyles="dashed",
+                lw=1
+            )
 
         # vertical lines
         if x_positive_threshold_line:
-            ax.vlines(x=x_positive_threshold_value,
-                      ymin=plot_df["neg_log_p_value"].min()-self.offset,
-                      ymax=plot_df["neg_log_p_value"].max() + self.offset + 5,
-                      colors="orange",
-                      linestyles="dashed",
-                      lw=1)
+            ax.vlines(
+                x=x_positive_threshold_value,
+                ymin=plot_df["neg_log_p_value"].min()-self.offset,
+                ymax=plot_df["neg_log_p_value"].max() + self.offset + 5,
+                colors="orange",
+                linestyles="dashed",
+                lw=1
+            )
         if x_negative_threshold_line:
-            ax.vlines(x=x_negative_threshold_value,
-                      ymin=plot_df["neg_log_p_value"].min()-self.offset,
-                      ymax=plot_df["neg_log_p_value"].max() + self.offset + 5,
-                      colors="lightseagreen",
-                      linestyles="dashed",
-                      lw=1)
+            ax.vlines(
+                x=x_negative_threshold_value,
+                ymin=plot_df["neg_log_p_value"].min()-self.offset,
+                ymax=plot_df["neg_log_p_value"].max() + self.offset + 5,
+                colors="lightseagreen",
+                linestyles="dashed",
+                lw=1
+            )
 
     @staticmethod
     def _split_text(
@@ -508,11 +560,11 @@ class Plot:
         for item in label_values:
             if item == "positive_beta":
                 self.data_to_label = pl.concat(
-                    [
-                        self.data_to_label,
-                        positive_betas.filter(pl.col(self.direction_col) >= label_value_threshold)
-                    ]
-                )
+                        [
+                            self.data_to_label,
+                            positive_betas.filter(pl.col(self.direction_col) >= label_value_threshold)
+                        ]
+                    )
                 if label_categories is not None:
                     self.data_to_label = self.data_to_label.filter(
                         pl.col("phecode_category").is_in(label_categories)
@@ -521,11 +573,11 @@ class Plot:
                     self.data_to_label = self.data_to_label[:label_count]
             elif item == "negative_beta":
                 self.data_to_label = pl.concat(
-                    [
-                        self.data_to_label,
-                        negative_betas.filter(pl.col(self.direction_col) <= label_value_threshold)
-                    ]
-                )
+                        [
+                            self.data_to_label,
+                            negative_betas.filter(pl.col(self.direction_col) <= label_value_threshold)
+                        ]
+                    )
                 if label_categories is not None:
                     self.data_to_label = self.data_to_label.filter(
                         pl.col("phecode_category").is_in(label_categories)
@@ -547,8 +599,10 @@ class Plot:
                 else:
                     self.data_to_label = self.data_to_label[:label_count]
             else:
-                self.data_to_label = pl.concat([self.data_to_label,
-                                                plot_df.filter(pl.col("phecode") == item)])
+                self.data_to_label = pl.concat(
+                        [self.data_to_label,
+                         plot_df.filter(pl.col("phecode") == item)]
+                    )
 
         texts = []
         for i in range(len(self.data_to_label)):
@@ -593,20 +647,27 @@ class Plot:
         :return: Adds legend to plot.
         :rtype: None
         """
-        legend_elements = [
-            Line2D([0], [0], color="blue", lw=1, linestyle="dashdot", label="Infinity"),
+        legend_elements = []
+        
+        # Only add infinity line to legend if infinity values are present
+        if self.inf_proxy is not None:
+            legend_elements.append(Line2D([0], [0], color="blue", lw=1, linestyle="dashdot", label="Infinity"))
+        
+        legend_elements.extend([
             Line2D([0], [0], color="green", lw=1, label="Bonferroni\nCorrection"),
             Line2D([0], [0], color="red", lw=1, label="Nominal\nSignificance"),
             Line2D([0], [0], marker="^", label="Increased\nRisk Effect", color="white",
                    markerfacecolor="blue", alpha=self.positive_alpha, markersize=legend_marker_size),
             Line2D([0], [0], marker="v", label="Decreased\nRisk Effect", color="white",
                    markerfacecolor="blue", alpha=self.negative_alpha, markersize=legend_marker_size),
-        ]
-        ax.legend(handles=legend_elements,
-                  handlelength=2,
-                  loc="center left",
-                  bbox_to_anchor=(1, 0.5),
-                  fontsize=legend_marker_size)
+        ])
+        ax.legend(
+            handles=legend_elements,
+            handlelength=2,
+            loc="center left",
+            bbox_to_anchor=(1, 0.5),
+            fontsize=legend_marker_size
+        )
 
     def manhattan(
             self,
@@ -630,8 +691,7 @@ class Plot:
             legend_marker_size: int = 6,
             dpi: int = 150,
             save_plot: bool = True,
-            output_file_name: str | None = None,
-            output_file_type: str = "pdf"
+            output_file_path: str | None = None
     ) -> None:
         """
         Create Manhattan plot visualization of PheWAS results.
@@ -680,10 +740,8 @@ class Plot:
         :type dpi: int
         :param save_plot: Whether to save plot to file.
         :type save_plot: bool
-        :param output_file_name: Custom filename for saved plot.
-        :type output_file_name: str | None
-        :param output_file_type: File format for saved plot.
-        :type output_file_type: str
+        :param output_file_path: Full path including extension (e.g., "plot.png", "results.pdf"), auto-generated if None.
+        :type output_file_path: str | None
         :return: Creates and optionally saves Manhattan plot.
         :rtype: None
         """
@@ -736,8 +794,9 @@ class Plot:
         if title is not None:
             adjustText.plt.title(title, weight="bold", size=title_text_size)
 
-        # set limit for display on y axes
+        # filter data by y_limit if specified
         if y_limit is not None:
+            plot_df = plot_df.filter(pl.col("neg_log_p_value") <= y_limit)
             ax.set_ylim(-0.2, y_limit)
 
         # y axis label
@@ -781,9 +840,7 @@ class Plot:
 
         # save plot
         if save_plot:
-            self.save_plot(plot_type="manhattan",
-                           output_file_name=output_file_name,
-                           output_file_type=output_file_type)
+            self.save_plot(plot_type="manhattan", output_file_path=output_file_path)
 
     @staticmethod
     def transform_values(
@@ -1068,8 +1125,7 @@ class Plot:
             legend_label_count: int = 5,
             dpi: int = 150,
             save_plot: bool = True,
-            output_file_name: str | None = None,
-            output_file_type: str = "pdf"
+            output_file_path: str | None = None
     ) -> None:
         """
         Create volcano plot visualization of PheWAS results.
@@ -1129,10 +1185,8 @@ class Plot:
         :type dpi: int
         :param save_plot: Whether to save plot to file.
         :type save_plot: bool
-        :param output_file_name: Custom filename for saved plot.
-        :type output_file_name: str | None
-        :param output_file_type: File format for saved plot.
-        :type output_file_type: str
+        :param output_file_path: Full path including extension (e.g., "plot.png", "results.pdf"), auto-generated if None.
+        :type output_file_path: str | None
         :return: Creates and optionally saves volcano plot.
         :rtype: None
         """
@@ -1147,8 +1201,14 @@ class Plot:
         if title is not None:
             adjustText.plt.title(title, weight="bold", size=title_text_size)
 
-        # set limit for display on y axes
+        # plot_df
+        plot_df = self.phewas_result.clone()
+        if exclude_infinity:
+            plot_df = plot_df.filter(pl.col("neg_log_p_value") != self.inf_proxy)
+        
+        # filter data by y_limit if specified
         if y_limit is not None:
+            plot_df = plot_df.filter(pl.col("neg_log_p_value") <= y_limit)
             ax.set_ylim(-0.2, y_limit)
 
         # x, y axis label
@@ -1159,10 +1219,6 @@ class Plot:
         ax.set_xlabel(x_axis_label, size=axis_text_size)
         ax.set_ylabel(r"$-\log_{10}$(p-value)", size=axis_text_size)
 
-        # plot_df
-        plot_df = self.phewas_result.clone()
-        if exclude_infinity:
-            plot_df = plot_df.filter(pl.col("neg_log_p_value") != self.inf_proxy)
         # generate positive & negative betas
         self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
 
@@ -1218,6 +1274,4 @@ class Plot:
 
         # save plot
         if save_plot:
-            self.save_plot(plot_type="volcano",
-                           output_file_name=output_file_name,
-                           output_file_type=output_file_type)
+            self.save_plot(plot_type="volcano", output_file_path=output_file_path)
