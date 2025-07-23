@@ -1346,17 +1346,17 @@ class Plot:
             # Get top positive and negative phecode lists
             if effect_col == "hazard_ratio":
                 positive_phecodes = self.phewas_result.filter(pl.col(effect_col) > 1).top_k(
-                    by=effect_col, k=n_top_values, descending=True
+                    by=effect_col, k=n_top_values, reverse=True
                 )["phecode"].to_list()
                 negative_phecodes = self.phewas_result.filter(pl.col(effect_col) < 1).top_k(
-                    by=effect_col, k=n_top_values, descending=False
+                    by=effect_col, k=n_top_values, reverse=False
                 )["phecode"].to_list()
             else:
                 positive_phecodes = self.phewas_result.filter(pl.col(effect_col) > 0).top_k(
-                    by=effect_col, k=n_top_values, descending=True
+                    by=effect_col, k=n_top_values, reverse=True
                 )["phecode"].to_list()
                 negative_phecodes = self.phewas_result.filter(pl.col(effect_col) < 0).top_k(
-                    by=effect_col, k=n_top_values, descending=False
+                    by=effect_col, k=n_top_values, reverse=False
                 )["phecode"].to_list()
             
             # Combine phecode lists
