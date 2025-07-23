@@ -98,12 +98,12 @@ class Plot:
                 "#949494",  # gray
                 "#ECE133",  # yellow
                 "#56B4E9",  # sky blue
-                "#F0E442",  # light yellow
+                "#E69F00",  # orange yellow
                 "#0072B2",  # dark blue
                 "#D55E00",  # vermilion
                 "#CC79A7",  # reddish purple
                 "#999999",  # medium gray
-                "#E69F00",  # orange yellow
+                "#F0E442",  # light yellow
                 "#009E73",  # bluish green
                 "#000000"   # black
             )
@@ -335,22 +335,22 @@ class Plot:
             s_negative = None
 
         ax.scatter(
-                x=self.positive_betas["phecode_index"].to_numpy(),
-                y=self.positive_betas["neg_log_p_value"],
-                s=s_positive,
-                c=self.positive_betas["label_color"],
-                marker="^",
-                alpha=self.positive_alpha
-            )
+            x=self.positive_betas["phecode_index"].to_numpy(),
+            y=self.positive_betas["neg_log_p_value"],
+            s=s_positive,
+            c=self.positive_betas["label_color"],
+            marker="^",
+            alpha=self.positive_alpha
+        )
 
         ax.scatter(
-                x=self.negative_betas["phecode_index"].to_numpy(),
-                y=self.negative_betas["neg_log_p_value"],
-                s=s_negative,
-                c=self.negative_betas["label_color"],
-                marker="v",
-                alpha=self.negative_alpha
-            )
+            x=self.negative_betas["phecode_index"].to_numpy(),
+            y=self.negative_betas["neg_log_p_value"],
+            s=s_negative,
+            c=self.negative_betas["label_color"],
+            marker="v",
+            alpha=self.negative_alpha
+        )
 
     def _lines(
             self,
@@ -434,13 +434,13 @@ class Plot:
             if self.inf_proxy is not None:
                 ax.yaxis.get_major_ticks()[-2].set_visible(False)
                 ax.hlines(
-                        y=self.inf_proxy * 0.98,
-                        xmin=plot_df[x_col].min() - self.offset - extra_offset,
-                        xmax=plot_df[x_col].max() + self.offset + extra_offset,
-                        colors="blue",
-                        linestyle="dashdot",
-                        lw=1
-                    )
+                    y=self.inf_proxy * 0.98,
+                    xmin=plot_df[x_col].min() - self.offset - extra_offset,
+                    xmax=plot_df[x_col].max() + self.offset + extra_offset,
+                    colors="blue",
+                    linestyle="dashdot",
+                    lw=1
+                )
 
         # y threshold line
         if y_threshold_line:
@@ -506,19 +506,19 @@ class Plot:
         return new_s
 
     def _manhattan_label(
-            self,
-            plot_df: pl.DataFrame,
-            label_values: str | list[str],
-            label_count: int,
-            label_categories: list[str] | None = None,
-            label_text_column: str = "phecode_string",
-            label_value_threshold: float = 0,
-            label_split_threshold: int = 30,
-            label_color: str = "label_color",
-            label_size: int = 8,
-            label_weight: str = "normal",
-            y_col: str = "neg_log_p_value",
-            x_col: str = "phecode_index"
+        self,
+        plot_df: pl.DataFrame,
+        label_values: str | list[str],
+        label_count: int,
+        label_categories: list[str] | None = None,
+        label_text_column: str = "phecode_string",
+        label_value_threshold: float = 0,
+        label_split_threshold: int = 30,
+        label_color: str = "label_color",
+        label_size: int = 8,
+        label_weight: str = "normal",
+        y_col: str = "neg_log_p_value",
+        x_col: str = "phecode_index"
     ):
         """
         Add data point labels to Manhattan plot with automatic positioning.
@@ -620,23 +620,37 @@ class Plot:
                 # noinspection PyTypeChecker
                 color = self.data_to_label[label_color]
             # noinspection PyTypeChecker
-            texts.append(adjustText.plt.text(float(self.data_to_label[x_col][i]),
-                                             float(self.data_to_label[y_col][i]),
-                                             self._split_text(self.data_to_label[label_text_column][i],
-                                                              label_split_threshold),
-                                             color=color[i],
-                                             size=label_size,
-                                             weight=label_weight,
-                                             alpha=1,
-                                             bbox=dict(facecolor="white",
-                                                       edgecolor="none",
-                                                       boxstyle="round",
-                                                       alpha=0.5,
-                                                       lw=0.5)))
+            texts.append(
+                adjustText.plt.text(
+                    float(self.data_to_label[x_col][i]),
+                    float(self.data_to_label[y_col][i]),
+                    self._split_text(
+                        self.data_to_label[label_text_column][i],
+                        label_split_threshold
+                    ),
+                    color=color[i],
+                    size=label_size,
+                    weight=label_weight,
+                    alpha=1,
+                    bbox=dict(
+                        facecolor="white",
+                        edgecolor="none",
+                        boxstyle="round",
+                        alpha=0.5,
+                        lw=0.5
+                    )
+                )
+            )
 
         if len(texts) > 0:
-            return adjustText.adjust_text(texts,
-                                          arrowprops=dict(arrowstyle="simple", color="gray", lw=0.5, mutation_scale=2))
+            return adjustText.adjust_text(
+                texts,
+                arrowprops=dict(
+                    arrowstyle="simple",
+                    color="gray", lw=0.5,
+                    mutation_scale=2
+                )
+            )
 
     def _manhattan_legend(
             self, 
@@ -831,19 +845,29 @@ class Plot:
         self._manhattan_scatter(ax=ax, marker_size_by_beta=marker_size_by_beta, scale_factor=marker_scale_factor)
 
         # lines
-        self._lines(ax=ax,
-                    plot_type="manhattan",
-                    plot_df=plot_df,
-                    x_col="phecode_index",
-                    nominal_significance_line=True,
-                    bonferroni_line=True,
-                    infinity_line=True)
+        self._lines(
+            ax=ax,
+            plot_type="manhattan",
+            plot_df=plot_df,
+            x_col="phecode_index",
+            nominal_significance_line=True,
+            bonferroni_line=True,
+            infinity_line=True
+        )
 
         # labeling
-        self._manhattan_label(plot_df=plot_df, label_values=label_values, label_count=label_count,
-                              label_text_column=label_text_column, label_categories=label_categories,
-                              label_value_threshold=label_value_threshold, label_split_threshold=label_split_threshold,
-                              label_size=label_size, label_color=label_color, label_weight=label_weight)
+        self._manhattan_label(
+            plot_df=plot_df,
+            label_values=label_values,
+            label_count=label_count,
+            label_text_column=label_text_column,
+            label_categories=label_categories,
+            label_value_threshold=label_value_threshold,
+            label_split_threshold=label_split_threshold,
+            label_size=label_size,
+            label_color=label_color,
+            label_weight=label_weight
+        )
 
         # legend
         if show_legend:
@@ -880,10 +904,13 @@ class Plot:
         :return: Dataframe with additional column containing transformed values.
         :rtype: pl.DataFrame
         """
-        df = df.with_columns(((pl.col(col) - pl.col(col).min())
-                              * (new_max - new_min)
-                              / (pl.col(col).max() - pl.col(col).min())
-                              + new_min).alias(new_col))
+        df = df.with_columns(
+            (
+                (pl.col(col) - pl.col(col).min())
+                 * (new_max - new_min)
+                 / (pl.col(col).max() - pl.col(col).min())
+                 + new_min
+            ).alias(new_col))
         return df
 
     def _volcano_scatter(
@@ -1238,15 +1265,17 @@ class Plot:
         ############
 
         # scatter
-        self._volcano_scatter(ax=ax,
-                              x_col=x_col,
-                              marker_size_col=marker_size_col,
-                              marker_shape=marker_shape,
-                              fill_marker=fill_marker,
-                              marker_alpha=marker_alpha,
-                              legend_marker_scale=legend_marker_scale,
-                              legend_label_count=legend_label_count,
-                              show_legend=show_legend)
+        self._volcano_scatter(
+            ax=ax,
+            x_col=x_col,
+            marker_size_col=marker_size_col,
+            marker_shape=marker_shape,
+            fill_marker=fill_marker,
+            marker_alpha=marker_alpha,
+            legend_marker_scale=legend_marker_scale,
+            legend_label_count=legend_label_count,
+            show_legend=show_legend
+        )
 
         # lines
         x_positive_threshold_line = False
@@ -1258,46 +1287,54 @@ class Plot:
             x_negative_threshold_line = True
         if y_threshold is not None:
             y_threshold_line = True
-        self._lines(ax=ax,
-                    plot_type="volcano",
-                    plot_df=plot_df,
-                    x_col=x_col,
-                    y_threshold_line=y_threshold_line,
-                    y_threshold_value=y_threshold,
-                    x_positive_threshold_line=x_positive_threshold_line,
-                    x_positive_threshold_value=x_positive_threshold,
-                    x_negative_threshold_line=x_negative_threshold_line,
-                    x_negative_threshold_value=x_negative_threshold,
-                    bonferroni_line=bonferroni_line,
-                    nominal_significance_line=nominal_significance_line,
-                    infinity_line=infinity_line)
+        self._lines(
+            ax=ax,
+            plot_type="volcano",
+            plot_df=plot_df,
+            x_col=x_col,
+            y_threshold_line=y_threshold_line,
+            y_threshold_value=y_threshold,
+            x_positive_threshold_line=x_positive_threshold_line,
+            x_positive_threshold_value=x_positive_threshold,
+            x_negative_threshold_line=x_negative_threshold_line,
+            x_negative_threshold_value=x_negative_threshold,
+            bonferroni_line=bonferroni_line,
+            nominal_significance_line=nominal_significance_line,
+            infinity_line=infinity_line
+        )
 
         # labels
-        self._volcano_label(phecode_list=phecode_list,
-                            phecode_string_list=phecode_string_list,
-                            plot_df=plot_df,
-                            label_count=label_count,
-                            x_col=x_col,
-                            y_col=y_col,
-                            y_threshold=y_threshold,
-                            x_positive_threshold=x_positive_threshold,
-                            x_negative_threshold=x_negative_threshold)
+        self._volcano_label(
+            phecode_list=phecode_list,
+            phecode_string_list=phecode_string_list,
+            plot_df=plot_df,
+            label_count=label_count,
+            x_col=x_col,
+            y_col=y_col,
+            y_threshold=y_threshold,
+            x_positive_threshold=x_positive_threshold,
+            x_negative_threshold=x_negative_threshold
+        )
 
         # save plot
         if save_plot:
             self.save_plot(plot_type="volcano", output_file_path=output_file_path)
 
     def forest(
-            self,
-            phecode_list: list[str] | str | None = None,
-            n_top_values: int = 5,
-            title: str | None = None,
-            axis_text_size: int = 10,
-            label_size: int = 10,
-            show_odds_ratio: bool = False,
-            dpi: int = 150,
-            save_plot: bool = True,
-            output_file_path: str | None = None
+        self,
+        phecode_list: list[str] | str | None = None,
+        n_top_values: int = 10,
+        title: str | None = None,
+        axis_text_size: int = 10,
+        label_size: int = 10,
+        marker_shape: str = "s",
+        marker_size: int = 6,
+        highlight_significance: bool = False,
+        highlight_phecodes: list[str] | str | None = None,
+        p_value_threshold: float | None = None,
+        dpi: int = 150,
+        save_plot: bool = True,
+        output_file_path: str | None = None
     ) -> None:
         """
         Create forest plot for selected phecodes from PheWAS results.
@@ -1318,8 +1355,16 @@ class Plot:
         :type axis_text_size: int
         :param label_size: Font size for text labels.
         :type label_size: int
-        :param show_odds_ratio: Whether to show odds ratios instead of betas.
-        :type show_odds_ratio: bool
+        :param marker_shape: Shape of center point markers (default: "s" for square).
+        :type marker_shape: str
+        :param marker_size: Size of center point markers.
+        :type marker_size: int
+        :param highlight_significance: Whether to use bold text and thicker lines for significant results.
+        :type highlight_significance: bool
+        :param highlight_phecodes: Specific phecodes to highlight with bold text and thick lines, overrides significance-based highlighting.
+        :type highlight_phecodes: list[str] | str | None
+        :param p_value_threshold: P-value threshold for significance highlighting, defaults to Bonferroni correction if None.
+        :type p_value_threshold: float | None
         :param dpi: Plot resolution in dots per inch.
         :type dpi: int
         :param save_plot: Whether to save plot to file.
@@ -1329,6 +1374,20 @@ class Plot:
         :return: Creates and optionally saves forest plot.
         :rtype: None
         """
+        
+        def _get_marker_color(effect_val: float, effect_column: str, positive_color: str = '#D55E00', negative_color: str = '#56B4E9') -> str:
+            """Determine marker color based on effect size and regression type."""
+            if effect_column == "hazard_ratio":
+                return positive_color if effect_val > 1.0 else negative_color
+            else:
+                return positive_color if effect_val > 0.0 else negative_color
+        
+        def _get_text_color(effect_val: float, effect_column: str, highlight: bool) -> str:
+            """Determine text color based on highlighting and effect direction."""
+            if highlight:
+                return _get_marker_color(effect_val, effect_column)
+            else:
+                return 'black'
         
         # Auto-select top positive and negative effects if no phecode_list provided
         if phecode_list is None:
@@ -1346,17 +1405,17 @@ class Plot:
             # Get top positive and negative phecode lists
             if effect_col == "hazard_ratio":
                 positive_phecodes = self.phewas_result.filter(pl.col(effect_col) > 1).top_k(
-                    by=effect_col, k=n_top_values, reverse=True
+                    by=effect_col, k=n_top_values, reverse=False
                 )["phecode"].to_list()
                 negative_phecodes = self.phewas_result.filter(pl.col(effect_col) < 1).top_k(
-                    by=effect_col, k=n_top_values, reverse=False
+                    by=effect_col, k=n_top_values, reverse=True
                 )["phecode"].to_list()
             else:
                 positive_phecodes = self.phewas_result.filter(pl.col(effect_col) > 0).top_k(
-                    by=effect_col, k=n_top_values, reverse=True
+                    by=effect_col, k=n_top_values, reverse=False
                 )["phecode"].to_list()
                 negative_phecodes = self.phewas_result.filter(pl.col(effect_col) < 0).top_k(
-                    by=effect_col, k=n_top_values, reverse=False
+                    by=effect_col, k=n_top_values, reverse=True
                 )["phecode"].to_list()
             
             # Combine phecode lists
@@ -1382,10 +1441,10 @@ class Plot:
         
         # Detect effect size column
         if "beta" in plot_data.columns:
-            beta_col = "beta"
+            effect_col = "beta"
             effect_type = "Beta"
         elif "hazard_ratio" in plot_data.columns:
-            beta_col = "hazard_ratio"
+            effect_col = "hazard_ratio"
             effect_type = "Hazard Ratio"
         else:
             print("Could not find effect size column (beta or hazard_ratio)")
@@ -1401,8 +1460,8 @@ class Plot:
         elif "standard_error" in plot_data.columns:
             # Calculate from beta and standard error if available
             plot_data = plot_data.with_columns([
-                (pl.col(beta_col) - 1.96 * pl.col("standard_error")).alias("ci_lower"),
-                (pl.col(beta_col) + 1.96 * pl.col("standard_error")).alias("ci_upper")
+                (pl.col(effect_col) - 1.96 * pl.col("standard_error")).alias("ci_lower"),
+                (pl.col(effect_col) + 1.96 * pl.col("standard_error")).alias("ci_upper")
             ])
             ci_cols = ("ci_lower", "ci_upper")
         else:
@@ -1410,73 +1469,75 @@ class Plot:
             return
         
         # Sort by effect size (largest effect first)
-        plot_data = plot_data.sort(beta_col, descending=True)
+        plot_data = plot_data.sort(effect_col, descending=True)
         
-        # Extract data for plotting
-        if show_odds_ratio and "odds_ratio" in plot_data.columns:
-            effects = plot_data["odds_ratio"].to_numpy()
+        # Extract data for plotting - automatically show appropriate effect measure
+        effects = plot_data[effect_col].to_numpy()
+        if effect_col == "hazard_ratio":
             reference_line = 1.0
-            x_label = "Odds Ratio"
-            log_scale = True
-        elif show_odds_ratio and "hazard_ratio" in plot_data.columns:
-            effects = plot_data["hazard_ratio"].to_numpy()
-            reference_line = 1.0
-            x_label = "Hazard Ratio"
-            log_scale = True
         else:
-            effects = plot_data[beta_col].to_numpy()
-            if beta_col == "hazard_ratio":
-                reference_line = 1.0
-                log_scale = True
-            else:
-                reference_line = 0.0
-                log_scale = False
-            x_label = effect_type
+            reference_line = 0.0
+        x_label = effect_type
         
         ci_lows = plot_data[ci_cols[0]].to_numpy()
         ci_highs = plot_data[ci_cols[1]].to_numpy()
         p_values = plot_data["p_value"].to_numpy()
-        phecode_strings = plot_data["phecode_string"].to_list()
+        # Add (phecode) to all phenotype texts
         phecodes = plot_data["phecode"].to_list()
+        phecode_strings = [f"{string} ({phecode})" for string, phecode in zip(plot_data["phecode_string"].to_list(), phecodes)]
+        
+        # Process highlight_phecodes parameter
+        if highlight_phecodes is not None:
+            if isinstance(highlight_phecodes, str):
+                highlight_phecodes = [highlight_phecodes]
+            highlight_phecodes_set = set(highlight_phecodes)
+        else:
+            highlight_phecodes_set = set()
+        
+        # Set p-value threshold
+        if p_value_threshold is None:
+            p_value_threshold = 10 ** (-self.bonferroni)
         
         # Create figure with subplots
         n_phecodes = len(plot_data)
-        calculated_figsize = (12, max(8.0, n_phecodes * 0.4))
-        fig, (ax_text, ax_pval, ax_forest) = plt.subplots(
-            1, 3, 
+        calculated_figsize = (14, n_phecodes * 0.4)
+        fig, (ax_text, ax_forest, ax_effect, ax_pval) = plt.subplots(
+            1, 4, 
             figsize=calculated_figsize,
-            gridspec_kw={'width_ratios': [2, 1, 3], 'wspace': 0.05},
+            gridspec_kw={'width_ratios': [2, 3, 1.5, 0.8], 'wspace': 0.05},
             dpi=dpi
         )
         
-        y_positions = np.arange(n_phecodes)
+        # Forest plot (second panel)
+        if title is not None:
+            ax_forest.set_title(title, fontweight='bold', fontsize=axis_text_size + 2)
         
-        # Forest plot (left panel)
-        if title is None:
-            title = f"Forest Plot - {effect_type}"
-        ax_forest.set_title(title, fontweight='bold', fontsize=axis_text_size + 2)
-        
-        if log_scale:
-            ax_forest.set_xscale('log')
+        # Note: We no longer use log scale for hazard ratios
         
         # Plot confidence intervals as horizontal lines
-        for i, (effect, ci_low, ci_high) in enumerate(zip(effects, ci_lows, ci_highs)):
-            # Confidence interval line
-            ax_forest.plot([ci_low, ci_high], [i, i], 'k-', linewidth=2, alpha=0.7)
-            
-            # Point estimate
-            if log_scale:
-                color = 'red' if effect > 1 else 'blue'
+        for i, (effect, ci_low, ci_high, pval, phecode) in enumerate(zip(effects, ci_lows, ci_highs, p_values, phecodes)):
+            # Determine line thickness and marker edge width based on highlighting conditions
+            should_highlight = (highlight_significance and pval < p_value_threshold) or (phecode in highlight_phecodes_set)
+            if should_highlight:
+                line_width = 2
+                marker_edge_width = 1.5
             else:
-                color = 'red' if effect > 0 else 'blue'
+                line_width = 1
+                marker_edge_width = 1
             
-            ax_forest.plot(effect, i, 'o', color=color, markersize=8, 
-                          markeredgecolor='black', linewidth=1)
+            # Confidence interval line
+            ax_forest.plot([ci_low, ci_high], [i, i], 'k-', linewidth=line_width, alpha=0.7)
+
+            # Point estimate - color based on neutral value
+            color = _get_marker_color(effect, effect_col)
+            
+            ax_forest.plot(effect, i, marker_shape, color=color, markersize=marker_size, 
+                          markeredgecolor='black', linewidth=marker_edge_width)
             
             # Add caps to confidence interval
             cap_height = 0.1
-            ax_forest.plot([ci_low, ci_low], [i-cap_height, i+cap_height], 'k-', linewidth=2)
-            ax_forest.plot([ci_high, ci_high], [i-cap_height, i+cap_height], 'k-', linewidth=2)
+            ax_forest.plot([ci_low, ci_low], [i-cap_height, i+cap_height], 'k-', linewidth=line_width)
+            ax_forest.plot([ci_high, ci_high], [i-cap_height, i+cap_height], 'k-', linewidth=line_width)
         
         # Add reference line
         ax_forest.axvline(x=reference_line, color='black', linestyle='--', alpha=0.5)
@@ -1484,7 +1545,8 @@ class Plot:
         # Format forest plot
         ax_forest.set_xlabel(x_label, fontweight='bold', fontsize=axis_text_size)
         ax_forest.set_yticks([])
-        ax_forest.grid(True, alpha=0.3)
+        ax_forest.set_ylim(-0.5, n_phecodes - 0.5)
+        ax_forest.grid(False)
         ax_forest.invert_yaxis()
         
         # Remove top and right spines
@@ -1492,20 +1554,20 @@ class Plot:
         ax_forest.spines['right'].set_visible(False)
         ax_forest.spines['left'].set_visible(False)
         
-        # Text panel (middle) - Effect (CI)
-        if show_odds_ratio:
-            ax_text.set_title(f'{x_label} (95% CI)', fontweight='bold', fontsize=axis_text_size)
-        else:
-            ax_text.set_title(f'{effect_type} (95% CI)', fontweight='bold', fontsize=axis_text_size)
+        # Note: No special formatting needed since we're not using log scale
         
-        for i, (effect, ci_low, ci_high) in enumerate(zip(effects, ci_lows, ci_highs)):
-            effect_text = f"{effect:.3f} ({ci_low:.3f}, {ci_high:.3f})"
-            ax_text.text(0.05, i, effect_text, va='center', ha='left', fontsize=label_size)
+        # Text panel (first panel) - Phecode descriptions
+        ax_text.set_title('Phenotype (phecode)   ', fontweight='bold', fontsize=axis_text_size, loc="right")
+        
+        for i, (phecode_string, pval, phecode, effect) in enumerate(zip(phecode_strings, p_values, phecodes, effects)):
+            should_highlight = (highlight_significance and pval < p_value_threshold) or (phecode in highlight_phecodes_set)
+            weight = 'bold' if should_highlight else 'normal'
+            text_color = _get_text_color(effect, effect_col, should_highlight)
+            ax_text.text(0.95, i, phecode_string, va='center', ha='right', fontsize=label_size, weight=weight, color=text_color)
         
         ax_text.set_xlim(0, 1)
         ax_text.set_ylim(-0.5, n_phecodes - 0.5)
-        ax_text.set_yticks(y_positions)
-        ax_text.set_yticklabels(phecode_strings, fontsize=label_size)
+        ax_text.set_yticks([])
         ax_text.set_xticks([])
         ax_text.invert_yaxis()
         
@@ -1513,22 +1575,37 @@ class Plot:
         for spine in ax_text.spines.values():
             spine.set_visible(False)
         
-        # P-value panel (right)
-        ax_pval.set_title('P-value', fontweight='bold', fontsize=axis_text_size)
+        # Effect (CI) panel (third panel)
+        ax_effect.set_title(f'{effect_type} (95% CI)', fontweight='bold', fontsize=axis_text_size)
         
-        for i, pval in enumerate(p_values):
-            if pval < 0.001:
-                pval_text = "<0.001"
-                weight = 'bold'
-            elif pval < 0.05:
-                pval_text = f"{pval:.3f}"
-                weight = 'bold'
-            else:
-                pval_text = f"{pval:.3f}"
-                weight = 'normal'
+        for i, (effect, ci_low, ci_high, pval, phecode) in enumerate(zip(effects, ci_lows, ci_highs, p_values, phecodes)):
+            effect_text = f"{effect:.3f} ({ci_low:.3f}, {ci_high:.3f})"
+            should_highlight = (highlight_significance and pval < p_value_threshold) or (phecode in highlight_phecodes_set)
+            weight = 'bold' if should_highlight else 'normal'
+            text_color = _get_text_color(effect, effect_col, should_highlight)
+            ax_effect.text(0.5, i, effect_text, va='center', ha='center', fontsize=label_size, weight=weight, color=text_color)
+        
+        ax_effect.set_xlim(0, 1)
+        ax_effect.set_ylim(-0.5, n_phecodes - 0.5)
+        ax_effect.set_yticks([])
+        ax_effect.set_xticks([])
+        ax_effect.invert_yaxis()
+        
+        # Remove spines for effect panel
+        for spine in ax_effect.spines.values():
+            spine.set_visible(False)
+        
+        # p-value panel (fourth panel)
+        ax_pval.set_title('p-value', fontweight='bold', fontsize=axis_text_size)
+        
+        for i, (pval, phecode, effect) in enumerate(zip(p_values, phecodes, effects)):
+            pval_text = f"{pval:.2e}"
+            should_highlight = (highlight_significance and pval < p_value_threshold) or (phecode in highlight_phecodes_set)
+            weight = 'bold' if should_highlight else 'normal'
+            text_color = _get_text_color(effect, effect_col, should_highlight)
             
             ax_pval.text(0.5, i, pval_text, va='center', ha='center', 
-                        fontsize=label_size, weight=weight)
+                        fontsize=label_size, weight=weight, color=text_color)
         
         ax_pval.set_xlim(0, 1)
         ax_pval.set_ylim(-0.5, n_phecodes - 0.5)
@@ -1539,25 +1616,7 @@ class Plot:
         # Remove spines for p-value panel
         for spine in ax_pval.spines.values():
             spine.set_visible(False)
-        
-        # Add significance highlighting
-        for i, pval in enumerate(p_values):
-            if pval < 0.05:
-                # Add light yellow background for significant results
-                for ax in [ax_forest, ax_text, ax_pval]:
-                    rect = plt.Rectangle(
-                        (ax.get_xlim()[0], i-0.4), 
-                        ax.get_xlim()[1] - ax.get_xlim()[0], 
-                        0.8, 
-                        transform=ax.get_xaxis_transform(),
-                        linewidth=0, 
-                        facecolor='yellow', 
-                        alpha=0.2,
-                        zorder=0
-                    )
-                    ax.add_patch(rect)
-        
-        
+
         # Save plot
         if save_plot:
             self.save_plot(plot_type="forest", output_file_path=output_file_path)
