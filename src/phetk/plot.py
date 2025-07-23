@@ -100,7 +100,7 @@ class Plot:
                 "#56B4E9",  # sky blue
                 "#F0E442",  # light yellow
                 "#0072B2",  # dark blue
-                "#D55E00",  # vermillion
+                "#D55E00",  # vermilion
                 "#CC79A7",  # reddish purple
                 "#999999",  # medium gray
                 "#E69F00",  # orange yellow
@@ -211,7 +211,8 @@ class Plot:
 
     def _create_phecode_index(
             self, 
-            df: pl.DataFrame
+            df: pl.DataFrame,
+            sort_by_significance: bool = False
     ) -> pl.DataFrame:
         """
         Create sequential phecode index for Manhattan plot x-axis positioning.
@@ -222,13 +223,20 @@ class Plot:
         
         :param df: PheWAS result dataframe to create index for.
         :type df: pl.DataFrame
+        :param sort_by_significance: If True, sort by phecode_category and -log10(p-value) descending within each category.
+        :type sort_by_significance: bool
         :return: Dataframe with phecode_index and marker_size columns added.
         :rtype: pl.DataFrame
         """
         if "phecode_index" in df.columns:
             df = df.drop("phecode_index")
-        df = df.sort(by=["phecode_category", "phecode"])\
-               .with_columns(pl.Series("phecode_index", range(1, len(df) + 1)))\
+        
+        if sort_by_significance:
+            df = df.sort(by=["phecode_category", "neg_log_p_value"], descending=[False, True])
+        else:
+            df = df.sort(by=["phecode_category", "phecode"])
+            
+        df = df.with_columns(pl.Series("phecode_index", range(1, len(df) + 1)))\
                .with_columns(15*np.exp(pl.col(self.direction_col)).alias(f"marker_size_by_{self.direction_col}"))
 
         return df
@@ -683,6 +691,7 @@ class Plot:
             marker_scale_factor: float = 1,
             phecode_categories: list[str] | str | None = None,
             plot_all_categories: bool = True,
+            sort_by_significance: bool = False,
             title: str | None = None,
             title_text_size: int = 10,
             y_limit: float | None = None,
@@ -724,6 +733,8 @@ class Plot:
         :type phecode_categories: list[str] | str | None
         :param plot_all_categories: Whether to include all categories in plot.
         :type plot_all_categories: bool
+        :param sort_by_significance: If True, sort phecodes by significance within each category.
+        :type sort_by_significance: bool
         :param title: Plot title text.
         :type title: str | None
         :param title_text_size: Font size for plot title.
@@ -770,7 +781,7 @@ class Plot:
             selected_color_dict = self.color_dict
             n_categories = len(self.phewas_result.columns)
             # create plot_df containing only necessary data for plotting
-            plot_df = self._create_phecode_index(self.phewas_result)
+            plot_df = self._create_phecode_index(self.phewas_result, sort_by_significance)
         else:
             if phecode_categories:
                 selected_color_dict = {k: self.color_dict[k] for k in phecode_categories}
@@ -780,7 +791,7 @@ class Plot:
                 plot_df = self._create_phecode_index(
                     self._filter_by_phecode_categories(
                         self.phewas_result, phecode_categories=phecode_categories
-                    )
+                    ), sort_by_significance
                 )
             else:
                 print("phecode_categories must not be None when plot_all_categories = False.")
@@ -1275,3 +1286,264 @@ class Plot:
         # save plot
         if save_plot:
             self.save_plot(plot_type="volcano", output_file_path=output_file_path)
+
+    def forest(
+            self,
+            phecode_list: list[str] | str | None = None,
+            n_top_values: int = 5,
+            title: str | None = None,
+            axis_text_size: int = 10,
+            label_size: int = 10,
+            show_odds_ratio: bool = False,
+            dpi: int = 150,
+            save_plot: bool = True,
+            output_file_path: str | None = None
+    ) -> None:
+        """
+        Create forest plot for selected phecodes from PheWAS results.
+        
+        Generates forest plot showing effect sizes with confidence intervals,
+        arranged vertically with statistical information in adjacent panels.
+        Automatically detects column names from PheWAS output format. If no
+        specific phecodes are provided, automatically selects top positive
+        and negative effect values.
+        
+        :param phecode_list: Specific phecodes to include in forest plot, auto-selects top effects if None.
+        :type phecode_list: list[str] | str | None
+        :param n_top_values: Number of top positive and negative effect values to include when auto-selecting.
+        :type n_top_values: int
+        :param title: Plot title, auto-generated if None.
+        :type title: str | None
+        :param axis_text_size: Font size for axis labels.
+        :type axis_text_size: int
+        :param label_size: Font size for text labels.
+        :type label_size: int
+        :param show_odds_ratio: Whether to show odds ratios instead of betas.
+        :type show_odds_ratio: bool
+        :param dpi: Plot resolution in dots per inch.
+        :type dpi: int
+        :param save_plot: Whether to save plot to file.
+        :type save_plot: bool
+        :param output_file_path: Full path including extension, auto-generated if None.
+        :type output_file_path: str | None
+        :return: Creates and optionally saves forest plot.
+        :rtype: None
+        """
+        
+        # Auto-select top positive and negative effects if no phecode_list provided
+        if phecode_list is None:
+            # First detect the effect column to determine direction
+            if "beta" in self.phewas_result.columns:
+                effect_col = "beta"
+            elif "hazard_ratio" in self.phewas_result.columns:
+                effect_col = "hazard_ratio"
+            elif "log_hazard_ratio" in self.phewas_result.columns:
+                effect_col = "log_hazard_ratio"
+            else:
+                print("Could not find effect size column (beta, hazard_ratio, or log_hazard_ratio)")
+                return
+            
+            # Get top positive and negative phecode lists
+            positive_phecodes = self.phewas_result.filter(pl.col(effect_col) > 0).top_k(
+                by=effect_col, k=n_top_values, descending=True
+            )["phecode"].to_list()
+            negative_phecodes = self.phewas_result.filter(pl.col(effect_col) < 0).top_k(
+                by=effect_col, k=n_top_values, descending=False
+            )["phecode"].to_list()
+            
+            # Combine phecode lists
+            phecode_list = positive_phecodes + negative_phecodes
+            
+            if len(phecode_list) == 0:
+                print("No data found with positive or negative effects.")
+                return
+        else:
+            # Convert single phecode to list
+            if isinstance(phecode_list, str):
+                phecode_list = [phecode_list]
+        
+        # Filter data for specified phecodes
+        plot_data = self.phewas_result.filter(pl.col("phecode").is_in(phecode_list))
+        
+        if len(plot_data) == 0:
+            print("No data found for specified phecodes.")
+            return
+        
+        # Auto-detect columns based on regression type and available columns
+        effect_type = "Effect"  # Default
+        
+        # Detect effect size column
+        if "beta" in plot_data.columns:
+            beta_col = "beta"
+            effect_type = "Beta"
+        elif "hazard_ratio" in plot_data.columns:
+            beta_col = "hazard_ratio"
+            effect_type = "Hazard Ratio"
+        else:
+            print("Could not find effect size column (beta or hazard_ratio)")
+            return
+        
+        # Auto-detect confidence interval columns  
+        if "conf_int_1" in plot_data.columns and "conf_int_2" in plot_data.columns:
+            # Logistic regression format
+            ci_cols = ("conf_int_1", "conf_int_2")
+        elif "hazard_ratio_low" in plot_data.columns and "hazard_ratio_high" in plot_data.columns:
+            # Cox regression format
+            ci_cols = ("hazard_ratio_low", "hazard_ratio_high")
+        elif "standard_error" in plot_data.columns:
+            # Calculate from beta and standard error if available
+            plot_data = plot_data.with_columns([
+                (pl.col(beta_col) - 1.96 * pl.col("standard_error")).alias("ci_lower"),
+                (pl.col(beta_col) + 1.96 * pl.col("standard_error")).alias("ci_upper")
+            ])
+            ci_cols = ("ci_lower", "ci_upper")
+        else:
+            print("Could not find confidence interval columns")
+            return
+        
+        # Sort by effect size (largest effect first)
+        plot_data = plot_data.sort(beta_col, descending=True)
+        
+        # Extract data for plotting
+        if show_odds_ratio and "odds_ratio" in plot_data.columns:
+            effects = plot_data["odds_ratio"].to_numpy()
+            reference_line = 1.0
+            x_label = "Odds Ratio"
+            log_scale = True
+        elif show_odds_ratio and "hazard_ratio" in plot_data.columns:
+            effects = plot_data["hazard_ratio"].to_numpy()
+            reference_line = 1.0
+            x_label = "Hazard Ratio"
+            log_scale = True
+        else:
+            effects = plot_data[beta_col].to_numpy()
+            reference_line = 0.0
+            x_label = effect_type
+            log_scale = False
+        
+        ci_lows = plot_data[ci_cols[0]].to_numpy()
+        ci_highs = plot_data[ci_cols[1]].to_numpy()
+        p_values = plot_data["p_value"].to_numpy()
+        phecode_strings = plot_data["phecode_string"].to_list()
+        phecodes = plot_data["phecode"].to_list()
+        
+        # Create figure with subplots
+        n_phecodes = len(plot_data)
+        calculated_figsize = (12, max(8.0, n_phecodes * 0.4))
+        fig, (ax_forest, ax_text, ax_pval) = plt.subplots(
+            1, 3, 
+            figsize=calculated_figsize,
+            gridspec_kw={'width_ratios': [3, 2, 1], 'wspace': 0.05},
+            dpi=dpi
+        )
+        
+        y_positions = np.arange(n_phecodes)
+        
+        # Forest plot (left panel)
+        if title is None:
+            title = f"Forest Plot - {effect_type}"
+        ax_forest.set_title(title, fontweight='bold', fontsize=axis_text_size + 2)
+        
+        if log_scale:
+            ax_forest.set_xscale('log')
+        
+        # Plot confidence intervals as horizontal lines
+        for i, (effect, ci_low, ci_high) in enumerate(zip(effects, ci_lows, ci_highs)):
+            # Confidence interval line
+            ax_forest.plot([ci_low, ci_high], [i, i], 'k-', linewidth=2, alpha=0.7)
+            
+            # Point estimate
+            if log_scale:
+                color = 'red' if effect > 1 else 'blue'
+            else:
+                color = 'red' if effect > 0 else 'blue'
+            
+            ax_forest.plot(effect, i, 'o', color=color, markersize=8, 
+                          markeredgecolor='black', linewidth=1)
+            
+            # Add caps to confidence interval
+            cap_height = 0.1
+            ax_forest.plot([ci_low, ci_low], [i-cap_height, i+cap_height], 'k-', linewidth=2)
+            ax_forest.plot([ci_high, ci_high], [i-cap_height, i+cap_height], 'k-', linewidth=2)
+        
+        # Add reference line
+        ax_forest.axvline(x=reference_line, color='black', linestyle='--', alpha=0.5)
+        
+        # Format forest plot
+        ax_forest.set_xlabel(x_label, fontweight='bold', fontsize=axis_text_size)
+        ax_forest.set_ylabel('Phecodes', fontweight='bold', fontsize=axis_text_size)
+        ax_forest.set_yticks(y_positions)
+        ax_forest.set_yticklabels([f"{code}" for code in phecodes], fontsize=label_size)
+        ax_forest.grid(True, alpha=0.3)
+        ax_forest.invert_yaxis()
+        
+        # Text panel (middle) - Effect (CI)
+        if show_odds_ratio:
+            ax_text.set_title(f'{x_label} (95% CI)', fontweight='bold', fontsize=axis_text_size)
+        else:
+            ax_text.set_title(f'{effect_type} (95% CI)', fontweight='bold', fontsize=axis_text_size)
+        
+        for i, (effect, ci_low, ci_high) in enumerate(zip(effects, ci_lows, ci_highs)):
+            effect_text = f"{effect:.3f} ({ci_low:.3f}, {ci_high:.3f})"
+            ax_text.text(0.05, i, effect_text, va='center', ha='left', fontsize=label_size)
+        
+        ax_text.set_xlim(0, 1)
+        ax_text.set_ylim(-0.5, n_phecodes - 0.5)
+        ax_text.set_yticks(y_positions)
+        ax_text.set_yticklabels(phecode_strings, fontsize=label_size)
+        ax_text.set_xticks([])
+        ax_text.invert_yaxis()
+        
+        # Remove spines for text panel
+        for spine in ax_text.spines.values():
+            spine.set_visible(False)
+        
+        # P-value panel (right)
+        ax_pval.set_title('P-value', fontweight='bold', fontsize=axis_text_size)
+        
+        for i, pval in enumerate(p_values):
+            if pval < 0.001:
+                pval_text = "<0.001"
+                weight = 'bold'
+            elif pval < 0.05:
+                pval_text = f"{pval:.3f}"
+                weight = 'bold'
+            else:
+                pval_text = f"{pval:.3f}"
+                weight = 'normal'
+            
+            ax_pval.text(0.5, i, pval_text, va='center', ha='center', 
+                        fontsize=label_size, weight=weight)
+        
+        ax_pval.set_xlim(0, 1)
+        ax_pval.set_ylim(-0.5, n_phecodes - 0.5)
+        ax_pval.set_yticks([])
+        ax_pval.set_xticks([])
+        ax_pval.invert_yaxis()
+        
+        # Remove spines for p-value panel
+        for spine in ax_pval.spines.values():
+            spine.set_visible(False)
+        
+        # Add significance highlighting
+        for i, pval in enumerate(p_values):
+            if pval < 0.05:
+                # Add light yellow background for significant results
+                for ax in [ax_forest, ax_text, ax_pval]:
+                    rect = plt.Rectangle(
+                        (ax.get_xlim()[0], i-0.4), 
+                        ax.get_xlim()[1] - ax.get_xlim()[0], 
+                        0.8, 
+                        transform=ax.get_xaxis_transform(),
+                        linewidth=0, 
+                        facecolor='yellow', 
+                        alpha=0.2,
+                        zorder=0
+                    )
+                    ax.add_patch(rect)
+        
+        plt.tight_layout()
+        
+        # Save plot
+        if save_plot:
+            self.save_plot(plot_type="forest", output_file_path=output_file_path)
