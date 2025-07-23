@@ -1344,12 +1344,20 @@ class Plot:
                 return
             
             # Get top positive and negative phecode lists
-            positive_phecodes = self.phewas_result.filter(pl.col(effect_col) > 0).top_k(
-                by=effect_col, k=n_top_values, descending=True
-            )["phecode"].to_list()
-            negative_phecodes = self.phewas_result.filter(pl.col(effect_col) < 0).top_k(
-                by=effect_col, k=n_top_values, descending=False
-            )["phecode"].to_list()
+            if effect_col == "hazard_ratio":
+                positive_phecodes = self.phewas_result.filter(pl.col(effect_col) > 1).top_k(
+                    by=effect_col, k=n_top_values, descending=True
+                )["phecode"].to_list()
+                negative_phecodes = self.phewas_result.filter(pl.col(effect_col) < 1).top_k(
+                    by=effect_col, k=n_top_values, descending=False
+                )["phecode"].to_list()
+            else:
+                positive_phecodes = self.phewas_result.filter(pl.col(effect_col) > 0).top_k(
+                    by=effect_col, k=n_top_values, descending=True
+                )["phecode"].to_list()
+                negative_phecodes = self.phewas_result.filter(pl.col(effect_col) < 0).top_k(
+                    by=effect_col, k=n_top_values, descending=False
+                )["phecode"].to_list()
             
             # Combine phecode lists
             phecode_list = positive_phecodes + negative_phecodes
@@ -1417,9 +1425,13 @@ class Plot:
             log_scale = True
         else:
             effects = plot_data[beta_col].to_numpy()
-            reference_line = 0.0
+            if beta_col == "hazard_ratio":
+                reference_line = 1.0
+                log_scale = True
+            else:
+                reference_line = 0.0
+                log_scale = False
             x_label = effect_type
-            log_scale = False
         
         ci_lows = plot_data[ci_cols[0]].to_numpy()
         ci_highs = plot_data[ci_cols[1]].to_numpy()
@@ -1430,10 +1442,10 @@ class Plot:
         # Create figure with subplots
         n_phecodes = len(plot_data)
         calculated_figsize = (12, max(8.0, n_phecodes * 0.4))
-        fig, (ax_forest, ax_text, ax_pval) = plt.subplots(
+        fig, (ax_text, ax_pval, ax_forest) = plt.subplots(
             1, 3, 
             figsize=calculated_figsize,
-            gridspec_kw={'width_ratios': [3, 2, 1], 'wspace': 0.05},
+            gridspec_kw={'width_ratios': [2, 1, 3], 'wspace': 0.05},
             dpi=dpi
         )
         
@@ -1471,11 +1483,14 @@ class Plot:
         
         # Format forest plot
         ax_forest.set_xlabel(x_label, fontweight='bold', fontsize=axis_text_size)
-        ax_forest.set_ylabel('Phecodes', fontweight='bold', fontsize=axis_text_size)
-        ax_forest.set_yticks(y_positions)
-        ax_forest.set_yticklabels([f"{code}" for code in phecodes], fontsize=label_size)
+        ax_forest.set_yticks([])
         ax_forest.grid(True, alpha=0.3)
         ax_forest.invert_yaxis()
+        
+        # Remove top and right spines
+        ax_forest.spines['top'].set_visible(False)
+        ax_forest.spines['right'].set_visible(False)
+        ax_forest.spines['left'].set_visible(False)
         
         # Text panel (middle) - Effect (CI)
         if show_odds_ratio:
@@ -1542,7 +1557,6 @@ class Plot:
                     )
                     ax.add_patch(rect)
         
-        plt.tight_layout()
         
         # Save plot
         if save_plot:
