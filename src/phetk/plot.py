@@ -1333,6 +1333,8 @@ class Plot:
         highlight_phecodes: list[str] | str | None = None,
         highlight_p_value_threshold: float | None = None,
         show_p_value_asterisks: bool = False,
+        show_count: bool = False,
+        show_sex_restriction: bool = False,
         dpi: int = 150,
         save_plot: bool = True,
         output_file_path: str | None = None
@@ -1368,6 +1370,10 @@ class Plot:
         :type highlight_p_value_threshold: float | None
         :param show_p_value_asterisks: Whether to show significance asterisks next to p-values (* p<0.05, ** p<0.01, *** p<0.001).
         :type show_p_value_asterisks: bool
+        :param show_count: Whether to show cases/controls panel with N(cases,controls) title.
+        :type show_count: bool
+        :param show_sex_restriction: Whether to show sex restriction values from phecode data.
+        :type show_sex_restriction: bool
         :param dpi: Plot resolution in dots per inch.
         :type dpi: int
         :param save_plot: Whether to save plot to file.
@@ -1378,30 +1384,7 @@ class Plot:
         :rtype: None
         """
         
-        def _get_marker_color(effect_val: float, effect_column: str, positive_color: str = '#D55E00', negative_color: str = '#56B4E9') -> str:
-            """Determine marker color based on effect size and regression type."""
-            if effect_column == "hazard_ratio":
-                return positive_color if effect_val > 1.0 else negative_color
-            else:
-                return positive_color if effect_val > 0.0 else negative_color
         
-        def _get_text_color(effect_val: float, effect_column: str, highlight: bool) -> str:
-            """Determine text color based on highlighting and effect direction."""
-            if highlight:
-                return _get_marker_color(effect_val, effect_column)
-            else:
-                return 'black'
-        
-        def _get_p_value_asterisks(p_val: float) -> str:
-            """Generate significance asterisks based on p-value thresholds."""
-            if p_val < 0.001:
-                return "***"
-            elif p_val < 0.01:
-                return "**"
-            elif p_val < 0.05:
-                return "*"
-            else:
-                return ""
         
         # Auto-select top positive and negative effects if no phecode_list provided
         if phecode_list is None:
@@ -1511,13 +1494,46 @@ class Plot:
         
         # Create figure with subplots
         n_phecodes = len(plot_data)
-        calculated_figsize = (14, n_phecodes * 0.4)
-        fig, (ax_text, ax_forest, ax_effect, ax_pval) = plt.subplots(
-            1, 4, 
+        
+        # Determine number of panels and width ratios
+        panels = 4  # Base panels: text, forest, effect, p-value
+        width_ratios = [2, 4, 1.5, 0.8]
+        
+        if show_count:
+            panels += 1
+            width_ratios.append(1.8)
+        
+        if show_sex_restriction:
+            panels += 1
+            width_ratios.append(0.4)
+        
+        calculated_figsize = (sum(width_ratios) * 1.5, n_phecodes * 0.4)
+        
+        fig, axes = plt.subplots(
+            1, panels, 
             figsize=calculated_figsize,
-            gridspec_kw={'width_ratios': [2, 3, 1.5, 0.8], 'wspace': 0.05},
+            gridspec_kw={'width_ratios': width_ratios, 'wspace': 0.05},
             dpi=dpi
         )
+        
+        # Assign axes based on panels
+        ax_text = axes[0]
+        ax_forest = axes[1]
+        ax_effect = axes[2]
+        ax_pval = axes[3]
+        
+        if show_count and show_sex_restriction:
+            ax_count = axes[4]
+            ax_sex = axes[5]
+        elif show_count:
+            ax_count = axes[4]
+            ax_sex = None
+        elif show_sex_restriction:
+            ax_count = None
+            ax_sex = axes[4]
+        else:
+            ax_count = None
+            ax_sex = None
         
         # Forest plot (second panel)
         if title is not None:
@@ -1540,7 +1556,7 @@ class Plot:
             ax_forest.plot([ci_low, ci_high], [i, i], 'k-', linewidth=line_width, alpha=0.7)
 
             # Point estimate - color based on neutral value
-            color = _get_marker_color(effect, effect_col)
+            color = Plot._get_marker_color(effect, effect_col)
             
             ax_forest.plot(effect, i, marker_shape, color=color, markersize=marker_size, 
                           markeredgecolor='black', linewidth=marker_edge_width)
@@ -1569,68 +1585,109 @@ class Plot:
         
         # Text panel (first panel) - Phecode descriptions
         ax_text.set_title('Phenotype (phecode)   ', fontweight='bold', fontsize=axis_text_size, loc="right")
-        
-        for i, (phecode_string, pval, phecode, effect) in enumerate(zip(phecode_strings, p_values, phecodes, effects)):
-            should_highlight = (highlight_significance and pval <= highlight_p_value_threshold) or (phecode in highlight_phecodes_set)
-            weight = 'bold' if should_highlight else 'normal'
-            text_color = _get_text_color(effect, effect_col, should_highlight)
-            ax_text.text(0.95, i, phecode_string, va='center', ha='right', fontsize=label_size, weight=weight, color=text_color)
-        
-        ax_text.set_xlim(0, 1)
-        ax_text.set_ylim(-0.5, n_phecodes - 0.5)
-        ax_text.set_yticks([])
-        ax_text.set_xticks([])
-        ax_text.invert_yaxis()
-        
-        # Remove spines for text panel
-        for spine in ax_text.spines.values():
-            spine.set_visible(False)
+        Plot._setup_panel_and_add_text(
+            ax_text, '', phecode_strings, p_values, phecodes, effects,
+            highlight_significance, highlight_p_value_threshold, highlight_phecodes_set,
+            effect_col, n_phecodes, axis_text_size, label_size, ha='right'
+        )
         
         # Effect (CI) panel (third panel)
-        ax_effect.set_title(f'{effect_type} (95% CI)', fontweight='bold', fontsize=axis_text_size)
-        
-        for i, (effect, ci_low, ci_high, pval, phecode) in enumerate(zip(effects, ci_lows, ci_highs, p_values, phecodes)):
+        effect_texts = []
+        for effect, ci_low, ci_high in zip(effects, ci_lows, ci_highs):
             effect_text = f"{effect:.3f} ({ci_low:.3f}, {ci_high:.3f})"
-            should_highlight = (highlight_significance and pval <= highlight_p_value_threshold) or (phecode in highlight_phecodes_set)
-            weight = 'bold' if should_highlight else 'normal'
-            text_color = _get_text_color(effect, effect_col, should_highlight)
-            ax_effect.text(0.5, i, effect_text, va='center', ha='center', fontsize=label_size, weight=weight, color=text_color)
+            effect_texts.append(effect_text)
         
-        ax_effect.set_xlim(0, 1)
-        ax_effect.set_ylim(-0.5, n_phecodes - 0.5)
-        ax_effect.set_yticks([])
-        ax_effect.set_xticks([])
-        ax_effect.invert_yaxis()
-        
-        # Remove spines for effect panel
-        for spine in ax_effect.spines.values():
-            spine.set_visible(False)
+        Plot._setup_panel_and_add_text(ax_effect, f'{effect_type} (95% CI)', effect_texts, p_values, phecodes, effects,
+                                 highlight_significance, highlight_p_value_threshold, highlight_phecodes_set,
+                                 effect_col, n_phecodes, axis_text_size, label_size)
         
         # p-value panel (fourth panel)
-        ax_pval.set_title('p-value', fontweight='bold', fontsize=axis_text_size)
-        
-        for i, (pval, phecode, effect) in enumerate(zip(p_values, phecodes, effects)):
+        pval_texts = []
+        for pval in p_values:
             pval_text = f"{pval:.2e}"
             if show_p_value_asterisks:
-                asterisks = _get_p_value_asterisks(pval)
+                asterisks = Plot._get_p_value_asterisks(pval)
                 pval_text += asterisks
-            should_highlight = (highlight_significance and pval <= highlight_p_value_threshold) or (phecode in highlight_phecodes_set)
-            weight = 'bold' if should_highlight else 'normal'
-            text_color = _get_text_color(effect, effect_col, should_highlight)
+            pval_texts.append(pval_text)
+        
+        Plot._setup_panel_and_add_text(ax_pval, 'p-value', pval_texts, p_values, phecodes, effects,
+                                 highlight_significance, highlight_p_value_threshold, highlight_phecodes_set,
+                                 effect_col, n_phecodes, axis_text_size, label_size)
+        
+        # Cases/Controls panel (fifth panel if show_count is True)
+        if show_count:
+            count_texts = []
+            for cases, controls in zip(plot_data["cases"], plot_data["controls"]):
+                total_n = cases + controls
+                count_text = f"{total_n:,}({cases:,}/{controls:,})"
+                count_texts.append(count_text)
             
-            ax_pval.text(0.5, i, pval_text, va='center', ha='center', 
-                        fontsize=label_size, weight=weight, color=text_color)
+            Plot._setup_panel_and_add_text(ax_count, 'N(cases/controls)', count_texts, p_values, phecodes, effects,
+                                     highlight_significance, highlight_p_value_threshold, highlight_phecodes_set,
+                                     effect_col, n_phecodes, axis_text_size, label_size)
         
-        ax_pval.set_xlim(0, 1)
-        ax_pval.set_ylim(-0.5, n_phecodes - 0.5)
-        ax_pval.set_yticks([])
-        ax_pval.set_xticks([])
-        ax_pval.invert_yaxis()
-        
-        # Remove spines for p-value panel
-        for spine in ax_pval.spines.values():
-            spine.set_visible(False)
+        # Sex restriction panel (last panel if show_sex_restriction is True)
+        if show_sex_restriction:
+            Plot._setup_panel_and_add_text(ax_sex, 'Sex', plot_data["phecode_sex_restriction"], p_values, phecodes, effects,
+                                     highlight_significance, highlight_p_value_threshold, highlight_phecodes_set,
+                                     effect_col, n_phecodes, axis_text_size, label_size)
 
         # Save plot
         if save_plot:
             self.save_plot(plot_type="forest", output_file_path=output_file_path)
+    
+    @staticmethod
+    def _get_marker_color(effect_val: float, effect_column: str, positive_color: str = '#D55E00', negative_color: str = '#56B4E9') -> str:
+        """Determine marker color based on effect size and regression type."""
+        if effect_column == "hazard_ratio":
+            return positive_color if effect_val > 1.0 else negative_color
+        else:
+            return positive_color if effect_val > 0.0 else negative_color
+    
+    @staticmethod
+    def _get_text_color(effect_val: float, effect_column: str, highlight: bool) -> str:
+        """Determine text color based on highlighting and effect direction."""
+        if highlight:
+            return Plot._get_marker_color(effect_val, effect_column)
+        else:
+            return 'black'
+    
+    @staticmethod
+    def _get_p_value_asterisks(p_val: float) -> str:
+        """Generate significance asterisks based on p-value thresholds."""
+        if p_val < 0.001:
+            return "***"
+        elif p_val < 0.01:
+            return "**"
+        elif p_val < 0.05:
+            return "*"
+        else:
+            return ""
+    
+    @staticmethod
+    def _setup_panel_and_add_text(
+            ax, title: str, texts: list[str], p_values, phecodes, effects,
+            highlight_significance: bool, highlight_p_value_threshold: float,
+            highlight_phecodes_set: set, effect_col: str, n_phecodes: int,
+            axis_text_size: int, label_size: int, ha: str = 'center'
+    ):
+        """Setup panel formatting and add text with highlighting."""
+        ax.set_title(title, fontweight='bold', fontsize=axis_text_size)
+        
+        for i, (text, pval, phecode, effect) in enumerate(zip(texts, p_values, phecodes, effects)):
+            should_highlight = (highlight_significance and pval <= highlight_p_value_threshold) or (phecode in highlight_phecodes_set)
+            weight = 'bold' if should_highlight else 'normal'
+            text_color = Plot._get_text_color(effect, effect_col, should_highlight)
+            
+            ax.text(0.5 if ha == 'center' else 0.95, i, text, va='center', ha=ha, 
+                   fontsize=label_size, weight=weight, color=text_color)
+        
+        ax.set_xlim(0, 1)
+        ax.set_ylim(-0.5, n_phecodes - 0.5)
+        ax.set_yticks([])
+        ax.set_xticks([])
+        ax.invert_yaxis()
+        
+        # Remove spines
+        for spine in ax.spines.values():
+            spine.set_visible(False)
