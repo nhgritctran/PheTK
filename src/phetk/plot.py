@@ -241,10 +241,10 @@ class Plot:
 
         return df
 
-    def _split_by_beta(
+    def _split_by_effect_size(
             self, 
             df: pl.DataFrame, 
-            marker_size_by_beta: bool = False
+            marker_size_by_effect_size: bool = False
     ) -> tuple[pl.DataFrame, pl.DataFrame]:
         """
         Split PheWAS results into positive and negative effect directions.
@@ -254,14 +254,14 @@ class Plot:
         
         :param df: PheWAS result dataframe to split.
         :type df: pl.DataFrame
-        :param marker_size_by_beta: Whether to add marker size column based on effect magnitude.
-        :type marker_size_by_beta: bool
+        :param marker_size_by_effect_size: Whether to add marker size column based on effect magnitude.
+        :type marker_size_by_effect_size: bool
         :return: Positive effects dataframe and negative effects dataframe.
         :rtype: tuple[pl.DataFrame, pl.DataFrame]
         """
 
-        # add marker size if marker_size_by_beta is True
-        if marker_size_by_beta:
+        # add marker size if marker_size_by_effect_size is True
+        if marker_size_by_effect_size:
             df = df.with_columns((18*pl.col(self.direction_col).abs()).alias("_marker_size"))
 
         # split to positive and negative beta data
@@ -308,7 +308,7 @@ class Plot:
     def _manhattan_scatter(
             self, 
             ax, 
-            marker_size_by_beta: bool, 
+            marker_size_by_effect_size: bool, 
             scale_factor: float = 1
     ) -> None:
         """
@@ -319,15 +319,15 @@ class Plot:
         based on effect magnitude.
         
         :param ax: Matplotlib axes object for plotting.
-        :param marker_size_by_beta: Whether to scale marker size by effect magnitude.
-        :type marker_size_by_beta: bool
+        :param marker_size_by_effect_size: Whether to scale marker size by effect magnitude.
+        :type marker_size_by_effect_size: bool
         :param scale_factor: Scaling factor for marker sizes.
         :type scale_factor: float
         :return: Adds scatter plot elements to axes.
         :rtype: None
         """
 
-        if marker_size_by_beta:
+        if marker_size_by_effect_size:
             s_positive = self.positive_betas["_marker_size"] * scale_factor
             s_negative = self.negative_betas["_marker_size"] * scale_factor
         else:
@@ -701,7 +701,7 @@ class Plot:
             label_color: str = "label_color",
             label_weight: str = "normal",
             label_split_threshold: int = 30,
-            marker_size_by_beta: bool = False,
+            marker_size_by_effect_size: bool = False,
             marker_scale_factor: float = 1,
             phecode_categories: list[str] | str | None = None,
             plot_all_categories: bool = True,
@@ -739,8 +739,8 @@ class Plot:
         :type label_weight: str
         :param label_split_threshold: Character threshold for splitting long labels.
         :type label_split_threshold: int
-        :param marker_size_by_beta: Whether to scale marker size by effect magnitude.
-        :type marker_size_by_beta: bool
+        :param marker_size_by_effect_size: Whether to scale marker size by effect magnitude.
+        :type marker_size_by_effect_size: bool
         :param marker_scale_factor: Scaling factor for marker sizes.
         :type marker_scale_factor: float
         :param phecode_categories: Specific categories to plot, uses all if None.
@@ -828,7 +828,7 @@ class Plot:
         ax.set_ylabel(r"$-\log_{10}$(p-value)", size=axis_text_size)
 
         # generate positive & negative betas
-        self.positive_betas, self.negative_betas = self._split_by_beta(plot_df, marker_size_by_beta)
+        self.positive_betas, self.negative_betas = self._split_by_effect_size(plot_df, marker_size_by_effect_size)
 
         ############
         # PLOTTING #
@@ -842,7 +842,7 @@ class Plot:
         self._x_ticks(plot_df, selected_color_dict)
 
         # scatter
-        self._manhattan_scatter(ax=ax, marker_size_by_beta=marker_size_by_beta, scale_factor=marker_scale_factor)
+        self._manhattan_scatter(ax=ax, marker_size_by_effect_size=marker_size_by_effect_size, scale_factor=marker_scale_factor)
 
         # lines
         self._lines(
@@ -1258,7 +1258,7 @@ class Plot:
         ax.set_ylabel(r"$-\log_{10}$(p-value)", size=axis_text_size)
 
         # generate positive & negative betas
-        self.positive_betas, self.negative_betas = self._split_by_beta(plot_df)
+        self.positive_betas, self.negative_betas = self._split_by_effect_size(plot_df)
 
         ############
         # PLOTTING #
@@ -1331,7 +1331,8 @@ class Plot:
         marker_size: int = 6,
         highlight_significance: bool = False,
         highlight_phecodes: list[str] | str | None = None,
-        p_value_threshold: float | None = None,
+        highlight_p_value_threshold: float | None = None,
+        show_p_value_asterisks: bool = True,
         dpi: int = 150,
         save_plot: bool = True,
         output_file_path: str | None = None
@@ -1363,8 +1364,10 @@ class Plot:
         :type highlight_significance: bool
         :param highlight_phecodes: Specific phecodes to highlight with bold text and thick lines, overrides significance-based highlighting.
         :type highlight_phecodes: list[str] | str | None
-        :param p_value_threshold: P-value threshold for significance highlighting, defaults to Bonferroni correction if None.
-        :type p_value_threshold: float | None
+        :param highlight_p_value_threshold: P-value threshold for significance highlighting, defaults to Bonferroni correction if None.
+        :type highlight_p_value_threshold: float | None
+        :param show_p_value_asterisks: Whether to show significance asterisks next to p-values (* p<0.05, ** p<0.01, *** p<0.001).
+        :type show_p_value_asterisks: bool
         :param dpi: Plot resolution in dots per inch.
         :type dpi: int
         :param save_plot: Whether to save plot to file.
@@ -1388,6 +1391,17 @@ class Plot:
                 return _get_marker_color(effect_val, effect_column)
             else:
                 return 'black'
+        
+        def _get_p_value_asterisks(p_val: float) -> str:
+            """Generate significance asterisks based on p-value thresholds."""
+            if p_val < 0.001:
+                return "***"
+            elif p_val < 0.01:
+                return "**"
+            elif p_val < 0.05:
+                return "*"
+            else:
+                return ""
         
         # Auto-select top positive and negative effects if no phecode_list provided
         if phecode_list is None:
@@ -1435,9 +1449,6 @@ class Plot:
         if len(plot_data) == 0:
             print("No data found for specified phecodes.")
             return
-        
-        # Auto-detect columns based on regression type and available columns
-        effect_type = "Effect"  # Default
         
         # Detect effect size column
         if "beta" in plot_data.columns:
@@ -1495,8 +1506,8 @@ class Plot:
             highlight_phecodes_set = set()
         
         # Set p-value threshold
-        if p_value_threshold is None:
-            p_value_threshold = 10 ** (-self.bonferroni)
+        if highlight_p_value_threshold is None:
+            highlight_p_value_threshold = 10 ** (-self.bonferroni)
         
         # Create figure with subplots
         n_phecodes = len(plot_data)
@@ -1517,7 +1528,7 @@ class Plot:
         # Plot confidence intervals as horizontal lines
         for i, (effect, ci_low, ci_high, pval, phecode) in enumerate(zip(effects, ci_lows, ci_highs, p_values, phecodes)):
             # Determine line thickness and marker edge width based on highlighting conditions
-            should_highlight = (highlight_significance and pval < p_value_threshold) or (phecode in highlight_phecodes_set)
+            should_highlight = (highlight_significance and pval <= highlight_p_value_threshold) or (phecode in highlight_phecodes_set)
             if should_highlight:
                 line_width = 2
                 marker_edge_width = 1.5
@@ -1560,7 +1571,7 @@ class Plot:
         ax_text.set_title('Phenotype (phecode)   ', fontweight='bold', fontsize=axis_text_size, loc="right")
         
         for i, (phecode_string, pval, phecode, effect) in enumerate(zip(phecode_strings, p_values, phecodes, effects)):
-            should_highlight = (highlight_significance and pval < p_value_threshold) or (phecode in highlight_phecodes_set)
+            should_highlight = (highlight_significance and pval <= highlight_p_value_threshold) or (phecode in highlight_phecodes_set)
             weight = 'bold' if should_highlight else 'normal'
             text_color = _get_text_color(effect, effect_col, should_highlight)
             ax_text.text(0.95, i, phecode_string, va='center', ha='right', fontsize=label_size, weight=weight, color=text_color)
@@ -1580,7 +1591,7 @@ class Plot:
         
         for i, (effect, ci_low, ci_high, pval, phecode) in enumerate(zip(effects, ci_lows, ci_highs, p_values, phecodes)):
             effect_text = f"{effect:.3f} ({ci_low:.3f}, {ci_high:.3f})"
-            should_highlight = (highlight_significance and pval < p_value_threshold) or (phecode in highlight_phecodes_set)
+            should_highlight = (highlight_significance and pval <= highlight_p_value_threshold) or (phecode in highlight_phecodes_set)
             weight = 'bold' if should_highlight else 'normal'
             text_color = _get_text_color(effect, effect_col, should_highlight)
             ax_effect.text(0.5, i, effect_text, va='center', ha='center', fontsize=label_size, weight=weight, color=text_color)
@@ -1600,7 +1611,10 @@ class Plot:
         
         for i, (pval, phecode, effect) in enumerate(zip(p_values, phecodes, effects)):
             pval_text = f"{pval:.2e}"
-            should_highlight = (highlight_significance and pval < p_value_threshold) or (phecode in highlight_phecodes_set)
+            if show_p_value_asterisks:
+                asterisks = _get_p_value_asterisks(pval)
+                pval_text += asterisks
+            should_highlight = (highlight_significance and pval <= highlight_p_value_threshold) or (phecode in highlight_phecodes_set)
             weight = 'bold' if should_highlight else 'normal'
             text_color = _get_text_color(effect, effect_col, should_highlight)
             
