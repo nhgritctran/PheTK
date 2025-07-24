@@ -413,7 +413,7 @@ class Dsub:
         :rtype: None
         """
         kill_job = (
-            f"ddel  --users \"{self.user_name}\" --project {self.project} --jobs \"{self.job_id}\""
+            f"ddel  --provider {self.provider} --users \"{self.user_name}\" --project {self.project} --jobs \"{self.job_id}\""
         )
         subprocess.run([kill_job], shell=True)
 
@@ -425,7 +425,7 @@ class Dsub:
         :rtype: None
         """
         view_jobs = (
-            f"dstat --users \"{self.user_name}\" --project {self.project} --jobs \"*\" "
+            f"dstat --provider {self.provider} --users \"{self.user_name}\" --project {self.project} --jobs \"*\" "
         )
         subprocess.run([view_jobs], shell=True)
 
@@ -437,7 +437,7 @@ class Dsub:
         :rtype: None
         """
         kill_jobs = (
-            f"ddel --users \"{self.user_name}\" --project {self.project} --jobs \"*\" "
+            f"ddel --provider {self.provider} --users \"{self.user_name}\" --project {self.project} --jobs \"*\" "
         )
         subprocess.run([kill_jobs], shell=True)
 
