@@ -1332,7 +1332,7 @@ class Plot:
         highlight_significance: bool = False,
         highlight_phecodes: list[str] | str | None = None,
         highlight_p_value_threshold: float | None = None,
-        show_p_value_asterisks: bool = True,
+        show_p_value_asterisks: bool = False,
         dpi: int = 150,
         save_plot: bool = True,
         output_file_path: str | None = None
