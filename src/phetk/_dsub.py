@@ -219,6 +219,26 @@ class Dsub:
 
         return script
 
+    def _print_final_status(self, status_value: str, current_status: str, message: str) -> None:
+        """
+        Print the final job status in the same format as regular status updates.
+        
+        :param status_value: The actual status value detected from dstat
+        :type status_value: str
+        :param current_status: The full status output from dstat
+        :type current_status: str
+        :param message: The completion message to display
+        :type message: str
+        :return: None
+        :rtype: None
+        """
+        print("\r" + " " * 80)  # Clear current line
+        current_time_str = datetime.datetime.now().strftime("%H:%M:%S")
+        print(f"\r[{current_time_str}] Job Status: {status_value.upper()}\n{current_status}")
+        print()
+        print(message)
+        print()
+
     def check_status(
         self, 
         full: bool = False, 
@@ -324,9 +344,7 @@ class Dsub:
                                 self.dsub_end_time = datetime.datetime.now()
                                 if self.dsub_start_time is not None:
                                     self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
-                                print()
-                                print("\nJob completed successfully!")
-                                print()
+                                self._print_final_status(status_value, current_status, "Job completed successfully!")
                                 break
 
                             # Check for failure patterns
@@ -334,9 +352,7 @@ class Dsub:
                                 self.dsub_end_time = datetime.datetime.now()
                                 if self.dsub_start_time is not None:
                                     self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
-                                print()
-                                print("\nJob failed!")
-                                print()
+                                self._print_final_status(status_value, current_status, "Job failed!")
                                 break
 
                             # Check for canceled/deleted patterns
@@ -344,9 +360,7 @@ class Dsub:
                                 self.dsub_end_time = datetime.datetime.now()
                                 if self.dsub_start_time is not None:
                                     self.dsub_runtime = self.dsub_end_time - self.dsub_start_time
-                                print()
-                                print("\nJob was canceled or deleted!")
-                                print()
+                                self._print_final_status(status_value, current_status, "Job was canceled or deleted!")
                                 break
                     
                     # Check for empty status (worker shutdown)
