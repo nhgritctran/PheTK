@@ -504,3 +504,169 @@ class Cohort:
         print()
         print(f"Cohort data saved as \"{output_file_name}\"!\033[0m")
         print()
+
+
+def main_by_genotype():
+    """Main entry point for by-genotype CLI command."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="Generate cohort based on genotype of variant of interest"
+    )
+    
+    # Required arguments
+    parser.add_argument("--chromosome_number", "-c", type=int, required=True,
+                        help="Chromosome number for variant location")
+    parser.add_argument("--genomic_position", "-p", type=int, required=True,
+                        help="Genomic position of variant on chromosome")
+    parser.add_argument("--ref_allele", "-r", type=str, required=True,
+                        help="Reference allele for variant")
+    parser.add_argument("--alt_allele", "-a", type=str, required=True,
+                        help="Alternative allele for variant")
+    parser.add_argument("--genotype_dict", "-g", type=str, required=True,
+                        help='Genotype mapping as JSON string, e.g., \'{"0": "0/0", "1": ["0/1", "1/1"]}\'')
+    
+    # Optional arguments
+    parser.add_argument("--platform", type=str, default="aou",
+                        help="Database platform: 'aou' or 'custom' (default: aou)")
+    parser.add_argument("--aou_db_version", type=int, default=8,
+                        help="Version of All of Us database (6-8) (default: 8)")
+    parser.add_argument("--aou_omop_cdr", type=str, default=None,
+                        help="CDR string value for OMOP data")
+    parser.add_argument("--gbq_dataset_id", type=str, default=None,
+                        help="Google BigQuery dataset ID for custom platforms")
+    parser.add_argument("--reference_genome", type=str, default="GRCh38",
+                        help="Reference genome version: 'GRCh37' or 'GRCh38' (default: GRCh38)")
+    parser.add_argument("--mt_path", type=str, default=None,
+                        help="Path to population level Hail variant matrix table")
+    parser.add_argument("--output_file_name", "-o", type=str, default=None,
+                        help="Name of output TSV file")
+    
+    args = parser.parse_args()
+    
+    # Parse genotype dict from JSON string
+    import json
+    try:
+        gt_dict = json.loads(args.genotype_dict)
+        # Convert string keys to integers
+        gt_dict = {int(k): v for k, v in gt_dict.items()}
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"Error parsing genotype_dict: {e}")
+        print("Example format: '{\"0\": \"0/0\", \"1\": [\"0/1\", \"1/1\"]}'")
+        sys.exit(1)
+    
+    # Create cohort instance
+    cohort = Cohort(
+        platform=args.platform,
+        aou_db_version=args.aou_db_version,
+        aou_omop_cdr=args.aou_omop_cdr,
+        gbq_dataset_id=args.gbq_dataset_id
+    )
+    
+    # Run by_genotype
+    cohort.by_genotype(
+        chromosome_number=args.chromosome_number,
+        genomic_position=args.genomic_position,
+        ref_allele=args.ref_allele,
+        alt_allele=args.alt_allele,
+        gt_dict=gt_dict,
+        reference_genome=args.reference_genome,
+        mt_path=args.mt_path,
+        output_file_name=args.output_file_name
+    )
+
+
+def main_add_covariates():
+    """Main entry point for add-covariates CLI command."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="Add demographic, clinical, and genetic covariates to existing cohort"
+    )
+    
+    # Required arguments
+    parser.add_argument("--cohort_file_path", "-c", type=str, required=True,
+                        help="Path to cohort CSV or TSV file containing person_id column")
+    
+    # Optional platform arguments
+    parser.add_argument("--platform", type=str, default="aou",
+                        help="Database platform: 'aou' or 'custom' (default: aou)")
+    parser.add_argument("--aou_db_version", type=int, default=8,
+                        help="Version of All of Us database (6-8) (default: 8)")
+    parser.add_argument("--aou_omop_cdr", type=str, default=None,
+                        help="CDR string value for OMOP data")
+    parser.add_argument("--gbq_dataset_id", type=str, default=None,
+                        help="Google BigQuery dataset ID for custom platforms")
+    
+    # Covariate arguments
+    parser.add_argument("--date_of_birth", type=_utils.str_to_bool, default=False,
+                        help="Include participant date of birth")
+    parser.add_argument("--year_of_birth", type=_utils.str_to_bool, default=False,
+                        help="Include year of birth for participants")
+    parser.add_argument("--current_age", type=_utils.str_to_bool, default=False,
+                        help="Include current age of participants")
+    parser.add_argument("--current_age_squared", type=_utils.str_to_bool, default=False,
+                        help="Include current age squared for participants")
+    parser.add_argument("--current_age_cubed", type=_utils.str_to_bool, default=False,
+                        help="Include current age cubed for participants")
+    parser.add_argument("--sex_at_birth", type=_utils.str_to_bool, default=True,
+                        help="Include sex at birth from survey and observation data")
+    parser.add_argument("--last_ehr_date", type=_utils.str_to_bool, default=False,
+                        help="Include date of last diagnosis event in EHR")
+    parser.add_argument("--age_at_last_ehr_event", type=_utils.str_to_bool, default=False,
+                        help="Include age at last diagnosis event in EHR")
+    parser.add_argument("--age_at_last_ehr_event_squared", type=_utils.str_to_bool, default=False,
+                        help="Include age at last diagnosis event squared")
+    parser.add_argument("--age_at_last_ehr_event_cubed", type=_utils.str_to_bool, default=False,
+                        help="Include age at last diagnosis event cubed")
+    parser.add_argument("--ehr_length", type=_utils.str_to_bool, default=False,
+                        help="Include number of days that EHR record spans")
+    parser.add_argument("--dx_code_occurrence_count", type=_utils.str_to_bool, default=False,
+                        help="Include count of diagnosis code occurrences on unique dates")
+    parser.add_argument("--dx_condition_count", type=_utils.str_to_bool, default=False,
+                        help="Include count of unique diagnosis conditions")
+    parser.add_argument("--genetic_ancestry", type=_utils.str_to_bool, default=False,
+                        help="Include predicted ancestry based on sequencing data")
+    parser.add_argument("--first_n_pcs", type=int, default=0,
+                        help="Number of first principal components to include (0 for none)")
+    
+    # Processing arguments
+    parser.add_argument("--chunk_size", type=int, default=10000,
+                        help="Number of participant IDs per processing thread (default: 10000)")
+    parser.add_argument("--drop_nulls", type=_utils.str_to_bool, default=False,
+                        help="Whether to drop rows with null values")
+    parser.add_argument("--output_file_name", "-o", type=str, default=None,
+                        help="Name for output TSV file")
+    
+    args = parser.parse_args()
+    
+    # Create cohort instance
+    cohort = Cohort(
+        platform=args.platform,
+        aou_db_version=args.aou_db_version,
+        aou_omop_cdr=args.aou_omop_cdr,
+        gbq_dataset_id=args.gbq_dataset_id
+    )
+    
+    # Run add_covariates
+    cohort.add_covariates(
+        cohort_file_path=args.cohort_file_path,
+        date_of_birth=args.date_of_birth,
+        year_of_birth=args.year_of_birth,
+        current_age=args.current_age,
+        current_age_squared=args.current_age_squared,
+        current_age_cubed=args.current_age_cubed,
+        sex_at_birth=args.sex_at_birth,
+        last_ehr_date=args.last_ehr_date,
+        age_at_last_ehr_event=args.age_at_last_ehr_event,
+        age_at_last_ehr_event_squared=args.age_at_last_ehr_event_squared,
+        age_at_last_ehr_event_cubed=args.age_at_last_ehr_event_cubed,
+        ehr_length=args.ehr_length,
+        dx_code_occurrence_count=args.dx_code_occurrence_count,
+        dx_condition_count=args.dx_condition_count,
+        genetic_ancestry=args.genetic_ancestry,
+        first_n_pcs=args.first_n_pcs,
+        chunk_size=args.chunk_size,
+        drop_nulls=args.drop_nulls,
+        output_file_name=args.output_file_name
+    )

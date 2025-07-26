@@ -289,3 +289,117 @@ class Phecode:
         print(f"Saved to\033[1m {output_file_path}\033[0m. "
               f"Phecode time to event column name is {col_name}.")
         print()
+
+
+def main_count_phecode():
+    """Main entry point for count-phecode CLI command."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="Generate phecode counts from ICD code data"
+    )
+    
+    # Platform arguments
+    parser.add_argument("--platform", type=str, default="aou",
+                        help="Data platform: 'aou' or 'custom' (default: aou)")
+    parser.add_argument("--icd_file_path", type=str, default=None,
+                        help="Path to ICD table CSV/TSV file (required for custom platform)")
+    
+    # Phecode mapping arguments
+    parser.add_argument("--phecode_version", type=str, default="X",
+                        help="Phecode version to use: 'X' or '1.2' (default: X)")
+    parser.add_argument("--icd_version", type=str, default="US",
+                        help="ICD mapping version: 'US', 'WHO', or 'custom' (default: US)")
+    parser.add_argument("--phecode_map_file_path", type=str, default=None,
+                        help="Path to custom phecode mapping table")
+    
+    # Output argument
+    parser.add_argument("--output_file_path", "-o", type=str, default=None,
+                        help="Path for output TSV file")
+    
+    args = parser.parse_args()
+    
+    # Create phecode instance
+    phecode = Phecode(
+        platform=args.platform,
+        icd_file_path=args.icd_file_path
+    )
+    
+    # Run count_phecode
+    phecode.count_phecode(
+        phecode_version=args.phecode_version,
+        icd_version=args.icd_version,
+        phecode_map_file_path=args.phecode_map_file_path,
+        output_file_path=args.output_file_path
+    )
+
+
+def main_add_age_at_first_event():
+    """Main entry point for add-age-at-first-event CLI command."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="Calculate age at first phecode event for each participant"
+    )
+    
+    # Required arguments
+    parser.add_argument("--phecode_count_file_path", "-c", type=str, required=True,
+                        help="Path to phecode counts TSV file with person_id, phecode, and first_event_date columns")
+    
+    # Platform arguments (for database access)
+    parser.add_argument("--platform", type=str, default="aou",
+                        help="Data platform: 'aou' or 'custom' (default: aou)")
+    parser.add_argument("--icd_file_path", type=str, default=None,
+                        help="Path to ICD table CSV/TSV file (required for custom platform)")
+    
+    # Output argument
+    parser.add_argument("--output_file_path", "-o", type=str, default=None,
+                        help="Path for output file with age calculations")
+    
+    args = parser.parse_args()
+    
+    # Create phecode instance
+    phecode = Phecode(
+        platform=args.platform,
+        icd_file_path=args.icd_file_path
+    )
+    
+    # Run add_age_at_first_event
+    phecode.add_age_at_first_event(
+        phecode_count_file_path=args.phecode_count_file_path,
+        output_file_path=args.output_file_path
+    )
+
+
+def main_add_phecode_time_to_event():
+    """Main entry point for add-phecode-time-to-event CLI command."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="Calculate time from study start to first phecode event for survival analysis"
+    )
+    
+    # Required arguments
+    parser.add_argument("--phecode_count_file_path", "-c", type=str, required=True,
+                        help="Path to phecode counts CSV/TSV file")
+    parser.add_argument("--cohort_file_path", "-f", type=str, required=True,
+                        help="Path to cohort CSV/TSV file with study start dates")
+    parser.add_argument("--study_start_date_col", "-s", type=str, required=True,
+                        help="Column name containing study start dates")
+    
+    # Optional arguments
+    parser.add_argument("--time_unit", type=str, default="days",
+                        help="Time unit for calculations: 'days' or 'years' (default: days)")
+    parser.add_argument("--output_file_path", "-o", type=str, default=None,
+                        help="Path for output file with time calculations")
+    
+    args = parser.parse_args()
+    
+    # Run add_phecode_time_to_event (static method)
+    Phecode.add_phecode_time_to_event(
+        phecode_count_file_path=args.phecode_count_file_path,
+        cohort_file_path=args.cohort_file_path,
+        study_start_date_col=args.study_start_date_col,
+        time_unit=args.time_unit,
+        output_file_path=args.output_file_path
+    )
