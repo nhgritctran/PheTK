@@ -412,7 +412,7 @@ class Cohort:
         :type age_at_last_ehr_event_squared: bool
         :param age_at_last_ehr_event_cubed: Include age at last diagnosis event cubed.
         :type age_at_last_ehr_event_cubed: bool
-        :param ehr_length: Include number of days that EHR record spans.
+        :param ehr_length: Include number of years that EHR record spans.
         :type ehr_length: bool
         :param dx_code_occurrence_count: Include count of diagnosis code occurrences on unique dates throughout EHR history.
         :type dx_code_occurrence_count: bool

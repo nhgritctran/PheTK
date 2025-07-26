@@ -66,7 +66,7 @@ Add demographic, clinical, and genetic covariates to existing cohort. Merges cov
 - `age_at_last_ehr_event`: Include age at last diagnosis event (bool, default: False)
 - `age_at_last_ehr_event_squared`: Include age at last diagnosis event squared (bool, default: False)
 - `age_at_last_ehr_event_cubed`: Include age at last diagnosis event cubed (bool, default: False)
-- `ehr_length`: Include EHR record length in days (bool, default: False)
+- `ehr_length`: Include EHR record length in years (bool, default: False)
 - `dx_code_occurrence_count`: Include diagnosis code occurrence count (bool, default: False)
 - `dx_condition_count`: Include unique diagnosis condition count (bool, default: False)
 - `genetic_ancestry`: Include predicted ancestry (bool, default: False)
