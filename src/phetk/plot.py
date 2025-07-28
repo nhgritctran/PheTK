@@ -1324,6 +1324,7 @@ class Plot:
         self,
         phecode_list: list[str] | str | None = None,
         n_top_values: int = 10,
+        plot_odds_ratio: bool = True,
         title: str | None = None,
         axis_text_size: int = 10,
         label_size: int = 10,
@@ -1352,6 +1353,8 @@ class Plot:
         :type phecode_list: list[str] | str | None
         :param n_top_values: Number of top positive and negative effect values to include when auto-selecting.
         :type n_top_values: int
+        :param plot_odds_ratio: Whether to plot odds ratio instead of beta for logistic regression results.
+        :type plot_odds_ratio: bool
         :param title: Plot title, auto-generated if None.
         :type title: str | None
         :param axis_text_size: Font size for axis labels.
@@ -1435,8 +1438,20 @@ class Plot:
         
         # Detect effect size column
         if "beta" in plot_data.columns:
-            effect_col = "beta"
-            effect_type = "Beta"
+            if plot_odds_ratio:
+                if "odds_ratio" in plot_data.columns:
+                    effect_col = "odds_ratio"
+                    effect_type = "Odds Ratio"
+                else:
+                    # Calculate odds ratio from beta
+                    plot_data = plot_data.with_columns([
+                        pl.col("beta").exp().alias("odds_ratio")
+                    ])
+                    effect_col = "odds_ratio"
+                    effect_type = "Odds Ratio"
+            else:
+                effect_col = "beta"
+                effect_type = "Beta"
         elif "hazard_ratio" in plot_data.columns:
             effect_col = "hazard_ratio"
             effect_type = "Hazard Ratio"
@@ -1447,7 +1462,15 @@ class Plot:
         # Auto-detect confidence interval columns  
         if "conf_int_1" in plot_data.columns and "conf_int_2" in plot_data.columns:
             # Logistic regression format
-            ci_cols = ("conf_int_1", "conf_int_2")
+            if effect_col == "odds_ratio":
+                # Calculate odds ratio confidence intervals from beta CIs
+                plot_data = plot_data.with_columns([
+                    pl.col("conf_int_1").exp().alias("odds_ratio_ci_low"),
+                    pl.col("conf_int_2").exp().alias("odds_ratio_ci_high")
+                ])
+                ci_cols = ("odds_ratio_ci_low", "odds_ratio_ci_high")
+            else:
+                ci_cols = ("conf_int_1", "conf_int_2")
         elif "hazard_ratio_low" in plot_data.columns and "hazard_ratio_high" in plot_data.columns:
             # Cox regression format
             ci_cols = ("hazard_ratio_low", "hazard_ratio_high")
@@ -1467,7 +1490,7 @@ class Plot:
         
         # Extract data for plotting - automatically show appropriate effect measure
         effects = plot_data[effect_col].to_numpy()
-        if effect_col == "hazard_ratio":
+        if effect_col == "hazard_ratio" or effect_col == "odds_ratio":
             reference_line = 1.0
         else:
             reference_line = 0.0
@@ -1639,7 +1662,7 @@ class Plot:
     @staticmethod
     def _get_marker_color(effect_val: float, effect_column: str, positive_color: str = '#D55E00', negative_color: str = '#56B4E9') -> str:
         """Determine marker color based on effect size and regression type."""
-        if effect_column == "hazard_ratio":
+        if effect_column == "hazard_ratio" or effect_column == "odds_ratio":
             return positive_color if effect_val > 1.0 else negative_color
         else:
             return positive_color if effect_val > 0.0 else negative_color
