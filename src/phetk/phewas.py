@@ -989,7 +989,7 @@ class PheWAS:
         :rtype: None
         """
 
-        phewas_script = "python3 -m phetk.phewas"
+        phewas_script = "phetk phewas"
 
         param_dict = {
             "--phecode_version": self.phecode_version,
