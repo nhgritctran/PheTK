@@ -1325,6 +1325,7 @@ class Plot:
         phecode_list: list[str] | str | None = None,
         n_top_values: int = 10,
         plot_odds_ratio: bool = True,
+        show_phecode: bool = True,
         title: str | None = None,
         axis_text_size: int = 10,
         label_size: int = 10,
@@ -1355,6 +1356,8 @@ class Plot:
         :type n_top_values: int
         :param plot_odds_ratio: Whether to plot odds ratio instead of beta for logistic regression results.
         :type plot_odds_ratio: bool
+        :param show_phecode: Whether to show phecode alongside phenotype description, defaults to True.
+        :type show_phecode: bool
         :param title: Plot title, auto-generated if None.
         :type title: str | None
         :param axis_text_size: Font size for axis labels.
@@ -1499,9 +1502,12 @@ class Plot:
         ci_lows = plot_data[ci_cols[0]].to_numpy()
         ci_highs = plot_data[ci_cols[1]].to_numpy()
         p_values = plot_data["p_value"].to_numpy()
-        # Add (phecode) to all phenotype texts
+        # Format phenotype text based on show_phecode parameter
         phecodes = plot_data["phecode"].to_list()
-        phecode_strings = [f"{string} ({phecode})" for string, phecode in zip(plot_data["phecode_string"].to_list(), phecodes)]
+        if show_phecode:
+            phecode_strings = [f"{string} ({phecode})" for string, phecode in zip(plot_data["phecode_string"].to_list(), phecodes)]
+        else:
+            phecode_strings = plot_data["phecode_string"].to_list()
         
         # Process highlight_phecodes parameter
         if highlight_phecodes is not None:
@@ -1607,7 +1613,8 @@ class Plot:
         # Note: No special formatting needed since we're not using log scale
         
         # Text panel (first panel) - Phecode descriptions
-        ax_text.set_title('Phenotype (phecode)   ', fontweight='bold', fontsize=axis_text_size, loc="right")
+        panel_title = 'Phenotype (phecode)   ' if show_phecode else 'Phenotype   '
+        ax_text.set_title(panel_title, fontweight='bold', fontsize=axis_text_size, loc="right")
         Plot._setup_panel_and_add_text(
             ax_text, '', phecode_strings, p_values, phecodes, effects,
             highlight_significance, highlight_p_value_threshold, highlight_phecodes_set,
