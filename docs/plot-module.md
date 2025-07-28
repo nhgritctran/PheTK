@@ -56,13 +56,24 @@ p.manhattan(
 Display effect estimates with confidence intervals for selected phecodes.
 
 ### Key Parameters
-- `phecodes`: List of phecodes to include (list[str], required)
-- `show_count`: Show case/control counts (bool, default: True)
-- `show_p_value`: Show p-values (bool, default: True)
-- `show_sex_restriction`: Show sex-specific phecodes (bool, default: True)
-- `highlight_significance`: Bold significant results (bool, default: True)
-- `highlight_p_value_threshold`: Threshold for highlighting (float, default: 0.05)
-- `sort_by`: Sort by "p_value" or "effect" (str, optional)
+- `phecode_list`: List of phecodes to include (list[str] or str, optional)
+- `n_top_values`: Number of top phecodes by significance (int, default: 10)
+- `plot_odds_ratio`: Plot odds ratios instead of beta coefficients (bool, default: True)
+- `show_phecode`: Show phecode numbers alongside phenotype names (bool, default: True)
+- `title`: Custom plot title (str, optional)
+- `axis_text_size`: Font size for axis text (int, default: 10)
+- `label_size`: Font size for labels (int, default: 10)
+- `marker_shape`: Shape of markers ("s" for square, "o" for circle) (str, default: "s")
+- `marker_size`: Size of markers (int, default: 6)
+- `highlight_significance`: Highlight significant results (bool, default: False)
+- `highlight_phecodes`: Specific phecodes to highlight (list[str] or str, optional)
+- `highlight_p_value_threshold`: P-value threshold for highlighting (float, optional)
+- `show_p_value_asterisks`: Show significance asterisks (bool, default: False)
+- `show_count`: Show case/control counts (bool, default: False)
+- `show_sex_restriction`: Show sex-specific indicators (bool, default: False)
+- `dpi`: Resolution for saved plots (int, default: 150)
+- `save_plot`: Save plot to file (bool, default: True)
+- `output_file_path`: Output path with extension (str, optional)
 
 ### Example
 ```python

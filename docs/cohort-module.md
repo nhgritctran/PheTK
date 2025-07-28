@@ -14,7 +14,7 @@ Generate cohort based on genotype of variant of interest. Extracts genotype data
 - `gt_dict`: Genotype mapping, e.g., `{0: "0/0", 1: ["0/1", "1/1"]}` (dict)
 - `reference_genome`: "GRCh37" or "GRCh38" (str, default: "GRCh38")
 - `mt_path`: Path to Hail matrix table (str, optional for All of Us)
-- `output_file_name`: Output TSV filename (str, optional)
+- `output_file_path`: Output TSV file path (str, optional)
 
 ### Notebook Example
 ```python
@@ -30,7 +30,7 @@ cohort.by_genotype(
     ref_allele="ATCT",
     alt_allele="A",
     gt_dict={0: "0/0", 1: ["0/1", "1/1"]},
-    output_file_name="cftr_cohort.tsv"
+    output_file_path="cftr_cohort.tsv"
 )
 ```
 
@@ -41,11 +41,11 @@ phetk cohort by-genotype \
   --genomic_position 117559590 \
   --ref_allele "ATCT" \
   --alt_allele "A" \
-  --genotype_dict '{"0": "0/0", "1": ["0/1", "1/1"]}' \
-  --output_file_name "cftr_cohort.tsv"
+  --gt_dict '{"0": "0/0", "1": ["0/1", "1/1"]}' \
+  --output_file_path "cftr_cohort.tsv"
 ```
 
-**Note:** The `--genotype_dict` parameter accepts a JSON string. The keys must be strings (will be converted to integers internally). Examples:
+**Note:** The `--gt_dict` parameter accepts a JSON string. The keys must be strings (will be converted to integers internally). Examples:
 - Single genotype per group: `'{"0": "0/0", "1": "1/1"}'`
 - Multiple genotypes per group: `'{"0": "0/0", "1": ["0/1", "1/1"]}'`
 - Three groups: `'{"0": "0/0", "1": "0/1", "2": "1/1"}'`
@@ -73,7 +73,7 @@ Add demographic, clinical, and genetic covariates to existing cohort. Merges cov
 - `first_n_pcs`: Number of genetic PCs to include (int, default: 0)
 - `chunk_size`: Participant IDs per processing thread (int, default: 10000)
 - `drop_nulls`: Drop rows with null values (bool, default: False)
-- `output_file_name`: Output TSV filename (str, optional)
+- `output_file_path`: Output TSV file path (str, optional)
 
 ### Notebook Example
 ```python
@@ -89,7 +89,7 @@ cohort.add_covariates(
     age_at_last_ehr_event=True,
     first_n_pcs=10,
     drop_nulls=True,
-    output_file_name="cohort_with_covariates.tsv"
+    output_file_path="cohort_with_covariates.tsv"
 )
 ```
 
@@ -101,7 +101,7 @@ phetk cohort add-covariates \
   --age_at_last_ehr_event true \
   --first_n_pcs 10 \
   --drop_nulls true \
-  --output_file_name "cohort_with_covariates.tsv"
+  --output_file_path "cohort_with_covariates.tsv"
 ```
 
 ## Platform Configuration
@@ -131,7 +131,7 @@ cohort = Cohort(platform="custom", gbq_dataset_id="your_dataset_id")
 - `last_ehr_date`: Date of last diagnosis event in EHR
 - `age_at_last_ehr_event`: Age at last diagnosis event in EHR
 - `age_at_last_ehr_event_squared/cubed`: Polynomial age terms
-- `ehr_length`: Number of days EHR record spans
+- `ehr_length`: Number of years EHR record spans
 - `dx_code_occurrence_count`: Count of diagnosis code occurrences on unique dates
 - `dx_condition_count`: Count of unique diagnosis conditions
 - `genetic_ancestry`: Predicted ancestry (e.g., "eur", "afr")
