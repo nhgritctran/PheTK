@@ -523,7 +523,7 @@ def main_by_genotype():
                         help="Reference allele for variant")
     parser.add_argument("--alt_allele", "-a", type=str, required=True,
                         help="Alternative allele for variant")
-    parser.add_argument("--genotype_dict", "-g", type=str, required=True,
+    parser.add_argument("--gt_dict", "-g", type=str, required=True,
                         help='Genotype mapping as JSON string, e.g., \'{"0": "0/0", "1": ["0/1", "1/1"]}\'')
     
     # Optional arguments
@@ -547,7 +547,7 @@ def main_by_genotype():
     # Parse genotype dict from JSON string
     import json
     try:
-        gt_dict = json.loads(args.genotype_dict)
+        gt_dict = json.loads(args.gt_dict)
         # Convert string keys to integers
         gt_dict = {int(k): v for k, v in gt_dict.items()}
     except (json.JSONDecodeError, ValueError) as e:
@@ -620,7 +620,7 @@ def main_add_covariates():
     parser.add_argument("--age_at_last_ehr_event_cubed", type=_utils.str_to_bool, default=False,
                         help="Include age at last diagnosis event cubed")
     parser.add_argument("--ehr_length", type=_utils.str_to_bool, default=False,
-                        help="Include number of days that EHR record spans")
+                        help="Include number of years that EHR record spans")
     parser.add_argument("--dx_code_occurrence_count", type=_utils.str_to_bool, default=False,
                         help="Include count of diagnosis code occurrences on unique dates")
     parser.add_argument("--dx_condition_count", type=_utils.str_to_bool, default=False,

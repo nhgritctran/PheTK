@@ -1440,11 +1440,20 @@ def main() -> None:
     parser.add_argument("--min_phecode_count",
                         type=int, required=False, default=2,
                         help="Minimum number of phecode counts required to be considered as case.")
+    parser.add_argument("--icd_version",
+                        type=str, required=False, default="US",
+                        help="ICD version ('US', 'WHO', or 'custom').")
+    parser.add_argument("--phecode_map_file_path",
+                        type=str, required=False, default=None,
+                        help="Path to custom phecode mapping file, required if icd_version='custom'.")
+    parser.add_argument("--fall_back_to_serial",
+                        type=_utils.str_to_bool, required=False, default=False,
+                        help="Whether to fall back to serial processing on parallel failure.")
     parser.add_argument("--n_workers",
                         type=int, required=False, default=None,
-                        help="Number of threads to use for parallel.")
+                        help="Number of workers for parallel processing.")
     parser.add_argument("--output_file_path",
-                        type=str, required=False, default="phewas_results.tsv")
+                        type=str, required=False, default=None)
     parser.add_argument("--parallelization",
                         type=str, required=False, default=None)
     parser.add_argument("--batch_size",
@@ -1469,6 +1478,8 @@ def main() -> None:
         cox_phecode_observed_time_col=args.cox_phecode_observed_time_col,
         cox_stratification_col=args.cox_stratification_col,
         cox_fallback_step_size=args.cox_fallback_step_size,
+        icd_version=args.icd_version,
+        phecode_map_file_path=args.phecode_map_file_path,
         phecode_to_process=args.phecode_to_process,
         use_exclusion=args.use_exclusion,
         min_cases=args.min_cases,
@@ -1476,6 +1487,7 @@ def main() -> None:
         output_file_path=args.output_file_path,
         method=args.method,
         batch_size=args.batch_size,
+        fall_back_to_serial=args.fall_back_to_serial,
         suppress_warnings=args.suppress_warnings,
         verbose=args.verbose
     )
