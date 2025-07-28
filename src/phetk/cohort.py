@@ -83,7 +83,7 @@ class Cohort:
                     gt_dict: dict[int, str | list[str]] | None = None,
                     reference_genome: str = "GRCh38",
                     mt_path: str | None = None,
-                    output_file_name: str | None = None) -> None:
+                    output_file_path: str | None = None) -> None:
         """
         Generate cohort based on genotype of variant of interest.
         
@@ -106,8 +106,8 @@ class Cohort:
         :type reference_genome: str
         :param mt_path: Path to population level Hail variant matrix table.
         :type mt_path: str | None
-        :param output_file_name: Name of output TSV file.
-        :type output_file_name: str | None
+        :param output_file_path: Path of output TSV file.
+        :type output_file_path: str | None
         :return: Creates genotype cohort TSV file with person IDs and genotype labels.
         :rtype: None
         """
@@ -125,8 +125,8 @@ class Cohort:
             sys.exit(1)
 
         # basic data processing
-        if output_file_name is None:
-            output_file_name = "aou_chr" + \
+        if output_file_path is None:
+            output_file_path = "aou_chr" + \
                                str(chromosome_number) + "_" + \
                                str(genomic_position) + "_" + \
                                str(ref_allele) + "_" + \
@@ -224,7 +224,7 @@ class Cohort:
                 .rename({"s": "person_id"})[["person_id", "genotype"]] \
                 .with_columns(pl.col("person_id").cast(int))
             cohort = cohort.unique()
-            cohort.write_csv(output_file_name, separator="\t")
+            cohort.write_csv(output_file_path, separator="\t")
 
             print()
             cohort_gt = cohort["genotype"].unique().to_list()
@@ -232,7 +232,7 @@ class Cohort:
             for gt in cohort_gt:
                 print(f"Genotype {gt}: {len(cohort.filter(pl.col('genotype')==gt))} participants")
             print()
-            print(f"\033[1mCohort data saved as {output_file_name}!\033[0m")
+            print(f"\033[1mCohort data saved as {output_file_path}!\033[0m")
             print()
 
         else:
@@ -381,7 +381,7 @@ class Cohort:
             first_n_pcs: int = 0,
             chunk_size: int = 10000,
             drop_nulls: bool = False,
-            output_file_name: str | None = None
+            output_file_path: str | None = None
     ) -> None:
         """
         Add demographic, clinical, and genetic covariates to existing cohort.
@@ -426,8 +426,8 @@ class Cohort:
         :type chunk_size: int
         :param drop_nulls: Whether to drop rows with null values.
         :type drop_nulls: bool
-        :param output_file_name: Name for output TSV file, can include \".tsv\" extension.
-        :type output_file_name: str | None
+        :param output_file_path: Path to output TSV file, can include \".tsv\" extension.
+        :type output_file_path: str | None
         :return: Creates enhanced cohort TSV file with requested covariates.
         :rtype: None
         """
@@ -491,9 +491,9 @@ class Cohort:
         if drop_nulls:
             final_cohort = final_cohort.drop_nulls()
 
-        if output_file_name is None:
-            output_file_name = "cohort.tsv"
-        final_cohort.write_csv(f"{output_file_name}", separator="\t")
+        if output_file_path is None:
+            output_file_path = "cohort.tsv"
+        final_cohort.write_csv(f"{output_file_path}", separator="\t")
 
         print()
         print(f"Cohort size: {len(final_cohort)} participants")
@@ -502,7 +502,7 @@ class Cohort:
             for gt in cohort_gt:
                 print(f"Genotype {gt}: {len(final_cohort.filter(pl.col('genotype')==gt))} participants")
         print()
-        print(f"Cohort data saved as \"{output_file_name}\"!\033[0m")
+        print(f"Cohort data saved as \"{output_file_path}\"!\033[0m")
         print()
 
 
@@ -539,7 +539,7 @@ def main_by_genotype():
                         help="Reference genome version: 'GRCh37' or 'GRCh38' (default: GRCh38)")
     parser.add_argument("--mt_path", type=str, default=None,
                         help="Path to population level Hail variant matrix table")
-    parser.add_argument("--output_file_name", "-o", type=str, default=None,
+    parser.add_argument("--output_file_path", "-o", type=str, default=None,
                         help="Name of output TSV file")
     
     args = parser.parse_args()
@@ -572,7 +572,7 @@ def main_by_genotype():
         gt_dict=gt_dict,
         reference_genome=args.reference_genome,
         mt_path=args.mt_path,
-        output_file_name=args.output_file_name
+        output_file_path=args.output_file_path
     )
 
 
@@ -635,7 +635,7 @@ def main_add_covariates():
                         help="Number of participant IDs per processing thread (default: 10000)")
     parser.add_argument("--drop_nulls", type=_utils.str_to_bool, default=False,
                         help="Whether to drop rows with null values")
-    parser.add_argument("--output_file_name", "-o", type=str, default=None,
+    parser.add_argument("--output_file_path", "-o", type=str, default=None,
                         help="Name for output TSV file")
     
     args = parser.parse_args()
@@ -668,5 +668,5 @@ def main_add_covariates():
         first_n_pcs=args.first_n_pcs,
         chunk_size=args.chunk_size,
         drop_nulls=args.drop_nulls,
-        output_file_name=args.output_file_name
+        output_file_path=args.output_file_path
     )
