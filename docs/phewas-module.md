@@ -53,7 +53,7 @@ phetk phewas \
   --cohort_file_path "cohort.tsv" \
   --phecode_count_file_path "phecode_counts.tsv" \
   --sex_at_birth_col "sex" \
-  --covariates age sex pc1 pc2 pc3 \
+  --covariate_cols age sex pc1 pc2 pc3 \
   --independent_variable_of_interest "genotype" \
   --min_cases 50 \
   --min_phecode_count 2 \

@@ -995,7 +995,7 @@ class PheWAS:
             "--phecode_version": self.phecode_version,
             "--phecode_count_file_path": "$PHECODE_COUNT_FILE_PATH",  #  Must be a gcp bucket path
             "--cohort_file_path": "$COHORT_FILE_PATH",  #  Must be a gcp bucket path
-            "--covariates": " ".join(self.input_covariate_cols),
+            "--covariate_cols": " ".join(self.input_covariate_cols),
             "--independent_variable_of_interest": self.independent_variable_of_interest,
             "--sex_at_birth_col": self.sex_at_birth_col,
             "--male_as_one": self.male_as_one,
@@ -1414,10 +1414,10 @@ def main() -> None:
     parser.add_argument("--cox_fallback_step_size",
                         type=float, required=False, default=0.1,
                         help="Cox fallback step size used when regression fails to converge with the default step size of 0.95.")
-    parser.add_argument("--covariates",
+    parser.add_argument("--covariate_cols",
                         nargs="+",
                         type=str, required=True,
-                        help="List of covariates to use in PheWAS analysis.")
+                        help="List of covariate column names to use in PheWAS analysis.")
     parser.add_argument("--independent_variable_of_interest",
                         type=str, required=True,
                         help="Independent variable of interest.")
@@ -1471,7 +1471,7 @@ def main() -> None:
         cohort_file_path=args.cohort_file_path,
         sex_at_birth_col=args.sex_at_birth_col,
         male_as_one=args.male_as_one,
-        covariate_cols=args.covariates,
+        covariate_cols=args.covariate_cols,
         independent_variable_of_interest=args.independent_variable_of_interest,
         cox_start_date_col=args.cox_start_date_col,
         cox_control_observed_time_col=args.cox_control_observed_time_col,
