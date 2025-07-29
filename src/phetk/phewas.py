@@ -45,7 +45,7 @@ class PheWAS:
         verbose: bool = False,
         suppress_warnings: bool = True,
         method: str = "logit",
-        batch_size: int = 1,
+        batch_size: int | None = None,
         fall_back_to_serial: bool = False
     ):
         """
@@ -99,8 +99,8 @@ class PheWAS:
         :type suppress_warnings: bool
         :param method: Analysis method ("logit" for logistic regression or "cox" for Cox regression).
         :type method: str
-        :param batch_size: Number of phecodes to process per batch for parallelization.
-        :type batch_size: int
+        :param batch_size: Number of phecodes to process per batch for parallelization. If None, defaults to 1 for logit and 10 for cox.
+        :type batch_size: int | None
         :param fall_back_to_serial: Whether to fall back to serial processing when parallelization fails.
         :type fall_back_to_serial: bool
         """
@@ -159,7 +159,16 @@ class PheWAS:
         self.min_phecode_count = min_phecode_count
         self.suppress_warnings = suppress_warnings
         self.method = method
-        self.batch_size = batch_size
+        # Set default batch_size based on method if None
+        if batch_size is None:
+            if method == "logit":
+                self.batch_size = 1
+            elif method == "cox":
+                self.batch_size = 10
+            else:
+                self.batch_size = 1  # fallback default
+        else:
+            self.batch_size = batch_size
         self.fall_back_to_serial = fall_back_to_serial
 
         # For Cox regression:
@@ -1457,7 +1466,7 @@ def main() -> None:
     parser.add_argument("--parallelization",
                         type=str, required=False, default=None)
     parser.add_argument("--batch_size",
-                        type=int, required=False, default=1, help="Batch size for parallelization.")
+                        type=int, required=False, default=None, help="Batch size for parallelization. If None, defaults to 1 for logit and 10 for cox.")
     parser.add_argument("--suppress_warnings",
                         type=_utils.str_to_bool, required=False, default=True, help="Whether to suppress warnings.")
     parser.add_argument("--verbose",

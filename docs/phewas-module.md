@@ -21,7 +21,7 @@ Performs logistic or Cox regression analysis across all phecodes, testing associ
 - `min_phecode_count`: Minimum count to qualify as case (int, default: 2)
 - `use_exclusion`: Whether to use phecode exclusion ranges (bool, default: False)
 - `method`: "logit" for logistic or "cox" for Cox regression (str, default: "logit")
-- `batch_size`: Number of phecodes per processing batch (int, default: 1)
+- `batch_size`: Number of phecodes per processing batch (int, optional, default: 1 for logit, 10 for cox)
 - `fall_back_to_serial`: Fall back to serial processing if parallel fails (bool, default: False)
 - `output_file_path`: Output file path (str, optional)
 - `verbose`: Print progress for each phecode (bool, default: False)
