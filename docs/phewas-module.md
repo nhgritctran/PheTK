@@ -63,11 +63,11 @@ phetk phewas \
 ## Cox Regression Parameters
 
 Additional parameters for Cox proportional hazards regression:
-- `cox_start_date_col`: Column with study start dates (str, required for Cox)
-- `cox_control_observed_time_col`: Column with censoring time for controls (str)
-- `cox_phecode_observed_time_col`: Column with time to event for cases (str)
-- `cox_stratification_col`: Column for stratification (str)
-- `cox_fallback_step_size`: Step size for convergence issues (float, default: 0.1)
+- `cox_start_date_col`: Column with study start dates (str, required)
+- `cox_control_observed_time_col`: Column with censoring time for controls (str, required)
+- `cox_phecode_observed_time_col`: Column with time to event for cases (str, required)
+- `cox_stratification_col`: Column for stratification (str, optional)
+- `cox_fallback_step_size`: Step size for convergence issues (float, optional, default: 0.1)
 
 ### Cox Example
 ```python
