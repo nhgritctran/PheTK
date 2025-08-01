@@ -40,6 +40,8 @@ Legacy changelogs were archived in [CHANGELOG.md](legacy/CHANGELOG.md).
 ***
 
 ## 1. INSTALLATION
+
+### Using pip
 The latest version of PheTK can be installed using the pip install command in the terminal (Python 3.7 or newer):
 
 ```
@@ -54,6 +56,11 @@ or Jupyter Notebook (restart kernel after installation and prior to importing):
 To check current installed version:
 ```
 pip show phetk | grep Version
+```
+
+### Using Docker
+```bash
+docker pull phetk/phetk:0.2.1rc134p
 ```
 
 ## 2. 1-MINUTE PHEWAS DEMO
