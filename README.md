@@ -5,6 +5,18 @@ __Reference__: Tam C Tran, David J Schlueter, Chenjie Zeng, Huan Mo, Robert J Ca
 
 __Contact__: [PheTK@mail.nih.gov](mailto:PheTK@mail.nih.gov)
 
+## 🆕 WHAT'S NEW IN v0.2
+Major updates in this release:
+- **Cox regression support** - Added survival analysis capabilities alongside logistic regression
+- **dsub integration** - Built-in support for distributed computing on Google Cloud Platform
+- **Forest plot visualization** - New main visualization option alongside Manhattan plots
+- **PEP-compliant naming** - Changed to lowercase package/module names (affects import syntax)
+- **Expanded CLI support** - Added command-line interfaces for cohort and phecode modules
+- **Simplified CLI commands** - Added entry points for easier CLI usage (e.g., `phetk phewas` instead of `python3 -m phetk.phewas`)
+- **Enhanced user experience** - Various improvements for clarity and usability
+
+[**📋 View full changelog**](https://github.com/nhgritctran/PheTK/releases) | [**⬆️ Migration guide**](https://github.com/nhgritctran/PheTK/releases)
+
 ***
 
 ## QUICK LINKS
@@ -17,6 +29,7 @@ __Contact__: [PheTK@mail.nih.gov](mailto:PheTK@mail.nih.gov)
   - [Phecode module](docs/phecode-module.md)
   - [PheWAS module](docs/phewas-module.md)
   - [Plot module](docs/plot-module.md)
+- [Computing resource requirements](#6-computing-resource-requirements)
 - Platform specific tutorial(s):
   - ___All of Us___: [APOE PheWAS jupyter notebook](https://workbench.researchallofus.org/workspaces/aou-rw-42a1ea44/chargedemo/analysis/preview/2_PheWAS_with_PheTK_demo.ipynb).
 This notebook demonstrates PheTK usage on the _All of Us_ Researcher Workbench with APOE PheWAS as a study example.
@@ -86,30 +99,9 @@ New-to-PheWAS users could explore these files to get a sense of what data are us
 ## 4. DESCRIPTIONS
 PheTK is a fast python library for Phenome Wide Association Studies (PheWAS) utilizing both phecode 1.2 and phecodeX 1.0.
 
-### 4.1. PheWAS workflow and PheTK modules
 ![PheWAS workflow and PheTK modules](img/readme/PheTK_flowchart.png)
-Standard PheWAS workflow. Green texts are PheTK module names. 
+Standard PheWAS workflow. Green italicized texts are PheTK module names. 
 Black components are supported while gray ones are not supported by PheTK currently.
-
-### 4.2. PheTK module descriptions
-This table will be updated as we update PheTK. 
-
-All modules can be used together or independently, 
-e.g., users who only need to run PheWAS analysis can provide their own cohort and phecode count data as input for PheWAS module. 
-
-| Module  | Class   | Method(s)     | Platform    | Requirements/Notes                                                           |
-|---------|---------|---------------|-------------|------------------------------------------------------------------------------|
-| cohort  | Cohort  | by_genotype   | _All of Us_ | None                                                                         |
-|         |         |               | Other       | Variant data stored in Hail matrix table                                     |
-|         |         | add_covariate | _All of Us_ | None                                                                         |
-|         |         |               | Other       | Google BigQuery OMOP database                                                |
-|         |         |               |             | Required tables: person, condition_occurrence, observation, death, & concept |
-| phecode | Phecode | count_phecode | _All of Us_ | None                                                                         | 
-|         |         |               | Other       | User provided cohort ICD code data                                           |
-|         |         |               |             | User can use custom ICD-to-phecode mapping table.                            |
-| pheWAS  | PheWAS  | all methods   | Any         | None                                                                         |
-| plot    | Plot    | all methods   | Any         | None                                                                         |
-| demo    |         | all methods   | Any         | None                                                                         |
 
 _All of Us_: the _All of Us_ Research Program (https://allofus.nih.gov/)
 
@@ -121,3 +113,28 @@ For detailed usage examples and documentation for each module, please refer to t
 - **[Phecode module](docs/phecode-module.md)** - Map ICD codes to phecodes and generate counts
 - **[PheWAS module](docs/phewas-module.md)** - Run PheWAS analysis with logistic or Cox regression
 - **[Plot module](docs/plot-module.md)** - Generate Manhattan plots and other visualizations
+
+## 6. COMPUTING RESOURCE REQUIREMENTS
+
+PheTK's resource requirements vary by analysis method:
+
+### Logistic Regression
+- **Minimal resources required** - Can run efficiently on lightweight configurations
+- **Minimum tested configuration**: GCP `X-highcpu-4` (4 vCPUs, 8GB RAM, X=GCP machine type, e.g., c2d) or equivalent
+- Uses multithreading for parallel processing with lower memory overhead
+
+### Cox Regression  
+- **Slightly higher resources required** - Uses multiprocessing which demands more memory
+- **Minimum tested configuration**: GCP `X-standard-4` (4 vCPUs, 16GB RAM, X=GCP machine type, e.g., c2d) or equivalent
+- The additional memory accommodates the multiprocessing overhead for survival analysis
+
+### Phecode Module (ICD Code Mapping)
+- **Memory requirements scale with cohort size** - Large cohorts require higher memory configurations
+- **Recommended**: For _All of Us_ database v8 with over 500k participants, phecode mapping could be done with a 16 vCPU 104GB RAM machine.
+
+**General Guidelines:**
+- **All PheTK functions run on standard machines**, except `by_genotype()` in the Cohort module which requires a Spark cluster (dataproc VM)
+- Both analysis methods scale well with additional CPUs for faster processing
+
+![PheTK Performance Benchmarks](img/readme/FigureS2.png)
+**Figure S2**: Logistic regression performance benchmarks from PheTK publication showing scalability with different CPU configurations and cohort sizes.

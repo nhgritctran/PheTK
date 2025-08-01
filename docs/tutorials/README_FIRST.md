@@ -4,6 +4,9 @@
 
 **Important:** Please start with the **Logistic Regression notebook** as it contains comprehensive explanations of PheTK's core concepts and workflow. The other notebooks are more concise and focus on demonstrating specific features in different contexts.
 
+Note that these notebooks must be run on the _All of Us_ Researcher Workbench since certain functions are customized for it.
+That said, they should be good practical examples of how to use PheTK.
+
 ## Available Tutorials
 
 ### 1. [APOE PheWAS - Logistic Regression](v0.2.1%20APOE%20PheWAS%20-%20Logistic%20Regression%20-%20release%20candidate.ipynb)
@@ -16,7 +19,7 @@ Demonstrates how to perform survival analysis using Cox proportional hazards reg
 Shows how to use PheTK's command-line interface for running PheWAS analyses directly from the terminal.
 
 ### 4. [APOE PheWAS - dsub](v0.2.1%20APOE%20PheWAS%20-%20dsub%20-%20release%20candidate.ipynb)
-Illustrates how to run distributed PheWAS analyses on Google Cloud Platform using the dsub wrapper for scalable and efficient processing.
+Illustrates how to run distributed PheWAS analyses on Google Cloud Platform using PheTK's dsub wrapper for simple, scalable, and efficient processing.
 
 ## Notes
 
