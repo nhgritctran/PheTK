@@ -68,7 +68,7 @@ docker pull phetk/phetk:0.2.1rc134p
 User can run the quick 1-minute PheWAS demo with the following command in a terminal:
 
 ```
-python3 -m phetk.demo
+phetk demo
 ```
 
 Or in Jupyter Notebook:
