@@ -21,14 +21,14 @@ Major updates in this release:
 
 ## QUICK LINKS
 - [Installation](#1-installation)
-- [System requirements & computing resources](#2-system-requirements--computing-resources)
-- [1-minute PheWAS demo](#3-1-minute-phewas-demo)
-- [PheTK description](#4-descriptions)
-- [Usage examples](#5-usage)
+- [1-minute PheWAS demo](#2-1-minute-phewas-demo)
+- [PheTK description](#3-descriptions)
+- [Usage examples](#4-usage)
   - [Cohort module](docs/cohort-module.md)
   - [Phecode module](docs/phecode-module.md)
   - [PheWAS module](docs/phewas-module.md)
   - [Plot module](docs/plot-module.md)
+- [System requirements & computing resources](#5-system-requirements--computing-resources)
 - Platform specific tutorial(s):
   - ___All of Us___: [Tutorial notebooks](docs/tutorials/README_FIRST.md) - Interactive Jupyter notebooks demonstrating PheTK usage on the _All of Us_ Researcher Workbench with various analysis examples.
 Please note that all examples require _All of Us_ registered user access.
@@ -56,12 +56,48 @@ To check current installed version:
 pip show phetk | grep Version
 ```
 
-## 2. SYSTEM REQUIREMENTS & COMPUTING RESOURCES
+## 2. 1-MINUTE PHEWAS DEMO
+
+User can run the quick 1-minute PheWAS demo with the following command in a terminal:
+
+```
+python3 -m phetk.demo
+```
+
+Or in Jupyter Notebook:
+
+```
+from phetk import demo
+
+demo.run()
+```
+
+The example files (`example_cohort.tsv`, `example_phecode_counts.tsv`, and `example_phewas_results.tsv`) 
+generated in this Demo should be in users' current working directory. 
+New-to-PheWAS users could explore these files to get a sense of what data are used or generated in PheWAS with PheTK.
+
+## 3. DESCRIPTIONS
+PheTK is a fast python library for Phenome Wide Association Studies (PheWAS) utilizing both phecode 1.2 and phecodeX 1.0.
+
+![PheWAS workflow and PheTK modules](img/readme/PheTK_flowchart.png)
+Standard PheWAS workflow. Green italicized texts are PheTK module names. 
+Black components are supported while gray ones are not supported by PheTK currently.
+
+_All of Us_: the _All of Us_ Research Program (https://allofus.nih.gov/)
+
+## 4. USAGE
+
+For detailed usage examples and documentation for each module, please refer to the individual module documentation:
+
+- **[Cohort module](docs/cohort-module.md)** - Generate genetic cohorts and add covariates
+- **[Phecode module](docs/phecode-module.md)** - Map ICD codes to phecodes and generate counts
+- **[PheWAS module](docs/phewas-module.md)** - Run PheWAS analysis with logistic or Cox regression
+- **[Plot module](docs/plot-module.md)** - Generate Manhattan plots and other visualizations
+
+## 5. SYSTEM REQUIREMENTS
 
 PheTK was developed for efficient processing of large data while being resource-friendly. 
 It was tested on different platforms from laptops to different cloud environments.
-
-### General Guidelines
 
 ### General Requirements
 PheTK's resource requirements vary by usage context. The information in this section is tailored towards cloud computing platforms where large biobanks are often hosted.
@@ -88,42 +124,4 @@ if users only need to run PheWAS analysis, it can be run at a much lower configu
 #### Phecode Module (ICD Code Mapping)
 - **Memory requirements scale with cohort size** - Large cohorts require higher memory configurations
 - **Recommended**: For _All of Us_ database v8 with over 500k participants, phecode mapping could be done with a 16 vCPU 104GB RAM machine.
-
-## 3. 1-MINUTE PHEWAS DEMO
-
-User can run the quick 1-minute PheWAS demo with the following command in a terminal:
-
-```
-python3 -m phetk.demo
-```
-
-Or in Jupyter Notebook:
-
-```
-from phetk import demo
-
-demo.run()
-```
-
-The example files (`example_cohort.tsv`, `example_phecode_counts.tsv`, and `example_phewas_results.tsv`) 
-generated in this Demo should be in users' current working directory. 
-New-to-PheWAS users could explore these files to get a sense of what data are used or generated in PheWAS with PheTK.
-
-## 4. DESCRIPTIONS
-PheTK is a fast python library for Phenome Wide Association Studies (PheWAS) utilizing both phecode 1.2 and phecodeX 1.0.
-
-![PheWAS workflow and PheTK modules](img/readme/PheTK_flowchart.png)
-Standard PheWAS workflow. Green italicized texts are PheTK module names. 
-Black components are supported while gray ones are not supported by PheTK currently.
-
-_All of Us_: the _All of Us_ Research Program (https://allofus.nih.gov/)
-
-## 5. USAGE
-
-For detailed usage examples and documentation for each module, please refer to the individual module documentation:
-
-- **[Cohort module](docs/cohort-module.md)** - Generate genetic cohorts and add covariates
-- **[Phecode module](docs/phecode-module.md)** - Map ICD codes to phecodes and generate counts
-- **[PheWAS module](docs/phewas-module.md)** - Run PheWAS analysis with logistic or Cox regression
-- **[Plot module](docs/plot-module.md)** - Generate Manhattan plots and other visualizations
 
