@@ -171,11 +171,11 @@ class Cohort:
         mt = mt.filter_rows(mt.locus == hl.Locus.parse(locus))
         if mt.count_rows() == 0:
             print()
-            print(f"\033[1mLocus {locus} not found!")
+            print(f"\033[1mLocus {locus} not found!\033[0m")
             return
         elif mt.count_rows() >= 1:
             print()
-            print(f"\033[1mLocus {locus} found!")
+            print(f"\033[1mLocus {locus} found!\033[0m")
             mt.row.show()
 
         # split if multi-allelic site
@@ -183,7 +183,7 @@ class Cohort:
         allele_count = len(allele_count["info.AF"][0])
         if allele_count > 1:
             print()
-            print("\033[1mMulti-allelic detected! Splitting...")
+            print("\033[1mMulti-allelic detected! Splitting...\033[0m")
             mt = hl.split_multi_hts(mt)
             mt.row.show()
 
@@ -192,7 +192,7 @@ class Cohort:
                             (mt.alleles == variant["alleles"]))
         if mt.count_rows() >= 1:
             print()
-            print(f"\033[1mVariant {variant_string} found!")
+            print(f"\033[1mVariant {variant_string} found!\033[0m")
             mt.row.show()
 
             # export to polars
@@ -232,7 +232,7 @@ class Cohort:
             for gt in cohort_gt:
                 print(f"Genotype {gt}: {len(cohort.filter(pl.col('genotype')==gt))} participants")
             print()
-            print(f"\033[1mCohort data saved as {output_file_path}!\033[0m")
+            print(f"Cohort data saved as \033[1m{output_file_path}\033[0m")
             print()
 
         else:
@@ -502,7 +502,7 @@ class Cohort:
             for gt in cohort_gt:
                 print(f"Genotype {gt}: {len(final_cohort.filter(pl.col('genotype')==gt))} participants")
         print()
-        print(f"Cohort data saved as \"{output_file_path}\"!\033[0m")
+        print(f"Cohort data saved as \033[1m{output_file_path}\033[0m")
         print()
 
 

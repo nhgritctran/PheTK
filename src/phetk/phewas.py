@@ -117,8 +117,29 @@ class PheWAS:
         self.dsub = None
 
         # Even when running with dsub, the instantiation steps below will still be run as a good check for input issue(s)
-        _utils.print_banner("Creating PheWAS Object")
+        _utils.print_banner("Creating PheWAS Instance")
         print()
+
+        # for debugging
+        if verbose:
+            print(f"DEBUG: cohort_file_path = {self.cohort_file_path}")
+            print(f"DEBUG: phecode_count_file_path = {self.phecode_count_file_path}")
+            print(f"DEBUG: phecode_map_file_path = {self.phecode_map_file_path}")
+            print(f"DSUB DEBUG: COHORT_FILE_PATH env var = {os.getenv('COHORT_FILE_PATH', 'NOT_SET')}")
+            print(f"DSUB DEBUG: PHECODE_COUNT_FILE_PATH env var = {os.getenv('PHECODE_COUNT_FILE_PATH', 'NOT_SET')}")
+            print(f"DSUB DEBUG: PHECODE_MAP_FILE_PATH env var = {os.getenv('PHECODE_MAP_FILE_PATH', 'NOT_SET')}")
+            try:
+                print("DSUB DEBUG: Files in /mnt/data/input/:")
+                for root, dirs, files in os.walk('/mnt/data/input/'):
+                    level = root.replace('/mnt/data/input/', '').count(os.sep)
+                    indent = ' ' * 2 * (level + 1)
+                    print(f"{indent}{os.path.basename(root)}/")
+                    sub_indent = ' ' * 2 * (level + 2)
+                    for file in files:
+                        print(f"{sub_indent}{file}")
+            except Exception as e:
+                print(f"DSUB DEBUG: Could not list /mnt/data/input/: {e}")
+            print()
 
         # Load the phecode mapping file by version or by custom path
         self.phecode_df = _utils.get_phecode_mapping_table(
