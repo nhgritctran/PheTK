@@ -30,9 +30,8 @@ Major updates in this release:
   - [PheWAS module](docs/phewas-module.md)
   - [Plot module](docs/plot-module.md)
 - Platform specific tutorial(s):
-  - ___All of Us___: [APOE PheWAS jupyter notebook](https://workbench.researchallofus.org/workspaces/aou-rw-42a1ea44/chargedemo/analysis/preview/2_PheWAS_with_PheTK_demo.ipynb).
-This notebook demonstrates PheTK usage on the _All of Us_ Researcher Workbench with APOE PheWAS as a study example.
-Please note that this link is only accessible to _All of Us_ registered users.
+  - ___All of Us___: [Tutorial notebooks](docs/tutorials/README_FIRST.md) - Interactive Jupyter notebooks demonstrating PheTK usage on the _All of Us_ Researcher Workbench with various analysis examples.
+Please note that all examples require _All of Us_ registered user access.
 - [Changelogs and releases](https://github.com/nhgritctran/PheTK/releases): 
 from v0.1.45, please use [GitHub Releases](https://github.com/nhgritctran/PheTK/releases) for the latest versions and changelogs. 
 Legacy changelogs were archived in [CHANGELOG.md](legacy/CHANGELOG.md).
