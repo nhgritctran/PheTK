@@ -698,7 +698,7 @@ class Dsub:
             f"--user \"{self.dsub_user_name}\"" + " " +
             f"--logging {self.log_file_path} $@" + " " +
             f"--name \"{self.job_name}\"" + " " +
-            f"--env GOOGLE_PROJECT=\"{self.google_project}\""
+            f"--env GOOGLE_PROJECT=\"{self.google_project}\"" + " "
         )
         
         return base_script
