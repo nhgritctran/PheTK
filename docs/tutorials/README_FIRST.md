@@ -9,6 +9,8 @@ That said, they should be good practical examples of how to use PheTK.
 
 ## Available Tutorials
 
+ALl the notebooks were run in a 16CPU 104GB RAM VM on the _All of Us_ Researcher Workbench.
+
 ### 1. [APOE PheWAS - Logistic Regression](v0.2.1%20APOE%20PheWAS%20-%20Logistic%20Regression%20-%20release%20candidate.ipynb)
 This comprehensive tutorial walks through a complete PheWAS analysis using logistic regression, including detailed explanations of data preparation, covariate selection, and result visualizations.
 

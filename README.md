@@ -61,15 +61,26 @@ pip show phetk | grep Version
 PheTK was developed for efficient processing of large data while being resource-friendly. 
 It was tested on different platforms from laptops to different cloud environments.
 
-### General Requirements
-PheTK's resource requirements vary by analysis method:
+### General Guidelines
 
-#### Logistic Regression
+### General Requirements
+PheTK's resource requirements vary by usage context. The information in this section is tailored towards cloud computing platforms where large biobanks are often hosted.
+- All PheTK functions run on standard machines, except `by_genotype()` in the Cohort module which requires a Spark cluster (dataproc VM)
+- Both logistic regression and Cox regression scale with CPU counts for faster processing. See figure S2 below from PheTK publication for more information.
+In our experience, 4 CPU machines are the most cost-efficient, especially for large-scale analyses.
+- For an end-to-end pipeline, the system requirements should be based on the most demanding steps. 
+For example, for the _All of Us_ data v8, a VM with 16CPU 104GB RAM and 2 dataproc workers at default settings should work;
+if users only need to run PheWAS analysis, it can be run at a much lower configuration as shown in figure S2.
+
+![PheTK Performance Benchmarks](img/readme/FigureS2.png)
+**Figure S2**: Logistic regression performance benchmarks from PheTK publication showing scalability with different CPU configurations and cohort sizes.
+
+#### PheWAS Module - Logistic Regression
 - **Minimal resources required** - Can run efficiently on lightweight configurations
 - **Minimum tested configuration**: GCP `X-highcpu-4` (4 vCPUs, 8GB RAM, X=GCP machine type, e.g., c2d) or equivalent
 - Uses multithreading for parallel processing with lower memory overhead
 
-#### Cox Regression  
+#### PheWAS Module - Cox Regression  
 - **Slightly higher resources required** - Uses multiprocessing which demands more memory
 - **Minimum tested configuration**: GCP `X-standard-4` (4 vCPUs, 16GB RAM, X=GCP machine type, e.g., c2d) or equivalent
 - The additional memory accommodates the multiprocessing overhead for survival analysis
@@ -77,16 +88,6 @@ PheTK's resource requirements vary by analysis method:
 #### Phecode Module (ICD Code Mapping)
 - **Memory requirements scale with cohort size** - Large cohorts require higher memory configurations
 - **Recommended**: For _All of Us_ database v8 with over 500k participants, phecode mapping could be done with a 16 vCPU 104GB RAM machine.
-
-### General Guidelines
-- **All PheTK functions run on standard machines**, except `by_genotype()` in the Cohort module which requires a Spark cluster (dataproc VM)
-- Both analysis methods scale well to certain CPU counts for faster processing. See figure S2 below for more information.
-- In our experience, 4 CPU machines are the most cost-efficient, especially for large-scale analyses.
-
-In practice, users could try different available machine configurations to achieve optimal performance and cost-effectiveness.
-
-![PheTK Performance Benchmarks](img/readme/FigureS2.png)
-**Figure S2**: Logistic regression performance benchmarks from PheTK publication showing scalability with different CPU configurations and cohort sizes.
 
 ## 3. 1-MINUTE PHEWAS DEMO
 
