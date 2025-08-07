@@ -622,8 +622,9 @@ class PheWAS:
                 cases = cases[analysis_var_cols]
                 controls = controls[analysis_var_cols]
             else:
-                cases = cases[duplicate_check_cols]
-                controls = controls[duplicate_check_cols]
+                keep_cols = ["person_id"] + analysis_var_cols
+                cases = cases[keep_cols]
+                controls = controls[keep_cols]
 
             return cases, controls, analysis_var_cols
 
