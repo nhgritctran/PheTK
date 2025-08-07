@@ -590,7 +590,8 @@ class PheWAS:
             if method == "cox":
                 # CASES
                 case_observed_time_df = phecode_counts.filter(
-                    pl.col("person_id").is_in(case_ids)
+                    (pl.col("person_id").is_in(case_ids)) &
+                    (pl.col("phecode") == phecode)
                 )[["person_id", cox_phecode_observed_time_col]]
                 cases = cases.join(
                     case_observed_time_df, how="left", on="person_id"
