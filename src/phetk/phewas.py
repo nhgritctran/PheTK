@@ -590,7 +590,7 @@ class PheWAS:
             if method == "cox":
                 # CASES
                 case_observed_time_df = phecode_counts.filter(
-                    pl.col("person_id").is_in(case_ids)
+                    (pl.col("person_id").is_in(case_ids)) & (pl.col("phecode") == phecode)
                 )[["person_id", cox_phecode_observed_time_col]]
                 cases = cases.join(
                     case_observed_time_df, how="left", on="person_id"
@@ -603,12 +603,6 @@ class PheWAS:
                 # CONTROLS
                 controls = controls.rename({cox_control_observed_time_col: "observed_time"})
 
-            # DUPLICATE CHECK
-            # Drop duplicates
-            duplicate_check_cols = ["person_id"] + analysis_var_cols
-            cases = cases.unique(subset=duplicate_check_cols)
-            controls = controls.unique(subset=duplicate_check_cols)
-
             # KEEP ONLY REQUIRED COLUMNS
             if method == "cox":
                 analysis_var_cols = analysis_var_cols + ["observed_time"]
@@ -617,6 +611,13 @@ class PheWAS:
                      (cox_stratification_col not in analysis_var_cols))):
                     analysis_var_cols = analysis_var_cols + [cox_stratification_col]
 
+            # DUPLICATE CHECK
+            # Drop duplicates
+            duplicate_check_cols = ["person_id"] + analysis_var_cols
+            cases = cases.unique(subset=duplicate_check_cols)
+            controls = controls.unique(subset=duplicate_check_cols)
+
+            # This only affects get_phecode_data since keep_ids is always False everywhere else
             if not keep_ids:
                 # KEEP ONLY REQUIRED COLUMNS
                 cases = cases[analysis_var_cols]
