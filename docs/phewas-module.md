@@ -63,7 +63,8 @@ phetk phewas \
 ## Cox Regression Parameters
 
 Additional parameters for Cox proportional hazards regression:
-- `cox_start_date_col`: Column with study start dates (str, required)
+- `cox_start_date_col`: Column with start dates (str, optional); optional for Cox.
+        Date to exclude participants with pre-existing phenotype from cases of a particular phecode.
 - `cox_control_observed_time_col`: Column with censoring time for controls (str, required)
 - `cox_phecode_observed_time_col`: Column with time to event for cases (str, required)
 - `cox_stratification_col`: Column for stratification (str, optional)
@@ -79,7 +80,7 @@ phewas = PheWAS(
     independent_variable_of_interest="exposure",
     sex_at_birth_col="sex",
     method="cox",
-    cox_start_date_col="study_start_date",
+    cox_start_date_col="start_date",
     cox_control_observed_time_col="follow_up_time",
     cox_phecode_observed_time_col="time_to_event"
 )

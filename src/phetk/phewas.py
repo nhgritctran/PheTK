@@ -69,7 +69,8 @@ class PheWAS:
         :type sex_at_birth_col: str
         :param male_as_one: If True, male=1 and female=0; if False, male=0 and female=1.
         :type male_as_one: bool
-        :param cox_start_date_col: Column containing study start dates for Cox regression, required for Cox.
+        :param cox_start_date_col: Column containing study start dates for Cox regression, optional for Cox.
+        Date to exclude participants with pre-existing phenotype from cases of a particular phecode.
         :type cox_start_date_col: str | None
         :param cox_control_observed_time_col: Column containing censoring time for controls in Cox regression.
         :type cox_control_observed_time_col: str | None
@@ -194,12 +195,11 @@ class PheWAS:
 
         # For Cox regression:
         if (method == "cox") and (
-                (cox_start_date_col is None) |
                 (cox_control_observed_time_col is None) |
                 (cox_phecode_observed_time_col is None)
         ):
             print()
-            print("Warning: cox_start_date_col, cox_control_observed_time_col, and cox_phecode_observed_time_col are all required for Cox regression.")
+            print("Warning: cox_control_observed_time_col and cox_phecode_observed_time_col are all required for Cox regression.")
             print("Please provide these parameters when using --method cox")
             print()
             sys.exit(1)
