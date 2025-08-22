@@ -10,8 +10,11 @@ Display -log10(p-values) across phecode categories with effect direction indicat
 - `label_values`: What to label - "p_value", "positive_beta", "negative_beta", or specific phecodes (str/list)
 - `label_count`: Number of points to label (int, default: 10)
 - `label_size`: Font size for labels (int, default: 8)
+- `label_box_alpha`: Alpha (transparency) value for label background boxes (float, default: 0.5)
 - `marker_size_by_effect_size`: Scale markers by effect magnitude (bool, default: False)
 - `marker_scale_factor`: Scaling factor for marker sizes (float, default: 1)
+- `positive_marker_alpha`: Alpha (transparency) value for positive effect markers (float, default: 0.7)
+- `negative_marker_alpha`: Alpha (transparency) value for negative effect markers (float, default: 0.7)
 - `phecode_categories`: Specific categories to plot (list[str], optional)
 - `sort_by_significance`: Sort by p-value within categories (bool, default: False)
 - `save_plot`: Save plot to file (bool, default: True)
@@ -48,6 +51,15 @@ p.manhattan(
     marker_size_by_effect_size=True,
     marker_scale_factor=1.5,
     phecode_categories=["circulatory system", "endocrine/metabolic"]
+)
+
+# Customize marker and label transparency
+p.manhattan(
+    label_values="p_value",
+    positive_marker_alpha=0.8,  # More opaque positive effects
+    negative_marker_alpha=0.4,  # More transparent negative effects
+    label_box_alpha=0.3,        # More transparent label background boxes
+    save_plot=True
 )
 ```
 

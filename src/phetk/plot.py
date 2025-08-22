@@ -517,6 +517,7 @@ class Plot:
         label_color: str = "label_color",
         label_size: int = 8,
         label_weight: str = "normal",
+        label_box_alpha: float = 0.5,
         y_col: str = "neg_log_p_value",
         x_col: str = "phecode_index"
     ):
@@ -636,7 +637,7 @@ class Plot:
                         facecolor="white",
                         edgecolor="none",
                         boxstyle="round",
-                        alpha=0.5,
+                        alpha=label_box_alpha,
                         lw=0.5
                     )
                 )
@@ -701,8 +702,11 @@ class Plot:
             label_color: str = "label_color",
             label_weight: str = "normal",
             label_split_threshold: int = 30,
+            label_box_alpha: float = 0.5,
             marker_size_by_effect_size: bool = False,
             marker_scale_factor: float = 1,
+            positive_marker_alpha: float = 0.7,
+            negative_marker_alpha: float = 0.7,
             phecode_categories: list[str] | str | None = None,
             plot_all_categories: bool = True,
             sort_by_significance: bool = False,
@@ -739,10 +743,16 @@ class Plot:
         :type label_weight: str
         :param label_split_threshold: Character threshold for splitting long labels.
         :type label_split_threshold: int
+        :param label_box_alpha: Alpha (transparency) value for label background boxes.
+        :type label_box_alpha: float
         :param marker_size_by_effect_size: Whether to scale marker size by effect magnitude.
         :type marker_size_by_effect_size: bool
         :param marker_scale_factor: Scaling factor for marker sizes.
         :type marker_scale_factor: float
+        :param positive_marker_alpha: Alpha (transparency) value for positive effect markers.
+        :type positive_marker_alpha: float
+        :param negative_marker_alpha: Alpha (transparency) value for negative effect markers.
+        :type negative_marker_alpha: float
         :param phecode_categories: Specific categories to plot, uses all if None.
         :type phecode_categories: list[str] | str | None
         :param plot_all_categories: Whether to include all categories in plot.
@@ -829,6 +839,10 @@ class Plot:
 
         # generate positive & negative betas
         self.positive_betas, self.negative_betas = self._split_by_effect_size(plot_df, marker_size_by_effect_size)
+        
+        # Update alpha values from parameters
+        self.positive_alpha = positive_marker_alpha
+        self.negative_alpha = negative_marker_alpha
 
         ############
         # PLOTTING #
@@ -866,7 +880,8 @@ class Plot:
             label_split_threshold=label_split_threshold,
             label_size=label_size,
             label_color=label_color,
-            label_weight=label_weight
+            label_weight=label_weight,
+            label_box_alpha=label_box_alpha
         )
 
         # legend
@@ -1039,6 +1054,7 @@ class Plot:
             label_split_threshold: int = 30,
             label_size: int = 8,
             label_weight: str = "normal",
+            label_box_alpha: float = 0.5,
             y_threshold: float = 5,
             x_positive_threshold: float | None = None,
             x_negative_threshold: float | None = None
@@ -1127,7 +1143,7 @@ class Plot:
                                              bbox=dict(facecolor="white",
                                                        edgecolor="none",
                                                        boxstyle="round",
-                                                       alpha=0.5,
+                                                       alpha=label_box_alpha,
                                                        lw=0.5),
                                              alpha=1))
         if len(texts) > 0:
@@ -1158,6 +1174,7 @@ class Plot:
             marker_shape: str = ".",
             fill_marker: bool = True,
             marker_alpha: float = 0.5,
+            label_box_alpha: float = 0.5,
             show_legend: bool = False,
             legend_marker_scale: float = 0.5,
             legend_label_count: int = 5,
@@ -1213,6 +1230,8 @@ class Plot:
         :type fill_marker: bool
         :param marker_alpha: Transparency level for markers.
         :type marker_alpha: float
+        :param label_box_alpha: Alpha (transparency) value for label background boxes.
+        :type label_box_alpha: float
         :param show_legend: Whether to display size legend.
         :type show_legend: bool
         :param legend_marker_scale: Scale factor for legend markers.
@@ -1311,6 +1330,7 @@ class Plot:
             label_count=label_count,
             x_col=x_col,
             y_col=y_col,
+            label_box_alpha=label_box_alpha,
             y_threshold=y_threshold,
             x_positive_threshold=x_positive_threshold,
             x_negative_threshold=x_negative_threshold
