@@ -112,6 +112,8 @@ Execute PheWAS analysis using Google Cloud dsub for distributed computing on clo
 NOTE: For Cox regression, a standard or highmem machine should be used. For logistic regression, any machine would work.
 For example, machine_type="c2d_highmem_4" for Cox regression and machine_type="c2d_highcpu_4" for logistic regression.
 
+**See [dsub-considerations.md](dsub-considerations.md) for detailed setup, parameter guidance, and useful utilities.**
+
 ### Key Parameters
 - `docker_image`: Docker image containing PheWAS dependencies (str, required)
 - `job_script_name`: Name of bash script to execute (str, default: "phewas_script.sh")
@@ -141,12 +143,13 @@ phewas = PheWAS(
     sex_at_birth_col="sex",
     min_cases=50,
     min_phecode_count=2,
+    method="logit",
     output_file_path="gs://your-bucket/phewas_results.tsv"
 )
 
 # Run with dsub
 phewas.run_dsub(
-    docker_image="your-registry/phetk:latest",
+    docker_image="phetk/phetk:latest",
     job_name="my-phewas-job",
     machine_type="c2d-standard-4",
     region="us-central1",
