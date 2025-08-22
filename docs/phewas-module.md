@@ -70,7 +70,7 @@ Additional parameters for Cox proportional hazards regression:
 - `cox_stratification_col`: Column for stratification (str, optional)
 - `cox_fallback_step_size`: Step size for convergence issues (float, optional, default: 0.1)
 
-### Cox Example
+### Notebook Example
 ```python
 phewas = PheWAS(
     phecode_version="X",
@@ -85,6 +85,73 @@ phewas = PheWAS(
     cox_phecode_observed_time_col="time_to_event"
 )
 phewas.run()
+```
+
+### CLI Example
+```bash
+phetk phewas \
+  --phecode_version "X" \
+  --cohort_file_path "cohort.tsv" \
+  --phecode_count_file_path "phecode_counts.tsv" \
+  --sex_at_birth_col "sex" \
+  --covariate_cols age sex pc1 \
+  --independent_variable_of_interest "exposure" \
+  --min_cases 50 \
+  --min_phecode_count 2 \
+  --method "cox" \
+  --cox_start_date_col "start_date" \
+  --cox_control_observed_time_col "follow_up_time" \
+  --cox_phecode_observed_time_col "time_to_event" \
+  --output_file_path "cox_results.tsv"
+```
+
+## Running PheWAS with dsub
+
+Execute PheWAS analysis using Google Cloud dsub for distributed computing on cloud infrastructure.
+
+NOTE: For Cox regression, a standard or highmem machine should be used. For logistic regression, any machine would work.
+For example, machine_type="c2d_highmem_4" for Cox regression and machine_type="c2d_highcpu_4" for logistic regression.
+
+### Key Parameters
+- `docker_image`: Docker image containing PheWAS dependencies (str, required)
+- `job_script_name`: Name of bash script to execute (str, default: "phewas_script.sh")
+- `job_name`: Custom name for dsub job (str, optional)
+- `input_dict`: Mapping of input variables to cloud storage paths (dict, optional)
+- `output_dict`: Mapping of output variables to cloud storage paths (dict, optional)
+- `env_dict`: Environment variables to set in job (dict, optional)
+- `machine_type`: Google Cloud machine type (str, default: "c2d-highcpu-4")
+- `boot_disk_size`: Size of boot disk in GB (int, default: 50)
+- `disk_size`: Size of additional disk in GB (int, default: 256)
+- `region`: Google Cloud region for execution (str, default: "us-central1")
+- `provider`: Cloud provider backend (str, default: "google-batch")
+- `preemptible`: Whether to use preemptible instances (bool, default: False)
+- `use_private_address`: Whether to use private IP addresses (bool, default: True)
+
+### Notebook Example
+```python
+from phetk.phewas import PheWAS
+
+# Create PheWAS instance
+phewas = PheWAS(
+    phecode_version="X",
+    phecode_count_file_path="gs://your-bucket/phecode_counts.tsv",
+    cohort_file_path="gs://your-bucket/cohort.tsv",
+    covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
+    independent_variable_of_interest="genotype",
+    sex_at_birth_col="sex",
+    min_cases=50,
+    min_phecode_count=2,
+    output_file_path="gs://your-bucket/phewas_results.tsv"
+)
+
+# Run with dsub
+phewas.run_dsub(
+    docker_image="your-registry/phetk:latest",
+    job_name="my-phewas-job",
+    machine_type="c2d-standard-4",
+    region="us-central1",
+    preemptible=True
+)
 ```
 
 ## Advanced Options
