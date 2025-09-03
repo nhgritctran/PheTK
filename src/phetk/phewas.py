@@ -833,7 +833,7 @@ class PheWAS:
                     captured_warnings = []
                     with warnings.catch_warnings(record=True) as w:
                         result = cox.fit(
-                            df=regressors.to_pandas(use_pyarrow_extension_array=False),
+                            df=regressors.to_pandas(use_pyarrow_extension_array=True),
                             event_col="y",
                             duration_col="observed_time",
                             strata=strata,
@@ -846,7 +846,7 @@ class PheWAS:
                 except u.ConvergenceError:
                     combined_warning = f"Convergence error. step_size was lowered to {cox_fallback_step_size} (default is 0.95)."
                     result = cox.fit(
-                        df=regressors.to_pandas(use_pyarrow_extension_array=False),
+                        df=regressors.to_pandas(use_pyarrow_extension_array=True),
                         event_col="y",
                         duration_col="observed_time",
                         strata=strata,
