@@ -11,16 +11,16 @@ That said, they should be good practical examples of how to use PheTK.
 
 ALl the notebooks were run in a 16CPU 104GB RAM VM on the _All of Us_ Researcher Workbench.
 
-### 1. [APOE PheWAS - Logistic Regression](v0.2.1%20APOE%20PheWAS%20-%20Logistic%20Regression%20-%20release%20candidate.ipynb)
+### 1. [APOE PheWAS - Logistic Regression](v0.2.1%20APOE%20PheWAS%20-%20Logistic%20Regression.ipynb)
 This comprehensive tutorial walks through a complete PheWAS analysis using logistic regression, including detailed explanations of data preparation, covariate selection, and result visualizations.
 
-### 2. [APOE PheWAS - Cox Regression](v0.2.1%20APOE%20PheWAS%20-%20Cox%20Regression%20-%20release%20candidate.ipynb)
+### 2. [APOE PheWAS - Cox Regression](v0.2.1%20APOE%20PheWAS%20-%20Cox%20Regression.ipynb)
 Demonstrates how to perform survival analysis using Cox proportional hazards regression for time-to-event phenotype data.
 
-### 3. [APOE PheWAS - CLI](v0.2.1%20APOE%20PheWAS%20-%20CLI%20-%20release%20candidate.ipynb)
+### 3. [APOE PheWAS - CLI](v0.2.1%20APOE%20PheWAS%20-%20CLI.ipynb)
 Shows how to use PheTK's command-line interface for running PheWAS analyses directly from the terminal.
 
-### 4. [APOE PheWAS - dsub](v0.2.1%20APOE%20PheWAS%20-%20dsub%20-%20release%20candidate.ipynb)
+### 4. [APOE PheWAS - dsub](v0.2.1%20APOE%20PheWAS%20-%20dsub.ipynb)
 Illustrates how to run distributed PheWAS analyses on Google Cloud Platform using PheTK's dsub wrapper for simple, scalable, and efficient processing.
 
 ## Notes
