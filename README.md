@@ -53,7 +53,8 @@ The latest version (v0.2+) of PheTK can be installed using the pip install comma
 pip install phetk --upgrade
 ```
 
-Users can also specify a version, e.g., for the last stable version of version 0.1:
+Users can also specify a version, e.g., for the last stable version of version 0.1 
+(note use "PheTK" instead of "phetk" for version 0.1):
 
 ```
 pip install PheTK==0.1.47
@@ -65,6 +66,8 @@ pip show phetk | grep Version
 ```
 
 ### Using Docker
+
+Please refer to https://hub.docker.com/r/phetk/phetk/tags for the latest docker images.
 ```bash
 docker pull phetk/phetk:latest
 ```
