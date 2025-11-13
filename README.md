@@ -15,7 +15,10 @@ Major updates in this release:
 - **Simplified CLI commands** - Added entry points for easier CLI usage (e.g., `phetk phewas` instead of `python3 -m phetk.phewas`)
 - **Enhanced user experience** - Various improvements for clarity and usability
 
-[**📋 View full changelog**](https://github.com/nhgritctran/PheTK/releases) | [**⬆️ Migration guide**](https://github.com/nhgritctran/PheTK/releases)
+[**📋 View full changelog**](https://github.com/nhgritctran/PheTK/releases)
+
+Version 0.1.47 is the last stable version of version 0.1. 
+Users can still continue to use this version, and the previous README file can be found [here](legacy/README_legacy.md)  
 
 ***
 
@@ -42,15 +45,18 @@ Legacy changelogs were archived in [CHANGELOG.md](legacy/CHANGELOG.md).
 ## 1. INSTALLATION
 
 ### Using pip
-The latest version of PheTK can be installed using the pip install command in the terminal (Python 3.7 or newer):
+
+The latest version (v0.2+) of PheTK can be installed using the pip install command in the terminal
+(note that the lowercase package name "phetk" starts from version 0.2+):
 
 ```
 pip install phetk --upgrade
 ```
 
-or Jupyter Notebook (restart kernel after installation and prior to importing):
+Users can also specify a version, e.g., for the last stable version of version 0.1:
+
 ```
-!pip install phetk --upgrade
+pip install PheTK==0.1.47
 ```
 
 To check current installed version:
@@ -60,7 +66,7 @@ pip show phetk | grep Version
 
 ### Using Docker
 ```bash
-docker pull phetk/phetk:0.2.1rc134p
+docker pull phetk/phetk:latest
 ```
 
 ## 2. 1-MINUTE PHEWAS DEMO

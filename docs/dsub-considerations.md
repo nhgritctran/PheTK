@@ -33,7 +33,7 @@ If dsub runtime is abnormally longer than normal (job status is `RUNNING`), e.g.
 ### Critical Parameters
 
 **`docker_image`** (required)
-- Use `"phetk/phetk:latest"` for official PheWAS image
+- Use `"phetk/phetk:latest"` for official PheWAS image; Replace "latest" with a specific version of interest, e.g., 0.2.1
 - Ensure the image is accessible from your Google Cloud project
 - Custom images must include all PheWAS dependencies
 

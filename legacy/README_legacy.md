@@ -32,17 +32,17 @@ Legacy changelogs were archived in [CHANGELOG.md](CHANGELOG.md).
 The latest version of PheTK can be installed using the pip install command in the terminal (Python 3.7 or newer):
 
 ```
-pip install phetk --upgrade
+pip install PheTK --upgrade
 ```
 
 or Jupyter Notebook (restart kernel after installation and prior to importing):
 ```
-!pip install phetk --upgrade
+!pip install PheTK --upgrade
 ```
 
 To check current installed version:
 ```
-pip show phetk | grep Version
+pip show PheTK | grep Version
 ```
 
 ## 2. SYSTEM REQUIREMENTS
@@ -68,18 +68,18 @@ In practice, users could try different available machine configurations to achie
 User can run the quick 1-minute PheWAS demo with the following command in a terminal:
 
 ```
-python3 -m phetk.demo
+python3 -m PheTK.Demo
 ```
 
 Or in Jupyter Notebook:
 
 ```
-from phetk import demo
+from PheTK import Demo
 
-demo.run()
+Demo.run()
 ```
 
-The example files (`example_cohort.tsv`, `example_phecode_counts.tsv`, and `example_phewas_results.tsv`) 
+The example files (`example_cohort.csv`, `example_phecode_counts.csv`, and `example_phewas_results.csv`) 
 generated in this Demo should be in users' current working directory. 
 New-to-PheWAS users could explore these files to get a sense of what data are used or generated in PheWAS with PheTK.
 
@@ -99,17 +99,17 @@ e.g., users who only need to run PheWAS analysis can provide their own cohort an
 
 | Module  | Class   | Method(s)     | Platform    | Requirements/Notes                                                           |
 |---------|---------|---------------|-------------|------------------------------------------------------------------------------|
-| cohort  | Cohort  | by_genotype   | _All of Us_ | None                                                                         |
+| Cohort  | Cohort  | by_genotype   | _All of Us_ | None                                                                         |
 |         |         |               | Other       | Variant data stored in Hail matrix table                                     |
 |         |         | add_covariate | _All of Us_ | None                                                                         |
 |         |         |               | Other       | Google BigQuery OMOP database                                                |
 |         |         |               |             | Required tables: person, condition_occurrence, observation, death, & concept |
-| phecode | Phecode | count_phecode | _All of Us_ | None                                                                         | 
+| Phecode | Phecode | count_phecode | _All of Us_ | None                                                                         | 
 |         |         |               | Other       | User provided cohort ICD code data                                           |
 |         |         |               |             | User can use custom ICD-to-phecode mapping table.                            |
-| pheWAS  | PheWAS  | all methods   | Any         | None                                                                         |
-| plot    | Plot    | all methods   | Any         | None                                                                         |
-| demo    |         | all methods   | Any         | None                                                                         |
+| PheWAS  | PheWAS  | all methods   | Any         | None                                                                         |
+| Plot    | Plot    | all methods   | Any         | None                                                                         |
+| Demo    |         | all methods   | Any         | None                                                                         |
 
 _All of Us_: the _All of Us_ Research Program (https://allofus.nih.gov/)
 
