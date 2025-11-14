@@ -1,0 +1,8 @@
+{
+  "name": "PheTK Dev Container",
+  "image": "phetk/phetk:latest",
+
+  "runArgs": [
+    "--network=app-network"
+  ]
+}
