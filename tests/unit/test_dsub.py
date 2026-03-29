@@ -51,10 +51,12 @@ class TestDsubInit:
         d = Dsub(docker_image="img", job_name="123job", use_aou_docker_prefix=False)
         assert d.job_name[0].isalpha()
 
+    @pytest.mark.aou
     def test_bucket_from_env(self, aou_env):
         d = Dsub(docker_image="img", use_aou_docker_prefix=False)
         assert d.bucket == "gs://test-bucket"
 
+    @pytest.mark.aou
     def test_project_from_env(self, aou_env):
         d = Dsub(docker_image="img", use_aou_docker_prefix=False)
         assert d.project == "test-project-id"
@@ -63,6 +65,7 @@ class TestDsubInit:
         d = Dsub(docker_image="img", use_aou_docker_prefix=False)
         assert "." not in d.user_name
 
+    @pytest.mark.aou
     def test_log_path_includes_bucket(self, aou_env):
         d = Dsub(docker_image="img", use_aou_docker_prefix=False)
         assert "gs://test-bucket" in d.log_file_path

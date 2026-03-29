@@ -142,7 +142,7 @@ class TestAddPhecodeTimeToEvent:
         pf, cf, tmp_path = base_files
         out = str(tmp_path / "output.tsv")
         Phecode.add_phecode_time_to_event(pf, cf, "study_start", time_unit="days", output_file_path=out)
-        result = pl.read_csv(out, separator="\t")
+        result = pl.read_csv(out, separator="\t", schema_overrides={"phecode": str})
         # person 1, phecode 250: 2020-06-01 - 2020-01-01 = 152 days
         row = result.filter((pl.col("person_id") == 1) & (pl.col("phecode") == "250"))
         assert row["phecode_time_to_event"][0] == pytest.approx(152, abs=1)

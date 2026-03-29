@@ -122,9 +122,38 @@ class TestPheWASRunLogistic:
         make_phewas(demo_files, out, min_cases=30).run(parallelization="serial")
         assert os.path.exists(out)
 
-    def test_phecode12_version_works(self, demo_files):
-        out = str(demo_files["tmp"] / "logit_phecode12.tsv")
-        make_phewas(demo_files, out, phecode_version="1.2").run()
+    def test_phecode12_version_works(self, demo_files, tmp_path_factory):
+        """PheWAS with phecode 1.2 requires phecode 1.2 codes in the counts file."""
+        tmp = tmp_path_factory.mktemp("phecode12")
+        cohort = pl.read_csv(demo_files["cohort"], separator="\t")
+        person_ids = cohort["person_id"].to_list()
+        n = len(person_ids)
+
+        # Build synthetic counts using valid phecode 1.2 codes
+        phecode12_codes = ["250", "401", "008", "038", "041", "290", "300", "320"]
+        rows = []
+        rng = np.random.default_rng(42)
+        for code in phecode12_codes:
+            sample_size = rng.integers(int(n * 0.4), int(n * 0.8))
+            sampled_ids = rng.choice(person_ids, size=sample_size, replace=False).tolist()
+            for pid in sampled_ids:
+                rows.append({"person_id": pid, "phecode": code, "count": int(rng.integers(1, 5))})
+        phecode_counts_12 = pl.DataFrame(rows)
+        counts_path = str(tmp / "counts12.tsv")
+        phecode_counts_12.write_csv(counts_path, separator="\t")
+
+        out = str(tmp / "logit_phecode12.tsv")
+        PheWAS(
+            phecode_version="1.2",
+            phecode_count_file_path=counts_path,
+            cohort_file_path=demo_files["cohort"],
+            covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
+            independent_variable_of_interest="independent_variable_of_interest",
+            sex_at_birth_col="sex",
+            min_cases=10,
+            min_phecode_count=2,
+            output_file_path=out,
+        ).run()
         assert os.path.exists(out)
 
 
