@@ -140,3 +140,10 @@ setup.py
 
 # docker
 docker
+
+# claude
+.claude
+CLAUDE.md
+
+# temporary
+.devcontainer
