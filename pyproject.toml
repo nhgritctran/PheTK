@@ -42,3 +42,12 @@ where = ["src"]
 [tool.setuptools.package-data]
 "*" = ["*.*"]
 phetk = ["phecode/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "aou: mark test as requiring AoU Workbench environment",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-mock"]
