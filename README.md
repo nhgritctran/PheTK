@@ -1,4 +1,11 @@
 # PheTK - The Phenotype Toolkit
+
+[![Tests](https://github.com/nhgritctran/PheTK/actions/workflows/tests.yml/badge.svg)](https://github.com/nhgritctran/PheTK/actions/workflows/tests.yml)
+[![PyPI version](https://img.shields.io/pypi/v/phetk)](https://pypi.org/project/phetk/)
+[![Python versions](https://img.shields.io/pypi/pyversions/phetk)](https://pypi.org/project/phetk/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![DOI](https://img.shields.io/badge/DOI-10.1093%2Fbioinformatics%2Fbtae719-blue)](https://doi.org/10.1093/bioinformatics/btae719)
+
 The official repository of PheTK, a fast python library for Phenome Wide Association Studies (PheWAS) utilizing both phecode 1.2 and phecodeX 1.0.
 
 __Reference__: Tam C Tran, David J Schlueter, Chenjie Zeng, Huan Mo, Robert J Carroll, Joshua C Denny, PheWAS analysis on large-scale biobank data with PheTK, Bioinformatics, Volume 41, Issue 1, January 2025, btae719, https://doi.org/10.1093/bioinformatics/btae719
