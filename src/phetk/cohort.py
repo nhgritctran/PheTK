@@ -113,7 +113,13 @@ class Cohort:
         """
 
         # import hail and assign hail_init attribute if needed
-        import hail as hl
+        try:
+            import hail as hl
+        except ImportError:
+            raise ImportError(
+                "hail is required for by_genotype(). "
+                "Install it with: pip install phetk[hail]"
+            )
 
         # set the database path
         if self.platform == "aou":

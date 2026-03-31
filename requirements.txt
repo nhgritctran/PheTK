@@ -1,7 +1,6 @@
 adjusttext
 connectorx
 google-cloud-bigquery
-hail
 lifelines
 lxml
 matplotlib

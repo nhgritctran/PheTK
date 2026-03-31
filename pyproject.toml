@@ -25,7 +25,6 @@ dependencies = [
     "connectorx",
     "google-cloud-bigquery",
     "google-cloud-storage",
-    "hail",
     "lifelines>=0.28.0,<0.30.1",
     "lxml",
     "matplotlib",
@@ -58,4 +57,5 @@ markers = [
 ]
 
 [project.optional-dependencies]
+hail = ["hail"]
 dev = ["pytest", "pytest-mock"]
