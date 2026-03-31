@@ -8,10 +8,11 @@ jobs:
   publish:
     name: Build and publish to PyPI
     runs-on: ubuntu-latest
+    environment: pypi
 
     # Trusted publishing — no API token needed.
     # One-time setup on PyPI: go to your project > Publishing > Add publisher
-    # and set: owner=nhgritctran, repo=PheTK, workflow=publish.yml
+    # and set: owner=nhgritctran, repo=PheTK, workflow=publish.yml, environment=pypi
     permissions:
       id-token: write  # required for OIDC trusted publishing
 

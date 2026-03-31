@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "phetk"
 version = "0.2.3"
-requires-python = "==3.10.*"
+requires-python = ">=3.10"
 license = {text = "GPL-3.0"}
 authors = [
     { name = "Tam Tran", email = "PheTK@mail.nih.gov" },
@@ -13,6 +13,8 @@ authors = [
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
 ]
