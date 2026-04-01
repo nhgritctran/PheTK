@@ -584,6 +584,9 @@ class PheWAS:
             exclude_ids = phecode_counts.filter(
                 pl.col("phecode").is_in(exclude_range)
             )["person_id"].unique().to_list()
+            # Also exclude participants whose first event predates Cox start date
+            if cox_exclude_ids is not None:
+                exclude_ids = list(set(exclude_ids) | set(cox_exclude_ids))
             controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
 
             # PROCESS OBSERVED TIME FOR COX REGRESSION
