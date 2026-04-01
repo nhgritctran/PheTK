@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "phetk"
-version = "0.2.3"
+version = "0.2.4"
 requires-python = ">=3.10"
 license = {text = "GPL-3.0"}
 authors = [
@@ -33,6 +33,7 @@ dependencies = [
     "polars",
     "psutil",
     "pyarrow>=10.0.1",
+    "pysam",
     "statsmodels",
     "tqdm",
 ]
