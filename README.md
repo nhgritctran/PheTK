@@ -12,6 +12,8 @@ __Reference__: Tam C Tran, David J Schlueter, Chenjie Zeng, Huan Mo, Robert J Ca
 
 __Contact__: [PheTK@mail.nih.gov](mailto:PheTK@mail.nih.gov)
 
+__Releases__: check [GitHub Releases](https://github.com/nhgritctran/PheTK/releases) for the latest versions and changelogs.
+
 ## 🆕 WHAT'S NEW IN v0.2
 Major updates in this release:
 - **Cox regression support** - Added survival analysis capabilities alongside logistic regression
