@@ -105,3 +105,82 @@ class TestAddCovariatesAou:
         )
         result = pl.read_csv(out, separator="\t")
         assert len(result) == len(TEST_PARTICIPANT_IDS)
+
+
+# ---------------------------------------------------------------------------
+# Hail vs VCF equivalence tests
+# ---------------------------------------------------------------------------
+
+# CFTR deletion — known multiallelic site verified to produce identical
+# results from both Hail and VCF pipelines (414,696 records, 0 differences).
+_CFTR_CHR = 7
+_CFTR_POS = 117559590
+_CFTR_REF = "ATCT"
+_CFTR_ALT = "A"
+_CFTR_GT_DICT = {0: "0/0", 1: ["0/1", "1/1"]}
+
+
+@pytest.mark.aou
+class TestByGenotypeHailVsVcf:
+    """Run by_genotype with both hail and vcf for the same variant, compare outputs."""
+
+    @staticmethod
+    def _run_and_load(cohort, tmp_path, data_format, chrom, pos, ref, alt, gt_dict):
+        out = str(tmp_path / f"{data_format}_cohort.tsv")
+        cohort.by_genotype(
+            chromosome_number=chrom,
+            genomic_position=pos,
+            ref_allele=ref,
+            alt_allele=alt,
+            gt_dict=gt_dict,
+            data_format=data_format,
+            output_file_path=out,
+        )
+        return pl.read_csv(out, separator="\t").sort("person_id")
+
+    @staticmethod
+    def _compare(hail_df, vcf_df):
+        """Compare two cohort DataFrames and return diagnostics."""
+        hail_ids = set(hail_df["person_id"].to_list())
+        vcf_ids = set(vcf_df["person_id"].to_list())
+
+        only_hail = hail_ids - vcf_ids
+        only_vcf = vcf_ids - hail_ids
+        common = hail_ids & vcf_ids
+
+        hail_common = hail_df.filter(pl.col("person_id").is_in(list(common)))
+        vcf_common = vcf_df.filter(pl.col("person_id").is_in(list(common)))
+        merged = hail_common.join(vcf_common, on="person_id", suffix="_vcf")
+        mismatched = merged.filter(pl.col("genotype") != pl.col("genotype_vcf"))
+
+        return {
+            "only_hail": only_hail,
+            "only_vcf": only_vcf,
+            "mismatched": mismatched,
+        }
+
+    def test_cftr_hail_and_vcf_match(self, tmp_path):
+        cohort = Cohort(platform="aou", aou_db_version=8)
+        hail_df = self._run_and_load(
+            cohort, tmp_path, "hail",
+            _CFTR_CHR, _CFTR_POS, _CFTR_REF, _CFTR_ALT, _CFTR_GT_DICT,
+        )
+        vcf_df = self._run_and_load(
+            cohort, tmp_path, "vcf",
+            _CFTR_CHR, _CFTR_POS, _CFTR_REF, _CFTR_ALT, _CFTR_GT_DICT,
+        )
+
+        diffs = self._compare(hail_df, vcf_df)
+
+        assert len(diffs["only_hail"]) == 0, (
+            f"Samples only in Hail: {sorted(diffs['only_hail'])[:20]}"
+        )
+        assert len(diffs["only_vcf"]) == 0, (
+            f"Samples only in VCF: {sorted(diffs['only_vcf'])[:20]}"
+        )
+        assert len(diffs["mismatched"]) == 0, (
+            f"Genotype mismatches:\n{diffs['mismatched'].head(20)}"
+        )
+        assert len(hail_df) == len(vcf_df), (
+            f"Record count mismatch: Hail={len(hail_df)}, VCF={len(vcf_df)}"
+        )

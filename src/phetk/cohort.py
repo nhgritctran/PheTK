@@ -6,6 +6,7 @@ import os
 import pandas as pd
 import polars as pl
 import sys
+import warnings
 
 
 class Cohort:
@@ -82,16 +83,18 @@ class Cohort:
                     alt_allele: str,
                     gt_dict: dict[int, str | list[str]] | None = None,
                     reference_genome: str = "GRCh38",
+                    data_format: str = "vcf",
+                    call_set: str = "acaf_threshold",
+                    data_path: str | None = None,
                     mt_path: str | None = None,
                     output_file_path: str | None = None) -> None:
         """
         Generate cohort based on genotype of variant of interest.
-        
-        Extracts genotype data from Hail matrix table for specified genomic variant,
-        filters participants by requested genotype groups, and creates cohort file
-        with person IDs and genotype labels. Handles multi-allelic sites and validates
-        variant existence in dataset.
-        
+
+        Extracts genotype data from VCF or Hail matrix table for specified genomic
+        variant, filters participants by requested genotype groups, and creates cohort
+        file with person IDs and genotype labels. Handles multi-allelic sites.
+
         :param chromosome_number: Chromosome number for variant location.
         :type chromosome_number: int
         :param genomic_position: Genomic position of variant on chromosome.
@@ -104,51 +107,112 @@ class Cohort:
         :type gt_dict: dict[int, str | list[str]] | None
         :param reference_genome: Reference genome version, accepts "GRCh37" or "GRCh38".
         :type reference_genome: str
-        :param mt_path: Path to population level Hail variant matrix table.
+        :param data_format: Genotype data format: "vcf" (default) or "hail".
+        :type data_format: str
+        :param call_set: AoU callset name for path construction: "acaf_threshold" (default) or "exome".
+        :type call_set: str
+        :param data_path: Override path to genotype data. For vcf, path to a VCF file
+            (.vcf.gz, .vcf.bgz, .bcf) or AoU shard directory. For hail, the .mt directory path.
+        :type data_path: str | None
+        :param mt_path: Deprecated. Use data_path instead. Kept for backward compatibility.
         :type mt_path: str | None
         :param output_file_path: Path of output TSV file.
         :type output_file_path: str | None
         :return: Creates genotype cohort TSV file with person IDs and genotype labels.
         :rtype: None
         """
-
-        # import hail and assign hail_init attribute if needed
-        try:
-            import hail as hl
-        except ImportError:
-            raise ImportError(
-                "hail is required for by_genotype(). "
-                "Install it with: pip install phetk[hail]"
+        # handle deprecated mt_path
+        if mt_path is not None and data_path is not None:
+            print("Error: Cannot specify both mt_path and data_path. Use data_path only.")
+            sys.exit(1)
+        if mt_path is not None:
+            warnings.warn(
+                "mt_path is deprecated. Use data_path instead.",
+                DeprecationWarning,
+                stacklevel=2,
             )
+            data_path = mt_path
 
-        # set the database path
-        if self.platform == "aou":
-            if (mt_path is None) and (self.db_version in range(6, self.aou_max_version+1)):
-                mt_path = getattr(_paths, f"cdr{self.db_version}_mt_path")
-
-        elif self.platform == "custom" and mt_path is None:
-            print("For custom platform, mt_path must not be None.")
+        # validate data_format
+        if data_format not in ("vcf", "hail"):
+            print(f"Error: Invalid data_format \"{data_format}\". Must be \"vcf\" or \"hail\".")
             sys.exit(1)
 
-        # basic data processing
+        # shared input validation
+        gt_list, gt_lookup, locus, variant_string, output_file_path = \
+            self._validate_by_genotype_inputs(
+                chromosome_number, genomic_position, ref_allele, alt_allele,
+                gt_dict, reference_genome, output_file_path,
+            )
+
+        # resolve data path
+        data_path = self._resolve_data_path(
+            data_format, call_set, data_path, chromosome_number,
+        )
+
+        # extract genotypes using format-specific method
+        if data_format == "hail":
+            polars_df = self._extract_genotypes_hail(
+                data_path, locus, variant_string, reference_genome,
+            )
+        else:
+            polars_df = self._extract_genotypes_vcf(
+                data_path, chromosome_number, genomic_position,
+                ref_allele, alt_allele, reference_genome,
+                getattr(self, "user_project", None),
+            )
+
+        # filter, map, and write output
+        if polars_df is not None:
+            cohort = self._filter_and_map_genotypes(polars_df, gt_list, gt_lookup)
+            self._write_cohort_output(cohort, output_file_path)
+        else:
+            print()
+            print(f"Variant {variant_string} not found!")
+            print()
+
+    # ------------------------------------------------------------------
+    # Shared helpers for by_genotype
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _validate_by_genotype_inputs(
+        chromosome_number: int,
+        genomic_position: int,
+        ref_allele: str,
+        alt_allele: str,
+        gt_dict: dict[int, str | list[str]],
+        reference_genome: str,
+        output_file_path: str | None,
+    ) -> tuple[list[str], dict[str, int], str, str, str]:
+        """Validate inputs and return (gt_list, gt_lookup, locus, variant_string, output_file_path)."""
         if output_file_path is None:
-            output_file_path = "aou_chr" + \
-                               str(chromosome_number) + "_" + \
-                               str(genomic_position) + "_" + \
-                               str(ref_allele) + "_" + \
-                               str(alt_allele) + \
-                               ".tsv"
-        
-        # prepare genotype dict and check for duplicated genotypes
+            output_file_path = (
+                f"aou_chr{chromosome_number}_{genomic_position}"
+                f"_{ref_allele}_{alt_allele}.tsv"
+            )
+
+        # flatten gt_dict values into gt_list
         gt_list = []
         for v in gt_dict.values():
             if isinstance(v, str):
                 v = [v]
             gt_list.extend(v)
+
         if _utils.has_overlapping_values(gt_dict):
             print("Error: Duplicated genotype(s) detected in genotype dict.")
             sys.exit(1)
 
+        # build reverse lookup: GT string -> integer label
+        gt_lookup: dict[str, int] = {}
+        for key, value in gt_dict.items():
+            if isinstance(value, list):
+                for v in value:
+                    gt_lookup[v] = key
+            else:
+                gt_lookup[value] = key
+
+        # build locus and variant strings
         alleles = f"{ref_allele}:{alt_allele}"
         base_locus = f"{chromosome_number}:{genomic_position}"
         if reference_genome == "GRCh38":
@@ -157,8 +221,94 @@ class Cohort:
             locus = base_locus
         else:
             print("Invalid reference version. Allowed inputs are \"GRCh37\" or \"GRCh38\".")
-            return
+            sys.exit(1)
         variant_string = locus + ":" + alleles
+
+        return gt_list, gt_lookup, locus, variant_string, output_file_path
+
+    def _resolve_data_path(
+        self,
+        data_format: str,
+        call_set: str,
+        data_path: str | None,
+        chromosome_number: int,
+    ) -> str:
+        """Resolve the genotype data path based on platform and format."""
+        if data_path is not None:
+            return data_path
+
+        if self.platform == "aou":
+            if data_format == "vcf":
+                env_path = os.getenv("WGS_ACAF_THRESHOLD_VCF_PATH")
+                if env_path is not None:
+                    return env_path
+                return (
+                    f"gs://fc-aou-datasets-controlled/v{self.db_version}"
+                    f"/wgs/short_read/snpindel/{call_set}/vcf/"
+                )
+            else:  # hail
+                env_path = os.getenv("WGS_ACAF_THRESHOLD_SPLIT_HAIL_PATH")
+                if env_path is None:
+                    print("Hail split matrix table path is not available. "
+                          "Please provide data_path directly.")
+                    sys.exit(1)
+                return env_path
+        else:
+            # custom platform requires explicit data_path
+            print(f"For custom platform, data_path is required.")
+            sys.exit(1)
+
+    @staticmethod
+    def _filter_and_map_genotypes(
+        polars_df: pl.DataFrame,
+        gt_list: list[str],
+        gt_lookup: dict[str, int],
+    ) -> pl.DataFrame:
+        """Filter GT column to gt_list, map to integer labels, return cohort DataFrame."""
+        polars_df = polars_df.filter(pl.col("GT").is_in(gt_list))
+        polars_df = polars_df.with_columns(
+            pl.col("GT").map_elements(
+                lambda x: gt_lookup.get(x), return_dtype=pl.Int64
+            ).alias("genotype")
+        )
+        cohort = polars_df[["person_id", "genotype"]].unique()
+        return cohort
+
+    @staticmethod
+    def _write_cohort_output(cohort: pl.DataFrame, output_file_path: str) -> None:
+        """Write cohort TSV and print summary."""
+        cohort.write_csv(output_file_path, separator="\t")
+        print()
+        cohort_gt = cohort["genotype"].unique().to_list()
+        print(f"Cohort size: {len(cohort)} participants")
+        for gt in cohort_gt:
+            print(f"Genotype {gt}: {len(cohort.filter(pl.col('genotype') == gt))} participants")
+        print()
+        print(f"Cohort data saved as \033[1m{output_file_path}\033[0m")
+        print()
+
+    # ------------------------------------------------------------------
+    # Format-specific genotype extraction
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _extract_genotypes_hail(
+        data_path: str,
+        locus: str,
+        variant_string: str,
+        reference_genome: str,
+    ) -> pl.DataFrame | None:
+        """Extract genotypes from a Hail split matrix table.
+
+        Returns DataFrame with columns ["person_id", "GT"] or None if variant not found.
+        """
+        try:
+            import hail as hl
+        except ImportError:
+            raise ImportError(
+                "hail is required for data_format='hail'. "
+                "Install it with: pip install phetk[hail]"
+            )
 
         # initialize Hail
         try:
@@ -173,12 +323,12 @@ class Cohort:
         variant = hl.parse_variant(variant_string, reference_genome=reference_genome)
 
         # load and filter matrix table
-        mt = hl.read_matrix_table(mt_path)
+        mt = hl.read_matrix_table(data_path)
         mt = mt.filter_rows(mt.locus == hl.Locus.parse(locus))
         if mt.count_rows() == 0:
             print()
             print(f"\033[1mLocus {locus} not found!\033[0m")
-            return
+            return None
         elif mt.count_rows() >= 1:
             print()
             print(f"\033[1mLocus {locus} found!\033[0m")
@@ -196,55 +346,301 @@ class Cohort:
         # keep variant of interest
         mt = mt.filter_rows((mt.locus == variant["locus"]) &
                             (mt.alleles == variant["alleles"]))
-        if mt.count_rows() >= 1:
-            print()
-            print(f"\033[1mVariant {variant_string} found!\033[0m")
-            mt.row.show()
+        if mt.count_rows() == 0:
+            return None
 
-            # export to polars
-            spark_df = mt.entries().select("GT").to_spark()
-            polars_df = _utils.spark_to_polars(spark_df)
+        print()
+        print(f"\033[1mVariant {variant_string} found!\033[0m")
+        mt.row.show()
 
-            # convert the list of int to GT string, e.g., "0/0", "0/1", "1/1"
-            polars_df = polars_df.with_columns(
-                pl.col("GT.alleles").list.get(0).cast(pl.Utf8).alias("GT0"),
-                pl.col("GT.alleles").list.get(1).cast(pl.Utf8).alias("GT1"),
-            )
-            polars_df = polars_df.with_columns((pl.col("GT0") + "/" + pl.col("GT1")).alias("GT"))
-            
-            # keep only participants with genotypes of interest
-            polars_df = polars_df.filter(pl.col("GT").is_in(gt_list))
-            # map genotype to their int values
-            lookup = {}
-            for key, value in gt_dict.items():
-                if isinstance(value, list):
-                    for v in value:
-                        lookup[v] = key
-                else:
-                    lookup[value] = key
-            polars_df = polars_df.with_columns(
-                pl.col("GT").map_elements(lambda x: lookup.get(x), return_dtype=pl.Int64).alias("genotype")
-            )
+        # export to polars
+        spark_df = mt.entries().select("GT").to_spark()
+        polars_df = _utils.spark_to_polars(spark_df)
 
-            cohort = polars_df \
-                .rename({"s": "person_id"})[["person_id", "genotype"]] \
-                .with_columns(pl.col("person_id").cast(int))
-            cohort = cohort.unique()
-            cohort.write_csv(output_file_path, separator="\t")
+        # convert the list of int to GT string, e.g., "0/0", "0/1", "1/1"
+        polars_df = polars_df.with_columns(
+            pl.col("GT.alleles").list.get(0).cast(pl.Utf8).alias("GT0"),
+            pl.col("GT.alleles").list.get(1).cast(pl.Utf8).alias("GT1"),
+        )
+        polars_df = polars_df.with_columns(
+            (pl.col("GT0") + "/" + pl.col("GT1")).alias("GT")
+        )
 
-            print()
-            cohort_gt = cohort["genotype"].unique().to_list()
-            print(f"Cohort size: {len(cohort)} participants")
-            for gt in cohort_gt:
-                print(f"Genotype {gt}: {len(cohort.filter(pl.col('genotype')==gt))} participants")
-            print()
-            print(f"Cohort data saved as \033[1m{output_file_path}\033[0m")
-            print()
+        # rename sample ID column and cast to int
+        polars_df = polars_df.rename({"s": "person_id"})
+        polars_df = polars_df.with_columns(pl.col("person_id").cast(int))
+        polars_df = polars_df[["person_id", "GT"]]
+        return polars_df
 
+    @staticmethod
+    def _setup_gcs_for_pysam(user_project: str | None) -> None:
+        """Configure environment variables for htslib GCS access.
+
+        htslib (used by pysam) needs two env vars for GCS requester-pays buckets:
+        - GCS_OAUTH_TOKEN: OAuth2 access token for authentication
+        - GCS_REQUESTER_PAYS_PROJECT: billing project for requester-pays
+
+        The GCS Python client uses ADC automatically, but htslib does not —
+        the token must be provided explicitly via GCS_OAUTH_TOKEN.
+
+        See: https://github.com/samtools/htslib/blob/develop/hfile_gcs.c
+        """
+        if not user_project:
+            return
+
+        os.environ["GCS_REQUESTER_PAYS_PROJECT"] = user_project
+
+        # htslib needs an explicit OAuth token — get one from ADC
+        if "GCS_OAUTH_TOKEN" not in os.environ:
+            try:
+                import google.auth
+                import google.auth.transport.requests
+                credentials, _ = google.auth.default()
+                credentials.refresh(google.auth.transport.requests.Request())
+                os.environ["GCS_OAUTH_TOKEN"] = credentials.token
+            except Exception:
+                pass  # fall back to metadata server on GCE
+
+    @staticmethod
+    def _chrom_sort_key(chrom_str: str) -> int:
+        """Convert chromosome name to a sortable integer for genomic ordering."""
+        c = chrom_str.replace("chr", "")
+        if c == "X":
+            return 23
+        if c == "Y":
+            return 24
+        if c in ("M", "MT"):
+            return 25
+        try:
+            return int(c)
+        except ValueError:
+            return 99
+
+    @staticmethod
+    def _find_vcf_shard(
+        vcf_dir: str,
+        chromosome_number: int,
+        genomic_position: int,
+        reference_genome: str,
+        user_project: str | None = None,
+    ) -> str:
+        """Find the VCF shard file covering a given genomic position.
+
+        Uses binary search on the sorted shard list. At each step, opens
+        the midpoint shard's tabix index to read its first record position,
+        then narrows the search. Requires ~log2(N) index reads instead of
+        downloading all N interval lists.
+
+        :param vcf_dir: GCS directory path containing VCF shards.
+        :param chromosome_number: Chromosome number.
+        :param genomic_position: Genomic position on chromosome.
+        :param reference_genome: "GRCh38" or "GRCh37".
+        :param user_project: GCP project ID for requester-pays billing.
+        :return: Full path to the matching .vcf.bgz file.
+        """
+        import math
+        import pysam
+        from google.cloud import storage as gcs_storage
+
+        if reference_genome == "GRCh38":
+            contig = f"chr{chromosome_number}"
         else:
+            contig = str(chromosome_number)
+
+        client = gcs_storage.Client(project=user_project)
+
+        # parse GCS URI into bucket and prefix
+        path_no_scheme = vcf_dir[5:]  # strip "gs://"
+        bucket_name, prefix = path_no_scheme.split("/", 1)
+        if not prefix.endswith("/"):
+            prefix += "/"
+
+        # list and sort .vcf.bgz blobs by name (numbered shards → genomic order)
+        print("Listing VCF shards...")
+        bucket = client.bucket(bucket_name, user_project=user_project)
+        blobs = list(client.list_blobs(bucket, prefix=prefix))
+        vcf_blobs = sorted(
+            [b for b in blobs if b.name.endswith(".vcf.bgz")
+             and not b.name.endswith(".tbi")],
+            key=lambda b: b.name,
+        )
+
+        if not vcf_blobs:
+            print(f"Error: No .vcf.bgz files found in {vcf_dir}")
+            sys.exit(1)
+
+        n = len(vcf_blobs)
+        max_steps = math.ceil(math.log2(n)) + 1 if n > 1 else 1
+        target_key = (Cohort._chrom_sort_key(contig), genomic_position)
+
+        print(f"Found {n} VCF shard(s). "
+              f"Binary searching for {contig}:{genomic_position} (~{max_steps} steps)...")
+
+        def _vcf_path(blob):
+            return f"gs://{bucket_name}/{blob.name}"
+
+        downloaded_tbi = []
+
+        def _get_shard_start(vcf_path):
+            """Read the tabix index and return (chrom_order, position) of the
+            first record in this shard, or None if the shard is empty."""
+            # track the .tbi file htslib downloads locally
+            tbi_local = os.path.basename(vcf_path) + ".tbi"
+            tbx = pysam.TabixFile(vcf_path)
+            if os.path.exists(tbi_local):
+                downloaded_tbi.append(tbi_local)
+            try:
+                for contig_name in tbx.contigs:
+                    try:
+                        first_line = next(iter(tbx.fetch(contig_name)))
+                        pos = int(first_line.split("\t")[1])
+                        return (Cohort._chrom_sort_key(contig_name), pos)
+                    except StopIteration:
+                        continue
+            finally:
+                tbx.close()
+            return None
+
+        # binary search: find the last shard whose start <= target
+        lo, hi = 0, n - 1
+        step = 0
+        while lo < hi:
+            mid = lo + (hi - lo + 1) // 2  # upper-mid to avoid infinite loop
+            step += 1
+            print(f"  Step {step}/{max_steps}: checking shard {mid} of {n}...")
+            shard_start = _get_shard_start(_vcf_path(vcf_blobs[mid]))
+            if shard_start is not None and shard_start <= target_key:
+                lo = mid
+            else:
+                hi = mid - 1
+
+        result = _vcf_path(vcf_blobs[lo])
+        print(f"Shard found: {result}")
+
+        # clean up locally downloaded .tbi files
+        for tbi_file in downloaded_tbi:
+            try:
+                os.remove(tbi_file)
+            except OSError:
+                pass
+
+        return result
+
+    @staticmethod
+    def _extract_genotypes_vcf(
+        data_path: str,
+        chromosome_number: int,
+        genomic_position: int,
+        ref_allele: str,
+        alt_allele: str,
+        reference_genome: str,
+        user_project: str | None = None,
+    ) -> pl.DataFrame | None:
+        """Extract genotypes from a VCF file using pysam.
+
+        Returns DataFrame with columns ["person_id", "GT"] or None if variant not found.
+        The data_path can be a direct VCF file path (.vcf.gz, .vcf.bgz, .bcf)
+        or an AoU shard directory (shard lookup via tabix).
+        Supports GCS requester-pays paths (gs://...) via htslib.
+        """
+        import pysam
+
+        # configure htslib for GCS requester-pays access
+        if data_path.startswith("gs://"):
+            Cohort._setup_gcs_for_pysam(user_project)
+
+        # determine VCF file path
+        vcf_extensions = (".vcf.gz", ".vcf.bgz", ".bcf")
+        if any(data_path.endswith(ext) for ext in vcf_extensions):
+            vcf_file_path = data_path
+        else:
+            # AoU shard directory — find the right shard via tabix
+            vcf_file_path = Cohort._find_vcf_shard(
+                data_path, chromosome_number, genomic_position,
+                reference_genome, user_project,
+            )
+
+        # build contig string
+        if reference_genome == "GRCh38":
+            contig = f"chr{chromosome_number}"
+        else:
+            contig = str(chromosome_number)
+
+        locus_str = f"{contig}:{genomic_position}"
+
+        # open VCF and fetch region
+        print()
+        print(f"Opening VCF file: {vcf_file_path}")
+        vcf = pysam.VariantFile(vcf_file_path)
+
+        # find the exact variant at this position
+        print(f"Fetching region {locus_str}...")
+        target_record = None
+        try:
+            for record in vcf.fetch(contig, genomic_position - 1, genomic_position):
+                if record.pos != genomic_position:
+                    continue
+                if record.ref != ref_allele:
+                    continue
+                if record.alts and alt_allele in record.alts:
+                    target_record = record
+                    break
+        except ValueError:
             print()
-            print(f"Variant {variant_string} not found!")
+            print(f"\033[1mContig {contig} not found in VCF header!\033[0m")
+            vcf.close()
+            return None
+
+        if target_record is None:
             print()
+            print(f"\033[1mVariant {locus_str}:{ref_allele}:{alt_allele} not found!\033[0m")
+            vcf.close()
+            return None
+
+        print()
+        print(f"\033[1mVariant {locus_str}:{ref_allele}:{alt_allele} found!\033[0m")
+
+        is_multiallelic = len(target_record.alts) > 1
+        if is_multiallelic:
+            print("\033[1mMulti-allelic detected!\033[0m")
+            target_alt_idx = list(target_record.alts).index(alt_allele)
+            target_allele_code = target_alt_idx + 1  # 0 = REF
+
+        # extract genotypes for all samples
+        print("Extracting genotypes...")
+        valid_person_ids = []
+        gt_strings = []
+        for sample_name, sample in target_record.samples.items():
+            gt = sample["GT"]
+            if gt is None or None in gt:
+                continue
+
+            if not is_multiallelic:
+                gt_str = f"{gt[0]}/{gt[1]}"
+            else:
+                # remap alleles to match Hail split_multi_hts behaviour:
+                # REF(0)->0, target_alt->1, any other alt->0 (treated as ref)
+                r1 = 1 if gt[0] == target_allele_code else 0
+                r2 = 1 if gt[1] == target_allele_code else 0
+                # Hail normalizes unphased calls to canonical order (lower first);
+                # phased calls preserve order since haplotype assignment matters.
+                if not sample.phased:
+                    lo, hi = min(r1, r2), max(r1, r2)
+                    gt_str = f"{lo}/{hi}"
+                else:
+                    gt_str = f"{r1}/{r2}"
+
+            valid_person_ids.append(sample_name)
+            gt_strings.append(gt_str)
+
+        vcf.close()
+
+        polars_df = pl.DataFrame({
+            "person_id": valid_person_ids,
+            "GT": gt_strings,
+        }).with_columns(pl.col("person_id").cast(int))
+
+        return polars_df
 
     def _get_ancestry_preds(
             self,
@@ -543,13 +939,20 @@ def main_by_genotype():
                         help="Google BigQuery dataset ID for custom platforms")
     parser.add_argument("--reference_genome", type=str, default="GRCh38",
                         help="Reference genome version: 'GRCh37' or 'GRCh38' (default: GRCh38)")
+    parser.add_argument("--data_format", type=str, default="vcf",
+                        choices=["hail", "vcf"],
+                        help="Genotype data format (default: vcf)")
+    parser.add_argument("--call_set", type=str, default="acaf_threshold",
+                        help="AoU callset name for path construction (default: acaf_threshold)")
+    parser.add_argument("--data_path", type=str, default=None,
+                        help="Override path to genotype data")
     parser.add_argument("--mt_path", type=str, default=None,
-                        help="Path to population level Hail variant matrix table")
+                        help="(Deprecated) Path to Hail matrix table. Use --data_path instead.")
     parser.add_argument("--output_file_path", "-o", type=str, default=None,
                         help="Name of output TSV file")
-    
+
     args = parser.parse_args()
-    
+
     # Parse genotype dict from JSON string
     import json
     try:
@@ -560,7 +963,7 @@ def main_by_genotype():
         print(f"Error parsing genotype_dict: {e}")
         print("Example format: '{\"0\": \"0/0\", \"1\": [\"0/1\", \"1/1\"]}'")
         sys.exit(1)
-    
+
     # Create cohort instance
     cohort = Cohort(
         platform=args.platform,
@@ -568,7 +971,7 @@ def main_by_genotype():
         aou_omop_cdr=args.aou_omop_cdr,
         gbq_dataset_id=args.gbq_dataset_id
     )
-    
+
     # Run by_genotype
     cohort.by_genotype(
         chromosome_number=args.chromosome_number,
@@ -577,6 +980,9 @@ def main_by_genotype():
         alt_allele=args.alt_allele,
         gt_dict=gt_dict,
         reference_genome=args.reference_genome,
+        data_format=args.data_format,
+        call_set=args.call_set,
+        data_path=args.data_path,
         mt_path=args.mt_path,
         output_file_path=args.output_file_path
     )
