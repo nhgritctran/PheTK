@@ -318,6 +318,8 @@ class TestResolveDataPath:
     def test_aou_hail_missing_env_exits(self, aou_env, monkeypatch):
         monkeypatch.delenv("WGS_ACAF_THRESHOLD_SPLIT_HAIL_PATH", raising=False)
         c = Cohort(platform="aou")
+        # Remove the hardcoded fallback so the "no path" branch is reached
+        monkeypatch.delattr("phetk._paths.cdr8_mt_path")
         with pytest.raises(SystemExit):
             c._resolve_data_path("hail", "acaf_threshold", None, 1)
 

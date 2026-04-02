@@ -59,6 +59,11 @@ class TestPhecodeInitAou:
             ph = Phecode(platform="aou")
         assert ph.icd_events["flag"][0] == 9
 
+    def test_gbq_dataset_id_overrides_env(self, aou_env, fake_icd_df):
+        with patch("phetk._utils.polars_gbq", return_value=fake_icd_df):
+            ph = Phecode(platform="aou", gbq_dataset_id="override.cdr")
+        assert ph.cdr == "override.cdr"
+
     def test_existing_flag_column_preserved(self, aou_env):
         icd_with_flag = pl.DataFrame({
             "person_id": [1],
