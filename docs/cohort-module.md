@@ -61,18 +61,6 @@ cohort.by_genotype(
     data_format="hail",
     output_file_path="cftr_cohort_hail.tsv"
 )
-
-# Using a custom VCF file path
-cohort.by_genotype(
-    chromosome_number=7,
-    genomic_position=117559590,
-    ref_allele="ATCT",
-    alt_allele="A",
-    gt_dict={0: "0/0", 1: ["0/1", "1/1"]},
-    data_format="vcf",
-    data_path="gs://my-bucket/my_variants.vcf.bgz",
-    output_file_path="cftr_cohort_custom.tsv"
-)
 ```
 
 ### CLI Example
