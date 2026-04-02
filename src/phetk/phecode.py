@@ -17,29 +17,43 @@ class Phecode:
     def __init__(
             self,
             platform: str = "aou",
-            icd_file_path: str | None = None
+            icd_file_path: str | None = None,
+            gbq_dataset_id: str | None = None
     ):
         """
         Initialize Phecode object for ICD code extraction and phecode mapping.
-        
+
         Sets up data source configuration and loads ICD code data either from
         All of Us OMOP database or custom file. Validates vocabulary types and
         creates ICD version flags for downstream processing.
-        
+
         :param platform: Data platform, supports "aou" (All of Us) or "custom".
         :type platform: str
         :param icd_file_path: Path to ICD table CSV/TSV file with columns "person_id", "ICD", "vocabulary_id".
         :type icd_file_path: str | None
+        :param gbq_dataset_id: BigQuery dataset ID. Overrides WORKSPACE_CDR on AoU.
+        :type gbq_dataset_id: str | None
         """
         self.platform = platform
 
         if platform == "aou":
-            self.cdr = os.getenv("WORKSPACE_CDR")
+            if gbq_dataset_id is not None:
+                self.cdr = gbq_dataset_id
+            else:
+                self.cdr = os.getenv("WORKSPACE_CDR")
+            if self.cdr is None:
+                print("WORKSPACE_CDR environment variable is not set. "
+                      "Please provide gbq_dataset_id in the constructor: "
+                      "Phecode(gbq_dataset_id=\"your_dataset_id\"), "
+                      "or use Phecode(platform=\"custom\", icd_file_path=\"...\") "
+                      "for non-AoU environments.")
+                sys.exit(1)
             self.icd_query = _queries.phecode_icd_query(self.cdr)
             print("Start querying ICD codes...")
             self.icd_events = _utils.polars_gbq(self.icd_query)
 
         elif platform == "custom":
+            self.cdr = gbq_dataset_id
             if icd_file_path is not None:
                 print("Loading user's ICD data from file...")
                 sep = _utils.detect_delimiter(icd_file_path)
@@ -304,7 +318,9 @@ def main_count_phecode():
                         help="Data platform: 'aou' or 'custom' (default: aou)")
     parser.add_argument("--icd_file_path", type=str, default=None,
                         help="Path to ICD table CSV/TSV file (required for custom platform)")
-    
+    parser.add_argument("--gbq_dataset_id", type=str, default=None,
+                        help="BigQuery dataset ID. Overrides WORKSPACE_CDR on AoU.")
+
     # Phecode mapping arguments
     parser.add_argument("--phecode_version", type=str, default="X",
                         help="Phecode version to use: 'X' or '1.2' (default: X)")
@@ -322,9 +338,10 @@ def main_count_phecode():
     # Create phecode instance
     phecode = Phecode(
         platform=args.platform,
-        icd_file_path=args.icd_file_path
+        icd_file_path=args.icd_file_path,
+        gbq_dataset_id=args.gbq_dataset_id
     )
-    
+
     # Run count_phecode
     phecode.count_phecode(
         phecode_version=args.phecode_version,
@@ -351,17 +368,20 @@ def main_add_age_at_first_event():
                         help="Data platform: 'aou' or 'custom' (default: aou)")
     parser.add_argument("--icd_file_path", type=str, default=None,
                         help="Path to ICD table CSV/TSV file (required for custom platform)")
-    
+    parser.add_argument("--gbq_dataset_id", type=str, default=None,
+                        help="BigQuery dataset ID. Overrides WORKSPACE_CDR on AoU.")
+
     # Output argument
     parser.add_argument("--output_file_path", "-o", type=str, default=None,
                         help="Path for output file with age calculations")
-    
+
     args = parser.parse_args()
-    
+
     # Create phecode instance
     phecode = Phecode(
         platform=args.platform,
-        icd_file_path=args.icd_file_path
+        icd_file_path=args.icd_file_path,
+        gbq_dataset_id=args.gbq_dataset_id
     )
     
     # Run add_age_at_first_event

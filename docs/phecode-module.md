@@ -102,6 +102,8 @@ phetk phecode add-phecode-time-to-event \
 phecode = Phecode(platform="aou")
 ```
 
+- `gbq_dataset_id`: Optional BigQuery dataset ID (overrides `WORKSPACE_CDR`)
+
 ### Custom Platform
 ```python
 phecode = Phecode(platform="custom", icd_file_path="path/to/icd_data.tsv")
