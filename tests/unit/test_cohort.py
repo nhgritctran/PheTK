@@ -23,8 +23,8 @@ class TestCohortInit:
         c = Cohort(platform="aou", aou_db_version=8)
         assert c.user_project == "test-project-id"
 
-    def test_aou_omop_cdr_overrides_env(self, aou_env):
-        c = Cohort(platform="aou", aou_db_version=8, aou_omop_cdr="override.cdr")
+    def test_gbq_dataset_id_overrides_env_on_aou(self, aou_env):
+        c = Cohort(platform="aou", aou_db_version=8, gbq_dataset_id="override.cdr")
         assert c.cdr == "override.cdr"
 
     def test_aou_platform_stored_lowercase(self, aou_env):
@@ -294,6 +294,13 @@ class TestResolveDataPath:
             "/wgs/short_read/snpindel/acaf_threshold/vcf/"
         )
         assert result == expected
+
+    def test_aou_vcf_verily_bucket(self, aou_env, monkeypatch):
+        monkeypatch.delenv("WGS_ACAF_THRESHOLD_VCF_PATH", raising=False)
+        monkeypatch.setenv("GOOGLE_PROJECT", "wb-cold-eggplant-9083")
+        c = Cohort(platform="aou", aou_db_version=8)
+        result = c._resolve_data_path("vcf", "acaf_threshold", None, 1)
+        assert "vwb-aou-datasets-controlled" in result
 
     def test_aou_vcf_exome_call_set(self, aou_env, monkeypatch):
         monkeypatch.delenv("WGS_ACAF_THRESHOLD_VCF_PATH", raising=False)

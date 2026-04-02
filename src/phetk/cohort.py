@@ -5,6 +5,7 @@ from tqdm import tqdm
 import os
 import pandas as pd
 import polars as pl
+from google.cloud import storage
 import sys
 import warnings
 
@@ -14,22 +15,19 @@ class Cohort:
     def __init__(self,
                  platform: str = "aou",
                  aou_db_version: int = 8,
-                 aou_omop_cdr: str | None = None,
                  gbq_dataset_id: str | None = None):
         """
         Initialize Cohort object for generating genotype-based cohorts and adding covariates.
-        
+
         Sets up database connections and validates platform-specific parameters for either
         All of Us or custom database platforms. Configures database version and CDR paths
         based on specified platform.
-        
+
         :param platform: Database platform, currently supports "aou" (All of Us) or "custom".
         :type platform: str
         :param aou_db_version: Version of All of Us database (6-8), e.g., 7 for CDR v7.
         :type aou_db_version: int
-        :param aou_omop_cdr: CDR string value defining where to query OMOP data, uses workspace CDR if None.
-        :type aou_omop_cdr: str | None
-        :param gbq_dataset_id: Google BigQuery dataset ID for custom platforms.
+        :param gbq_dataset_id: BigQuery dataset ID. Overrides WORKSPACE_CDR on AoU. Required for custom platform.
         :type gbq_dataset_id: str | None
         """
         self.aou_max_version = 8
@@ -41,7 +39,7 @@ class Cohort:
             print(f"Unsupported database. Current All of Us (AoU) CDR version is {self.aou_max_version}. "
                   f"aou_db_version takes an integer value from 6 to {self.aou_max_version}. "
                   f"For other AoU database versions, "
-                  f"please provide the AoU CDR string using aou_omop_cdr parameter instead.")
+                  f"please provide the CDR string using gbq_dataset_id parameter instead.")
             sys.exit(1)
         if platform.lower() == "custom" and gbq_dataset_id is None:
             print("gbq_dataset_id is required for non All of Us platforms.")
@@ -51,10 +49,10 @@ class Cohort:
         # generate attributes for AoU class instance
         if self.platform == "aou":
             self.db_version = aou_db_version
-            if aou_omop_cdr is None:
-                self.cdr = os.getenv("WORKSPACE_CDR")
+            if gbq_dataset_id is not None:
+                self.cdr = gbq_dataset_id
             else:
-                self.cdr = aou_omop_cdr
+                self.cdr = os.getenv("WORKSPACE_CDR")
             self.user_project = os.getenv("GOOGLE_PROJECT")
         else:
             self.cdr = gbq_dataset_id
@@ -154,6 +152,7 @@ class Cohort:
         if data_format == "hail":
             polars_df = self._extract_genotypes_hail(
                 data_path, locus, variant_string, reference_genome,
+                getattr(self, "user_project", None),
             )
         else:
             polars_df = self._extract_genotypes_vcf(
@@ -243,16 +242,19 @@ class Cohort:
                 if env_path is not None:
                     return env_path
                 return (
-                    f"gs://fc-aou-datasets-controlled/v{self.db_version}"
+                    f"gs://{_paths.controlled_bucket()}/v{self.db_version}"
                     f"/wgs/short_read/snpindel/{call_set}/vcf/"
                 )
             else:  # hail
                 env_path = os.getenv("WGS_ACAF_THRESHOLD_SPLIT_HAIL_PATH")
-                if env_path is None:
-                    print("Hail split matrix table path is not available. "
-                          "Please provide data_path directly.")
-                    sys.exit(1)
-                return env_path
+                if env_path is not None:
+                    return env_path
+                mt_path_func = getattr(_paths, f"cdr{self.db_version}_mt_path", None)
+                if mt_path_func is not None:
+                    return mt_path_func()
+                print("Hail split matrix table path is not available. "
+                      "Please provide data_path directly.")
+                sys.exit(1)
         else:
             # custom platform requires explicit data_path
             print(f"For custom platform, data_path is required.")
@@ -297,6 +299,7 @@ class Cohort:
         locus: str,
         variant_string: str,
         reference_genome: str,
+        user_project: str | None = None,
     ) -> pl.DataFrame | None:
         """Extract genotypes from a Hail split matrix table.
 
@@ -311,13 +314,8 @@ class Cohort:
             )
 
         # initialize Hail
-        try:
-            hl.init(default_reference=reference_genome)
-        except Exception as err:
-            if "IllegalArgumentException" not in str(err):
-                raise
-            else:
-                print("Hail Initialization skipped as Hail has already been initialized.")
+        hl.init(idempotent=True, gcs_requester_pays_configuration=user_project)
+        hl.default_reference(reference_genome)
 
         # hail variant struct
         variant = hl.parse_variant(variant_string, reference_genome=reference_genome)
@@ -335,7 +333,7 @@ class Cohort:
             mt.row.show()
 
         # split if multi-allelic site
-        allele_count = _utils.spark_to_polars(mt.entries().select("info").to_spark())
+        allele_count = _utils.spark_to_polars(mt.key_cols_by().entries().select("info").to_spark())
         allele_count = len(allele_count["info.AF"][0])
         if allele_count > 1:
             print()
@@ -354,7 +352,7 @@ class Cohort:
         mt.row.show()
 
         # export to polars
-        spark_df = mt.entries().select("GT").to_spark()
+        spark_df = mt.key_cols_by().entries().select("s", "GT").to_spark()
         polars_df = _utils.spark_to_polars(spark_df)
 
         # convert the list of int to GT string, e.g., "0/0", "0/1", "1/1"
@@ -474,7 +472,8 @@ class Cohort:
         target_key = (Cohort._chrom_sort_key(contig), genomic_position)
 
         print(f"Found {n} VCF shard(s). "
-              f"Binary searching for {contig}:{genomic_position} (~{max_steps} steps)...")
+              f"Binary searching for {contig}:{genomic_position}...")
+        pbar = tqdm(total=max_steps, desc="Binary search", unit="step")
 
         def _vcf_path(blob):
             return f"gs://{bucket_name}/{blob.name}"
@@ -503,17 +502,17 @@ class Cohort:
 
         # binary search: find the last shard whose start <= target
         lo, hi = 0, n - 1
-        step = 0
         while lo < hi:
             mid = lo + (hi - lo + 1) // 2  # upper-mid to avoid infinite loop
-            step += 1
-            print(f"  Step {step}/{max_steps}: checking shard {mid} of {n}...")
+            pbar.update(1)
             shard_start = _get_shard_start(_vcf_path(vcf_blobs[mid]))
             if shard_start is not None and shard_start <= target_key:
                 lo = mid
             else:
                 hi = mid - 1
 
+        pbar.update(pbar.total - pbar.n)  # fill remaining steps
+        pbar.close()
         result = _vcf_path(vcf_blobs[lo])
         print(f"Shard found: {result}")
 
@@ -663,7 +662,22 @@ class Cohort:
         """
         n_pc = 16  # AoU specific
         if self.db_version in range(6, self.aou_max_version+1):
-            ancestry_preds_file_path = getattr(_paths, f"cdr{self.db_version}_ancestry_pred_path")
+            ancestry_dir = getattr(_paths, f"cdr{self.db_version}_ancestry_pred_dir")()
+            bucket_name = _paths.controlled_bucket()
+            prefix = ancestry_dir.replace(f"gs://{bucket_name}/", "")
+
+            client = storage.Client(project=user_project)
+            bucket = client.bucket(bucket_name, user_project=user_project)
+            ancestry_preds_file_path = None
+            for blob in client.list_blobs(bucket, prefix=prefix):
+                if blob.name.endswith("ancestry_preds.tsv"):
+                    ancestry_preds_file_path = f"gs://{bucket_name}/{blob.name}"
+                    break
+
+            if ancestry_preds_file_path is None:
+                print(f"No *ancestry_preds.tsv file found in {ancestry_dir}")
+                return None
+
             ancestry_preds = pd.read_csv(ancestry_preds_file_path,
                                          sep="\t",
                                          storage_options={"requester_pays": True,
@@ -673,9 +687,9 @@ class Cohort:
                 .with_columns(pl.col("pca_features").str.replace(r"\]", "")) \
                 .with_columns(pl.col("pca_features").str.split(",").list.get(i).alias(f"pc{i+1}") for i in range(n_pc)) \
                 .with_columns(pl.col(f"pc{i}").str.replace(" ", "").cast(float) for i in range(1, n_pc+1)) \
-                .drop(["probabilities", "pca_features", "ancestry_pred_other"]) \
+                .drop(["probabilities", "pca_features", "ancestry_pred"]) \
                 .rename({"research_id": "person_id",
-                         "ancestry_pred": "genetic_ancestry"}) \
+                         "ancestry_pred_other": "genetic_ancestry"}) \
                 .filter(pl.col("person_id").is_in(participant_ids))
         else:
             ancestry_preds = None
@@ -933,10 +947,8 @@ def main_by_genotype():
                         help="Database platform: 'aou' or 'custom' (default: aou)")
     parser.add_argument("--aou_db_version", type=int, default=8,
                         help="Version of All of Us database (6-8) (default: 8)")
-    parser.add_argument("--aou_omop_cdr", type=str, default=None,
-                        help="CDR string value for OMOP data")
     parser.add_argument("--gbq_dataset_id", type=str, default=None,
-                        help="Google BigQuery dataset ID for custom platforms")
+                        help="BigQuery dataset ID. Overrides WORKSPACE_CDR on AoU. Required for custom platform.")
     parser.add_argument("--reference_genome", type=str, default="GRCh38",
                         help="Reference genome version: 'GRCh37' or 'GRCh38' (default: GRCh38)")
     parser.add_argument("--data_format", type=str, default="vcf",
@@ -968,7 +980,6 @@ def main_by_genotype():
     cohort = Cohort(
         platform=args.platform,
         aou_db_version=args.aou_db_version,
-        aou_omop_cdr=args.aou_omop_cdr,
         gbq_dataset_id=args.gbq_dataset_id
     )
 
@@ -1005,11 +1016,9 @@ def main_add_covariates():
                         help="Database platform: 'aou' or 'custom' (default: aou)")
     parser.add_argument("--aou_db_version", type=int, default=8,
                         help="Version of All of Us database (6-8) (default: 8)")
-    parser.add_argument("--aou_omop_cdr", type=str, default=None,
-                        help="CDR string value for OMOP data")
     parser.add_argument("--gbq_dataset_id", type=str, default=None,
-                        help="Google BigQuery dataset ID for custom platforms")
-    
+                        help="BigQuery dataset ID. Overrides WORKSPACE_CDR on AoU. Required for custom platform.")
+
     # Covariate arguments
     parser.add_argument("--date_of_birth", type=_utils.str_to_bool, default=False,
                         help="Include participant date of birth")
@@ -1056,10 +1065,9 @@ def main_add_covariates():
     cohort = Cohort(
         platform=args.platform,
         aou_db_version=args.aou_db_version,
-        aou_omop_cdr=args.aou_omop_cdr,
         gbq_dataset_id=args.gbq_dataset_id
     )
-    
+
     # Run add_covariates
     cohort.add_covariates(
         cohort_file_path=args.cohort_file_path,

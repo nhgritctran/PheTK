@@ -166,7 +166,7 @@ cohort = Cohort(platform="aou", aou_db_version=8)
 ```
 - `platform`: "aou" for All of Us
 - `aou_db_version`: CDR version (6-8, default: 8)
-- `aou_omop_cdr`: Optional CDR string for OMOP data
+- `gbq_dataset_id`: Optional BigQuery dataset ID (overrides WORKSPACE_CDR)
 
 ### Custom Platform
 ```python
