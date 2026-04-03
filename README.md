@@ -24,6 +24,8 @@ Major updates in this release:
 - **Simplified CLI commands** - Added entry points for easier CLI usage (e.g., `phetk phewas` instead of `python3 -m phetk.phewas`)
 - **Enhanced user experience** - Various improvements for clarity and usability
 
+**NOTE**: If you are using PheTK v0.2+, please upgrade to the latest version using `pip install phetk --upgrade` to fix a bug in the controls selection in Cox regression.
+
 [**📋 View full changelog**](https://github.com/nhgritctran/PheTK/releases)
 
 Version 0.1.47 is the last stable version of version 0.1. 
