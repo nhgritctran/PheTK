@@ -50,60 +50,37 @@ class PheWAS:
     ):
         """
         Initialize PheWAS analysis object with configuration parameters and input data.
-        
+
         Performs data validation, loads phecode mapping tables, processes input files,
         validates column compatibility, and sets up analysis parameters for either
         logistic or Cox regression analysis.
-        
-        :param phecode_version: Phecode version to use ("1.2" or "X").
-        :type phecode_version: str
-        :param phecode_count_file_path: Path to CSV/TSV file containing phecode counts for participants.
-        :type phecode_count_file_path: str
-        :param cohort_file_path: Path to CSV/TSV file containing cohort data with covariates.
-        :type cohort_file_path: str
-        :param covariate_cols: Column names to use as covariates, excluding independent variable.
-        :type covariate_cols: list[str] | str
-        :param independent_variable_of_interest: Name of primary independent variable column.
-        :type independent_variable_of_interest: str
-        :param sex_at_birth_col: Name of sex/gender column, should contain 0/1 values.
-        :type sex_at_birth_col: str
-        :param male_as_one: If True, male=1 and female=0; if False, male=0 and female=1.
-        :type male_as_one: bool
-        :param cox_start_date_col: Column containing study start dates for Cox regression, optional for Cox.
-        Date to exclude participants with pre-existing phenotype from cases of a particular phecode.
-        :type cox_start_date_col: str | None
-        :param cox_control_observed_time_col: Column containing censoring time for controls in Cox regression.
-        :type cox_control_observed_time_col: str | None
-        :param cox_phecode_observed_time_col: Column containing time to event for cases in Cox regression.
-        :type cox_phecode_observed_time_col: str | None
-        :param cox_stratification_col: Column name for stratification in Cox regression.
-        :type cox_stratification_col: str | None
-        :param cox_fallback_step_size: Fallback step size when Cox regression fails to converge, default 0.1.
-        :type cox_fallback_step_size: float
-        :param icd_version: ICD version ("US", "WHO", or "custom").
-        :type icd_version: str
-        :param phecode_map_file_path: Path to custom phecode mapping file, required if icd_version="custom".
-        :type phecode_map_file_path: str | None
-        :param phecode_to_process: Specific phecodes to analyze, None for all available.
-        :type phecode_to_process: list[str] | str | None
-        :param min_cases: Minimum number of cases required to test a phecode.
-        :type min_cases: int
-        :param min_phecode_count: Minimum phecode count to qualify as a case.
-        :type min_phecode_count: int
-        :param use_exclusion: Whether to use phecode exclusion ranges, only for phecode 1.2.
-        :type use_exclusion: bool
-        :param output_file_path: Output file path, auto-generated if None.
-        :type output_file_path: str | None
-        :param verbose: If True, print progress information for each phecode.
-        :type verbose: bool
-        :param suppress_warnings: If True, suppress convergence and statistical warnings.
-        :type suppress_warnings: bool
-        :param method: Analysis method ("logit" for logistic regression or "cox" for Cox regression).
-        :type method: str
-        :param batch_size: Number of phecodes to process per batch for parallelization. If None, defaults to 1 for logit and 10 for cox.
-        :type batch_size: int | None
-        :param fall_back_to_serial: Whether to fall back to serial processing when parallelization fails.
-        :type fall_back_to_serial: bool
+
+        Args:
+            phecode_version: Phecode version to use ("1.2" or "X").
+            phecode_count_file_path: Path to CSV/TSV file containing phecode counts for participants.
+            cohort_file_path: Path to CSV/TSV file containing cohort data with covariates.
+            covariate_cols: Column names to use as covariates, excluding independent variable.
+            independent_variable_of_interest: Name of primary independent variable column.
+            sex_at_birth_col: Name of sex/gender column, should contain 0/1 values.
+            male_as_one: If True, male=1 and female=0; if False, male=0 and female=1.
+            cox_start_date_col: Column containing study start dates for Cox regression, optional for Cox.
+                Date to exclude participants with pre-existing phenotype from cases of a particular phecode.
+            cox_control_observed_time_col: Column containing censoring time for controls in Cox regression.
+            cox_phecode_observed_time_col: Column containing time to event for cases in Cox regression.
+            cox_stratification_col: Column name for stratification in Cox regression.
+            cox_fallback_step_size: Fallback step size when Cox regression fails to converge, default 0.1.
+            icd_version: ICD version ("US", "WHO", or "custom").
+            phecode_map_file_path: Path to custom phecode mapping file, required if icd_version="custom".
+            phecode_to_process: Specific phecodes to analyze, None for all available.
+            min_cases: Minimum number of cases required to test a phecode.
+            min_phecode_count: Minimum phecode count to qualify as a case.
+            use_exclusion: Whether to use phecode exclusion ranges, only for phecode 1.2.
+            output_file_path: Output file path, auto-generated if None.
+            verbose: If True, print progress information for each phecode.
+            suppress_warnings: If True, suppress convergence and statistical warnings.
+            method: Analysis method ("logit" for logistic regression or "cox" for Cox regression).
+            batch_size: Number of phecodes to process per batch for parallelization. If None, defaults to 1 for logit and 10 for cox.
+            fall_back_to_serial: Whether to fall back to serial processing when parallelization fails.
         """
 
         # For dsub
@@ -372,11 +349,12 @@ class PheWAS:
     def _to_polars(df: pd.DataFrame | pl.DataFrame) -> pl.DataFrame:
         """
         Convert pandas DataFrame to polars DataFrame if necessary.
-        
-        :param df: Input dataframe to convert.
-        :type df: pd.DataFrame | pl.DataFrame
-        :return: Polars DataFrame object.
-        :rtype: pl.DataFrame
+
+        Args:
+            df: Input dataframe to convert.
+
+        Returns:
+            Polars DataFrame object.
         """
         if isinstance(df, pd.DataFrame):
             polars_df = pl.from_pandas(df)
@@ -391,16 +369,16 @@ class PheWAS:
     ) -> list[list[str]]:
         """
         Split list of phecodes into smaller batches for parallel processing.
-        
+
         Divides the complete phecode list into sublists of specified batch size
         to enable efficient parallel execution across multiple workers.
-        
-        :param phecode_list: Complete list of phecodes to process.
-        :type phecode_list: list[str]
-        :param batch_size: Maximum number of phecodes per batch.
-        :type batch_size: int
-        :return: List containing batches of phecodes.
-        :rtype: list[list[str]]
+
+        Args:
+            phecode_list: Complete list of phecodes to process.
+            batch_size: Maximum number of phecodes per batch.
+
+        Returns:
+            List containing batches of phecodes.
         """
         sublists = []
         for i in range(0, len(phecode_list), batch_size):
@@ -416,18 +394,18 @@ class PheWAS:
     ) -> list[str]:
         """
         Process exclude_range text data for a specific phecode.
-        
+
         Parses the exclude_range column from phecode mapping to extract
         individual phecodes or phecode ranges that should be excluded when
         defining controls. Handles single codes, ranges (e.g., "777-780"),
         and comma-separated combinations.
-        
-        :param phecode: Target phecode to get exclusion range for.
-        :type phecode: str
-        :param phecode_df: Phecode mapping dataframe, uses instance default if None.
-        :type phecode_df: pl.DataFrame | None
-        :return: List of phecodes to exclude when defining controls.
-        :rtype: list[str]
+
+        Args:
+            phecode: Target phecode to get exclusion range for.
+            phecode_df: Phecode mapping dataframe, uses instance default if None.
+
+        Returns:
+            List of phecodes to exclude when defining controls.
         """
         if phecode_df is None:
             phecode_df = self.phecode_df
@@ -474,28 +452,23 @@ class PheWAS:
     ) -> tuple[pl.DataFrame, pl.DataFrame, list[str]]:
         """
         Prepare case and control cohorts for a specific phecode analysis.
-        
+
         Filters cohort data based on phecode sex restrictions, identifies cases
         (participants with sufficient phecode counts) and controls (participants
         without the phecode or excluded conditions), handles Cox regression
         time variables, and prepares final datasets for statistical analysis.
-        
-        :param phecode: Target phecode for case-control preparation.
-        :type phecode: str
-        :param phecode_counts: Phecode count data, uses instance default if None.
-        :type phecode_counts: pl.DataFrame | None
-        :param covariate_df: Cohort covariate data, uses instance default if None.
-        :type covariate_df: pl.DataFrame | None
-        :param phecode_df: Phecode mapping data, uses instance default if None.
-        :type phecode_df: pl.DataFrame | None
-        :param var_cols: Variable columns for mixed-sex analysis, uses instance default if None.
-        :type var_cols: list[str] | None
-        :param gender_specific_var_cols: Variable columns for sex-specific analysis, uses instance default if None.
-        :type gender_specific_var_cols: list[str] | None
-        :param keep_ids: If True, retain person_id column in output datasets.
-        :type keep_ids: bool
-        :return: Cases dataframe, controls dataframe, and analysis variable columns.
-        :rtype: tuple[pl.DataFrame, pl.DataFrame, list[str]]
+
+        Args:
+            phecode: Target phecode for case-control preparation.
+            phecode_counts: Phecode count data, uses instance default if None.
+            covariate_df: Cohort covariate data, uses instance default if None.
+            phecode_df: Phecode mapping data, uses instance default if None.
+            var_cols: Variable columns for mixed-sex analysis, uses instance default if None.
+            gender_specific_var_cols: Variable columns for sex-specific analysis, uses instance default if None.
+            keep_ids: If True, retain person_id column in output datasets.
+
+        Returns:
+            Cases dataframe, controls dataframe, and analysis variable columns.
         """
         if phecode_counts is None:
             phecode_counts = self.phecode_counts
@@ -640,15 +613,16 @@ class PheWAS:
     ) -> pl.DataFrame | None:
         """
         Retrieve combined case-control dataset for a specific phecode.
-        
+
         Creates a unified dataset containing both cases and controls with
         an indicator column (is_phecode_case) to distinguish between them.
         Useful for external analysis or data exploration.
-        
-        :param phecode: Target phecode to retrieve data for.
-        :type phecode: str
-        :return: Combined dataset with cases and controls, or None if no data available.
-        :rtype: pl.DataFrame | None
+
+        Args:
+            phecode: Target phecode to retrieve data for.
+
+        Returns:
+            Combined dataset with cases and controls, or None if no data available.
         """
         cases, controls, analysis_var_cols = self._case_control_prep(
             phecode=phecode,
@@ -672,16 +646,17 @@ class PheWAS:
     ) -> dict[str, float | str]:
         """
         Extract and format key statistics from logistic regression results.
-        
+
         Processes statsmodels logistic regression output to extract p-values,
         confidence intervals, odds ratios, and convergence information for
         the variable of interest.
-        
-        :param result: Statsmodels logistic regression result object.
-        :param var_of_interest_index: Index position of variable of interest in model.
-        :type var_of_interest_index: int
-        :return: Dictionary containing formatted statistical results.
-        :rtype: dict[str, float | str]
+
+        Args:
+            result: Statsmodels logistic regression result object.
+            var_of_interest_index: Index position of variable of interest in model.
+
+        Returns:
+            Dictionary containing formatted statistical results.
         """
         results_as_html = result.summary().tables[0].as_html()
         converged = pd.read_html(StringIO(results_as_html))[0].iloc[5, 1]
@@ -717,18 +692,18 @@ class PheWAS:
     ) -> dict[str, float | str]:
         """
         Extract and format key statistics from Cox regression results.
-        
+
         Processes lifelines Cox proportional hazards model output to extract
         hazard ratios, confidence intervals, p-values, concordance index,
         and convergence information for the variable of interest.
-        
-        :param result: Lifelines CoxPHFitter result object.
-        :param stratified_by: Name of stratification variable or "None" if unstratified.
-        :type stratified_by: str
-        :param warning_message: Convergence or warning messages to include in results.
-        :type warning_message: str | None
-        :return: Dictionary containing formatted Cox regression statistics.
-        :rtype: dict[str, float | str]
+
+        Args:
+            result: Lifelines CoxPHFitter result object.
+            stratified_by: Name of stratification variable or "None" if unstratified.
+            warning_message: Convergence or warning messages to include in results.
+
+        Returns:
+            Dictionary containing formatted Cox regression statistics.
         """
         result_df = result.summary
 
@@ -765,16 +740,17 @@ class PheWAS:
     ) -> dict[str, float | str | int] | None:
         """
         Perform regression analysis (logistic or Cox) for a single phecode.
-        
+
         Conducts the complete statistical analysis pipeline for one phecode:
         prepares case-control data, fits the specified regression model,
         handles convergence issues, and formats results. Returns None if
         insufficient cases/controls or if model fitting fails.
-        
-        :param phecode: Target phecode for regression analysis.
-        :type phecode: str
-        :return: Formatted regression results or None if analysis failed.
-        :rtype: dict[str, float | str | int] | None
+
+        Args:
+            phecode: Target phecode for regression analysis.
+
+        Returns:
+            Formatted regression results or None if analysis failed.
         """
 
         phecode_counts = self.phecode_counts
@@ -915,15 +891,16 @@ class PheWAS:
     def _combine_parquet_results(self, result_file_paths: list[str]) -> list[dict]:
         """
         Combine multiple parquet result files into a single list of dictionaries.
-        
+
         Reads all parquet files, combines them using polars, cleans up temporary files,
         and returns the combined results as a list of dictionaries for compatibility
         with the rest of the analysis pipeline.
-        
-        :param result_file_paths: List of file paths to parquet result files.
-        :type result_file_paths: list[str]
-        :return: Combined results as list of dictionaries.
-        :rtype: list[dict]
+
+        Args:
+            result_file_paths: List of file paths to parquet result files.
+
+        Returns:
+            Combined results as list of dictionaries.
         """
         if not result_file_paths:
             return []
@@ -968,15 +945,16 @@ class PheWAS:
     ) -> str:
         """
         Execute regression analysis for a batch of phecodes and save results to parquet.
-        
+
         Processes multiple phecodes sequentially within a single worker,
         collecting successful results and saving them to a parquet file.
         Returns the path to the saved file for later combination.
-        
-        :param phecode_batch: List of phecodes to analyze in this batch.
-        :type phecode_batch: list[str]
-        :return: Path to the saved parquet file containing batch results.
-        :rtype: str
+
+        Args:
+            phecode_batch: List of phecodes to analyze in this batch.
+
+        Returns:
+            Path to the saved parquet file containing batch results.
         """
         results = []
         for phecode in phecode_batch:
@@ -1008,19 +986,15 @@ class PheWAS:
     ) -> None:
         """
         Generate a bash script for distributed PheWAS execution.
-        
+
         Creates a shell script containing the exact command-line arguments
         needed to reproduce this PheWAS analysis configuration. Useful for
         distributed computing environments like Google Cloud Batch or dsub.
-        
-        :param script_name: Name of output bash script file.
-        :type script_name: str
-        :param parallelization: Parallelization method to include in script.
-        :type parallelization: str | None
-        :param n_workers: Number of workers to include in script.
-        :type n_workers: int | None
-        :return: Writes script file and prints content.
-        :rtype: None
+
+        Args:
+            script_name: Name of output bash script file.
+            parallelization: Parallelization method to include in script.
+            n_workers: Number of workers to include in script.
         """
 
         phewas_script = "phetk phewas"
@@ -1106,51 +1080,31 @@ class PheWAS:
     ) -> None:
         """
         Execute PheWAS analysis using Google Cloud dsub for distributed computing.
-        
+
         Configures and launches a dsub job to run PheWAS analysis on Google Cloud
         infrastructure. Automatically generates the execution script and handles
         input/output file paths in cloud storage.
-        
-        :param docker_image: Docker image containing PheWAS dependencies.
-        :type docker_image: str
-        :param job_script_name: Name of bash script to execute in dsub.
-        :type job_script_name: str
-        :param job_name: Custom name for dsub job.
-        :type job_name: str | None
-        :param input_dict: Mapping of input variable names to cloud storage paths.
-        :type input_dict: dict[str, str] | None
-        :param output_dict: Mapping of output variable names to cloud storage paths.
-        :type output_dict: dict[str, str] | None
-        :param env_dict: Environment variables to set in job.
-        :type env_dict: dict[str, str] | None
-        :param machine_type: Google Cloud machine type for job.
-        :type machine_type: str
-        :param disk_type: Type of persistent disk to attach.
-        :type disk_type: str | None
-        :param boot_disk_size: Size of boot disk in GB.
-        :type boot_disk_size: int
-        :param disk_size: Size of additional disk in GB.
-        :type disk_size: int
-        :param region: Google Cloud region for job execution.
-        :type region: str
-        :param provider: Cloud provider backend ("google-batch" or "google-v2").
-        :type provider: str
-        :param preemptible: Whether to use preemptible instances.
-        :type preemptible: bool
-        :param use_private_address: Whether to use private IP addresses only.
-        :type use_private_address: bool
-        :param parallelization: Parallelization method for analysis.
-        :type parallelization: str | None
-        :param n_workers: Number of workers for parallel processing.
-        :type n_workers: int | None
-        :param custom_args: Additional dsub command line arguments.
-        :type custom_args: str | None
-        :param show_dsub_command: Whether to display dsub command before execution.
-        :type show_dsub_command: bool
-        :param use_aou_docker_prefix: Whether to use All of Us docker registry prefix.
-        :type use_aou_docker_prefix: bool
-        :return: Launches dsub job and stores job object in self.dsub.
-        :rtype: None
+
+        Args:
+            docker_image: Docker image containing PheWAS dependencies.
+            job_script_name: Name of bash script to execute in dsub.
+            job_name: Custom name for dsub job.
+            input_dict: Mapping of input variable names to cloud storage paths.
+            output_dict: Mapping of output variable names to cloud storage paths.
+            env_dict: Environment variables to set in job.
+            machine_type: Google Cloud machine type for job.
+            disk_type: Type of persistent disk to attach.
+            boot_disk_size: Size of boot disk in GB.
+            disk_size: Size of additional disk in GB.
+            region: Google Cloud region for job execution.
+            provider: Cloud provider backend ("google-batch" or "google-v2").
+            preemptible: Whether to use preemptible instances.
+            use_private_address: Whether to use private IP addresses only.
+            parallelization: Parallelization method for analysis.
+            n_workers: Number of workers for parallel processing.
+            custom_args: Additional dsub command line arguments.
+            show_dsub_command: Whether to display dsub command before execution.
+            use_aou_docker_prefix: Whether to use All of Us docker registry prefix.
         """
         _utils.print_banner("Setting up dsub")
         print()
@@ -1220,18 +1174,18 @@ class PheWAS:
     ) -> str | None:
         """
         Execute the complete PheWAS analysis across all phecodes.
-        
+
         Performs regression analysis for all phecodes in the cohort using the
         specified parallelization method. Automatically selects optimal
         parallelization (multithreading for logistic, multiprocessing for Cox)
         if not specified. Saves results to file and reports summary statistics.
-        
-        :param parallelization: Execution method ("serial", "multithreading", "multiprocessing", or None for auto-selection).
-        :type parallelization: str | None
-        :param n_workers: Number of parallel workers, auto-determined if None.
-        :type n_workers: int | None
-        :return: Error message if invalid parallelization method, otherwise None.
-        :rtype: str | None
+
+        Args:
+            parallelization: Execution method ("serial", "multithreading", "multiprocessing", or None for auto-selection).
+            n_workers: Number of parallel workers, auto-determined if None.
+
+        Returns:
+            Error message if invalid parallelization method, otherwise None.
         """
 
         # Assign an optimal parallelization method when it is not specified
@@ -1410,13 +1364,10 @@ class PheWAS:
 def main() -> None:
     """
     Command-line interface entry point for PheWAS analysis.
-    
+
     Parses command-line arguments, initializes PheWAS object with specified
     parameters, and executes the analysis. Handles both logistic and Cox
     regression methods with full parameter validation.
-    
-    :return: Executes PheWAS analysis and saves results to file.
-    :rtype: None
     """
 
     # Parse args

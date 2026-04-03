@@ -20,20 +20,16 @@ class Plot:
     ):
         """
         Initialize Plot object for creating PheWAS visualization plots.
-        
+
         Loads PheWAS results, configures plotting parameters, assigns colors to
         phecode categories, and prepares data for Manhattan and volcano plots.
-        
-        :param phewas_result_file_path: Path to PheWAS result CSV/TSV file generated from PheWAS module.
-        :type phewas_result_file_path: str
-        :param converged_only: Whether to plot converged results only.
-        :type converged_only: bool
-        :param bonferroni: Bonferroni correction threshold, calculated based on number of phecodes tested if None.
-        :type bonferroni: float | None
-        :param phecode_version: Phecode version ("1.2" or "X"), defaults to "X" if None.
-        :type phecode_version: str | None
-        :param color_palette: Color palette - "default", "colorblind", "rainbow", or custom tuple of colors.
-        :type color_palette: tuple[str, ...] | str | None
+
+        Args:
+            phewas_result_file_path: Path to PheWAS result CSV/TSV file generated from PheWAS module.
+            converged_only: Whether to plot converged results only.
+            bonferroni: Bonferroni correction threshold, calculated based on number of phecodes tested if None.
+            phecode_version: Phecode version ("1.2" or "X"), defaults to "X" if None.
+            color_palette: Color palette - "default", "colorblind", "rainbow", or custom tuple of colors.
         """
 
         # load PheWAS results
@@ -155,18 +151,15 @@ class Plot:
     ) -> None:
         """
         Save current matplotlib plot to file with automatic filename generation.
-        
+
         Creates timestamped filename if none provided and saves plot with
         specified file format and tight bounding box. File format is automatically
         detected from file extension or defaults to PDF.
-        
-        :param plot_type: Type of plot for filename generation when auto-generating.
-        :type plot_type: str
-        :param output_file_path: Full path including extension (e.g., "plot.png", "results.pdf"), 
-                                auto-generated with timestamp if None.
-        :type output_file_path: str | None
-        :return: Saves plot file and prints confirmation message.
-        :rtype: None
+
+        Args:
+            plot_type: Type of plot for filename generation when auto-generating.
+            output_file_path: Full path including extension (e.g., "plot.png", "results.pdf"),
+                auto-generated with timestamp if None.
         """
         if output_file_path is not None:
             # If no extension provided, default to PDF
@@ -189,16 +182,16 @@ class Plot:
     ) -> pl.DataFrame:
         """
         Filter PheWAS results by specified phecode categories.
-        
+
         Restricts dataset to only include results from specified phecode
         categories, useful for focused analysis or plotting.
-        
-        :param df: PheWAS result dataframe to filter.
-        :type df: pl.DataFrame
-        :param phecode_categories: Specific phecode categories to include, uses all if None.
-        :type phecode_categories: list[str] | str | None
-        :return: Filtered dataframe containing only specified categories.
-        :rtype: pl.DataFrame
+
+        Args:
+            df: PheWAS result dataframe to filter.
+            phecode_categories: Specific phecode categories to include, uses all if None.
+
+        Returns:
+            Filtered dataframe containing only specified categories.
         """
         if phecode_categories:
             if isinstance(phecode_categories, str):
@@ -216,17 +209,17 @@ class Plot:
     ) -> pl.DataFrame:
         """
         Create sequential phecode index for Manhattan plot x-axis positioning.
-        
+
         Sorts phecodes by category and assigns sequential indices for proper
         positioning in Manhattan plots, also adds marker size column based on
         effect direction.
-        
-        :param df: PheWAS result dataframe to create index for.
-        :type df: pl.DataFrame
-        :param sort_by_significance: If True, sort by phecode_category and -log10(p-value) descending within each category.
-        :type sort_by_significance: bool
-        :return: Dataframe with phecode_index and marker_size columns added.
-        :rtype: pl.DataFrame
+
+        Args:
+            df: PheWAS result dataframe to create index for.
+            sort_by_significance: If True, sort by phecode_category and -log10(p-value) descending within each category.
+
+        Returns:
+            Dataframe with phecode_index and marker_size columns added.
         """
         if "phecode_index" in df.columns:
             df = df.drop("phecode_index")
@@ -248,16 +241,16 @@ class Plot:
     ) -> tuple[pl.DataFrame, pl.DataFrame]:
         """
         Split PheWAS results into positive and negative effect directions.
-        
+
         Separates results based on effect direction (positive/negative beta or
         log hazard ratio) and optionally adds marker size column for visualization.
-        
-        :param df: PheWAS result dataframe to split.
-        :type df: pl.DataFrame
-        :param marker_size_by_effect_size: Whether to add marker size column based on effect magnitude.
-        :type marker_size_by_effect_size: bool
-        :return: Positive effects dataframe and negative effects dataframe.
-        :rtype: tuple[pl.DataFrame, pl.DataFrame]
+
+        Args:
+            df: PheWAS result dataframe to split.
+            marker_size_by_effect_size: Whether to add marker size column based on effect magnitude.
+
+        Returns:
+            Positive effects dataframe and negative effects dataframe.
         """
 
         # add marker size if marker_size_by_effect_size is True
@@ -277,18 +270,14 @@ class Plot:
     ) -> None:
         """
         Generate colored x-axis tick labels for Manhattan plot.
-        
+
         Creates x-axis labels positioned at category centers with colors
         matching phecode category color scheme.
-        
-        :param plot_df: Plot dataframe containing phecode categories and indices.
-        :type plot_df: pl.DataFrame
-        :param selected_color_dict: Color mapping for phecode categories.
-        :type selected_color_dict: dict[str, str]
-        :param size: Font size for tick labels.
-        :type size: int
-        :return: Sets x-axis ticks and labels with appropriate colors.
-        :rtype: None
+
+        Args:
+            plot_df: Plot dataframe containing phecode categories and indices.
+            selected_color_dict: Color mapping for phecode categories.
+            size: Font size for tick labels.
         """
         x_ticks = plot_df[["phecode_category", "phecode_index"]].group_by("phecode_category").mean()
         # create x ticks labels and colors
@@ -313,18 +302,15 @@ class Plot:
     ) -> None:
         """
         Generate scatter plot points for Manhattan plot.
-        
+
         Creates scatter plot with upward triangles for positive effects and
         downward triangles for negative effects, with optional marker sizing
         based on effect magnitude.
-        
-        :param ax: Matplotlib axes object for plotting.
-        :param marker_size_by_effect_size: Whether to scale marker size by effect magnitude.
-        :type marker_size_by_effect_size: bool
-        :param scale_factor: Scaling factor for marker sizes.
-        :type scale_factor: float
-        :return: Adds scatter plot elements to axes.
-        :rtype: None
+
+        Args:
+            ax: Matplotlib axes object for plotting.
+            marker_size_by_effect_size: Whether to scale marker size by effect magnitude.
+            scale_factor: Scaling factor for marker sizes.
         """
 
         if marker_size_by_effect_size:
@@ -370,37 +356,24 @@ class Plot:
     ) -> None:
         """
         Draw significance and threshold lines on plot.
-        
+
         Adds horizontal and vertical reference lines including nominal significance,
         Bonferroni correction, infinity proxy, and custom thresholds.
-        
-        :param ax: Matplotlib axes object for plotting.
-        :param plot_type: Type of plot ("manhattan" or "volcano") for offset calculation.
-        :type plot_type: str
-        :param plot_df: Plot dataframe for determining line extent.
-        :type plot_df: pl.DataFrame
-        :param x_col: Column name for x-axis values.
-        :type x_col: str
-        :param nominal_significance_line: Whether to draw nominal significance line (p=0.05).
-        :type nominal_significance_line: bool
-        :param bonferroni_line: Whether to draw Bonferroni correction line.
-        :type bonferroni_line: bool
-        :param infinity_line: Whether to draw infinity proxy line.
-        :type infinity_line: bool
-        :param y_threshold_line: Whether to draw custom y-threshold line.
-        :type y_threshold_line: bool
-        :param y_threshold_value: Y-value for custom threshold line.
-        :type y_threshold_value: float | None
-        :param x_positive_threshold_line: Whether to draw positive x-threshold line.
-        :type x_positive_threshold_line: bool
-        :param x_positive_threshold_value: X-value for positive threshold line.
-        :type x_positive_threshold_value: float | None
-        :param x_negative_threshold_line: Whether to draw negative x-threshold line.
-        :type x_negative_threshold_line: bool
-        :param x_negative_threshold_value: X-value for negative threshold line.
-        :type x_negative_threshold_value: float | None
-        :return: Adds line elements to axes.
-        :rtype: None
+
+        Args:
+            ax: Matplotlib axes object for plotting.
+            plot_type: Type of plot ("manhattan" or "volcano") for offset calculation.
+            plot_df: Plot dataframe for determining line extent.
+            x_col: Column name for x-axis values.
+            nominal_significance_line: Whether to draw nominal significance line (p=0.05).
+            bonferroni_line: Whether to draw Bonferroni correction line.
+            infinity_line: Whether to draw infinity proxy line.
+            y_threshold_line: Whether to draw custom y-threshold line.
+            y_threshold_value: Y-value for custom threshold line.
+            x_positive_threshold_line: Whether to draw positive x-threshold line.
+            x_positive_threshold_value: X-value for positive threshold line.
+            x_negative_threshold_line: Whether to draw negative x-threshold line.
+            x_negative_threshold_value: X-value for negative threshold line.
         """
 
         extra_offset = 0
@@ -480,16 +453,16 @@ class Plot:
     ) -> str:
         """
         Split long text labels into multiple lines for better readability.
-        
+
         Breaks text at word boundaries when line length exceeds threshold,
         improving label appearance in plots.
-        
-        :param s: Text string to split.
-        :type s: str
-        :param threshold: Approximate number of characters per line.
-        :type threshold: int
-        :return: Text with line breaks inserted at appropriate positions.
-        :rtype: str
+
+        Args:
+            s: Text string to split.
+            threshold: Approximate number of characters per line.
+
+        Returns:
+            Text with line breaks inserted at appropriate positions.
         """
         words = s.split(" ")
         new_s = ""
@@ -523,36 +496,28 @@ class Plot:
     ):
         """
         Add data point labels to Manhattan plot with automatic positioning.
-        
+
         Creates text labels for selected data points based on various criteria
         (specific phecodes, effect thresholds, or p-values) with automatic
         positioning to avoid overlaps.
-        
-        :param plot_df: Plot dataframe containing results to label.
-        :type plot_df: pl.DataFrame
-        :param label_values: Labeling criteria - specific phecodes, "positive_beta", "negative_beta", or "p_value".
-        :type label_values: str | list[str]
-        :param label_count: Maximum number of items to label.
-        :type label_count: int
-        :param label_categories: Specific phecode categories to restrict labeling to.
-        :type label_categories: list[str] | None
-        :param label_text_column: Column containing text for labels.
-        :type label_text_column: str
-        :param label_value_threshold: Threshold value for filtering labels by effect size or p-value.
-        :type label_value_threshold: float
-        :param label_split_threshold: Character count threshold for splitting long labels.
-        :type label_split_threshold: int
-        :param label_color: Color specification or column name containing colors.
-        :type label_color: str
-        :param label_size: Font size for labels.
-        :type label_size: int
-        :param label_weight: Font weight for labels.
-        :type label_weight: str
-        :param y_col: Column containing y-axis values.
-        :type y_col: str
-        :param x_col: Column containing x-axis values.
-        :type x_col: str
-        :return: adjustText object for label positioning.
+
+        Args:
+            plot_df: Plot dataframe containing results to label.
+            label_values: Labeling criteria - specific phecodes, "positive_beta", "negative_beta", or "p_value".
+            label_count: Maximum number of items to label.
+            label_categories: Specific phecode categories to restrict labeling to.
+            label_text_column: Column containing text for labels.
+            label_value_threshold: Threshold value for filtering labels by effect size or p-value.
+            label_split_threshold: Character count threshold for splitting long labels.
+            label_color: Color specification or column name containing colors.
+            label_size: Font size for labels.
+            label_weight: Font weight for labels.
+            label_box_alpha: Alpha (transparency) value for label background boxes.
+            y_col: Column containing y-axis values.
+            x_col: Column containing x-axis values.
+
+        Returns:
+            adjustText object for label positioning.
         """
 
         if isinstance(label_values, str):
@@ -660,15 +625,13 @@ class Plot:
     ) -> None:
         """
         Create legend for Manhattan plot with significance lines and effect markers.
-        
+
         Adds legend explaining infinity line, Bonferroni correction, nominal
         significance, and effect direction markers.
-        
-        :param ax: Matplotlib axes object for legend.
-        :param legend_marker_size: Size of markers in legend.
-        :type legend_marker_size: int
-        :return: Adds legend to plot.
-        :rtype: None
+
+        Args:
+            ax: Matplotlib axes object for legend.
+            legend_marker_size: Size of markers in legend.
         """
         legend_elements = []
         
@@ -722,63 +685,37 @@ class Plot:
     ) -> None:
         """
         Create Manhattan plot visualization of PheWAS results.
-        
+
         Generates comprehensive Manhattan plot showing -log10(p-values) across
         phecode categories with customizable labeling, significance lines,
         and effect direction indicators.
-        
-        :param label_values: Criteria for labeling points - specific phecodes, "positive_beta", "negative_beta", or "p_value".
-        :type label_values: str | list[str]
-        :param label_value_threshold: Threshold for filtering labels by effect size or p-value.
-        :type label_value_threshold: float
-        :param label_count: Maximum number of points to label.
-        :type label_count: int
-        :param label_size: Font size for data point labels.
-        :type label_size: int
-        :param label_text_column: Column containing text for labels.
-        :type label_text_column: str
-        :param label_color: Color specification or column name for label colors.
-        :type label_color: str
-        :param label_weight: Font weight for labels.
-        :type label_weight: str
-        :param label_split_threshold: Character threshold for splitting long labels.
-        :type label_split_threshold: int
-        :param label_box_alpha: Alpha (transparency) value for label background boxes.
-        :type label_box_alpha: float
-        :param marker_size_by_effect_size: Whether to scale marker size by effect magnitude.
-        :type marker_size_by_effect_size: bool
-        :param marker_scale_factor: Scaling factor for marker sizes.
-        :type marker_scale_factor: float
-        :param positive_marker_alpha: Alpha (transparency) value for positive effect markers.
-        :type positive_marker_alpha: float
-        :param negative_marker_alpha: Alpha (transparency) value for negative effect markers.
-        :type negative_marker_alpha: float
-        :param phecode_categories: Specific categories to plot, uses all if None.
-        :type phecode_categories: list[str] | str | None
-        :param plot_all_categories: Whether to include all categories in plot.
-        :type plot_all_categories: bool
-        :param sort_by_significance: If True, sort phecodes by significance within each category.
-        :type sort_by_significance: bool
-        :param title: Plot title text.
-        :type title: str | None
-        :param title_text_size: Font size for plot title.
-        :type title_text_size: int
-        :param y_limit: Maximum y-axis value for display.
-        :type y_limit: float | None
-        :param axis_text_size: Font size for axis labels.
-        :type axis_text_size: int
-        :param show_legend: Whether to display plot legend.
-        :type show_legend: bool
-        :param legend_marker_size: Size of markers in legend.
-        :type legend_marker_size: int
-        :param dpi: Plot resolution in dots per inch.
-        :type dpi: int
-        :param save_plot: Whether to save plot to file.
-        :type save_plot: bool
-        :param output_file_path: Full path including extension (e.g., "plot.png", "results.pdf"), auto-generated if None.
-        :type output_file_path: str | None
-        :return: Creates and optionally saves Manhattan plot.
-        :rtype: None
+
+        Args:
+            label_values: Criteria for labeling points - specific phecodes, "positive_beta", "negative_beta", or "p_value".
+            label_value_threshold: Threshold for filtering labels by effect size or p-value.
+            label_count: Maximum number of points to label.
+            label_size: Font size for data point labels.
+            label_text_column: Column containing text for labels.
+            label_color: Color specification or column name for label colors.
+            label_weight: Font weight for labels.
+            label_split_threshold: Character threshold for splitting long labels.
+            label_box_alpha: Alpha (transparency) value for label background boxes.
+            marker_size_by_effect_size: Whether to scale marker size by effect magnitude.
+            marker_scale_factor: Scaling factor for marker sizes.
+            positive_marker_alpha: Alpha (transparency) value for positive effect markers.
+            negative_marker_alpha: Alpha (transparency) value for negative effect markers.
+            phecode_categories: Specific categories to plot, uses all if None.
+            plot_all_categories: Whether to include all categories in plot.
+            sort_by_significance: If True, sort phecodes by significance within each category.
+            title: Plot title text.
+            title_text_size: Font size for plot title.
+            y_limit: Maximum y-axis value for display.
+            axis_text_size: Font size for axis labels.
+            show_legend: Whether to display plot legend.
+            legend_marker_size: Size of markers in legend.
+            dpi: Plot resolution in dots per inch.
+            save_plot: Whether to save plot to file.
+            output_file_path: Full path including extension (e.g., "plot.png", "results.pdf"), auto-generated if None.
         """
 
         ############
@@ -902,22 +839,19 @@ class Plot:
     ) -> pl.DataFrame:
         """
         Transform column values to specified range using min-max normalization.
-        
+
         Scales values in specified column to new range while preserving
         relative relationships between data points.
-        
-        :param df: Input dataframe containing column to transform.
-        :type df: pl.DataFrame
-        :param col: Name of column to transform.
-        :type col: str
-        :param new_col: Name for new column containing transformed values.
-        :type new_col: str
-        :param new_min: Minimum value for transformed range.
-        :type new_min: float
-        :param new_max: Maximum value for transformed range.
-        :type new_max: float
-        :return: Dataframe with additional column containing transformed values.
-        :rtype: pl.DataFrame
+
+        Args:
+            df: Input dataframe containing column to transform.
+            col: Name of column to transform.
+            new_col: Name for new column containing transformed values.
+            new_min: Minimum value for transformed range.
+            new_max: Maximum value for transformed range.
+
+        Returns:
+            Dataframe with additional column containing transformed values.
         """
         df = df.with_columns(
             (
@@ -945,35 +879,23 @@ class Plot:
     ) -> None:
         """
         Create scatter plot for volcano plot visualization.
-        
+
         Generates scatter plot with points colored by effect direction and
         optionally sized by case count or other variables.
-        
-        :param ax: Matplotlib axes object for plotting.
-        :param x_col: Column name for x-axis values (effect size).
-        :type x_col: str
-        :param y_col: Column name for y-axis values (significance).
-        :type y_col: str
-        :param marker_size_col: Column name for marker sizing, constant size if None.
-        :type marker_size_col: str | None
-        :param marker_shape: Shape of markers for plotting.
-        :type marker_shape: str
-        :param positive_beta_color: Color for positive effect markers.
-        :type positive_beta_color: str
-        :param negative_beta_color: Color for negative effect markers.
-        :type negative_beta_color: str
-        :param fill_marker: Whether to fill markers with color.
-        :type fill_marker: bool
-        :param marker_alpha: Transparency level for markers.
-        :type marker_alpha: float
-        :param legend_marker_scale: Scale factor for legend markers.
-        :type legend_marker_scale: float
-        :param legend_label_count: Number of items in size legend.
-        :type legend_label_count: int
-        :param show_legend: Whether to display size legend.
-        :type show_legend: bool
-        :return: Adds scatter plot elements to axes.
-        :rtype: None
+
+        Args:
+            ax: Matplotlib axes object for plotting.
+            x_col: Column name for x-axis values (effect size).
+            y_col: Column name for y-axis values (significance).
+            marker_size_col: Column name for marker sizing, constant size if None.
+            marker_shape: Shape of markers for plotting.
+            positive_beta_color: Color for positive effect markers.
+            negative_beta_color: Color for negative effect markers.
+            fill_marker: Whether to fill markers with color.
+            marker_alpha: Transparency level for markers.
+            legend_marker_scale: Scale factor for legend markers.
+            legend_label_count: Number of items in size legend.
+            show_legend: Whether to display size legend.
         """
 
         # set marker edge and face colors
@@ -1061,37 +983,28 @@ class Plot:
     ):
         """
         Add data point labels to volcano plot with automatic positioning.
-        
+
         Creates text labels for data points based on specific phecode lists
         or threshold criteria, with color coding by effect direction.
-        
-        :param plot_df: Plot dataframe containing results to label.
-        :type plot_df: pl.DataFrame
-        :param phecode_list: Specific phecodes to label.
-        :type phecode_list: list[str] | str | None
-        :param phecode_string_list: Specific phecode descriptions to label.
-        :type phecode_string_list: list[str] | str | None
-        :param x_col: Column name for x-axis values.
-        :type x_col: str
-        :param y_col: Column name for y-axis values.
-        :type y_col: str
-        :param label_count: Maximum number of labels to display.
-        :type label_count: int
-        :param label_text_column: Column containing text for labels.
-        :type label_text_column: str
-        :param label_split_threshold: Character threshold for splitting long labels.
-        :type label_split_threshold: int
-        :param label_size: Font size for labels.
-        :type label_size: int
-        :param label_weight: Font weight for labels.
-        :type label_weight: str
-        :param y_threshold: Minimum significance threshold for labeling.
-        :type y_threshold: float
-        :param x_positive_threshold: Minimum positive effect threshold for labeling.
-        :type x_positive_threshold: float | None
-        :param x_negative_threshold: Maximum negative effect threshold for labeling.
-        :type x_negative_threshold: float | None
-        :return: adjustText object for label positioning.
+
+        Args:
+            plot_df: Plot dataframe containing results to label.
+            phecode_list: Specific phecodes to label.
+            phecode_string_list: Specific phecode descriptions to label.
+            x_col: Column name for x-axis values.
+            y_col: Column name for y-axis values.
+            label_count: Maximum number of labels to display.
+            label_text_column: Column containing text for labels.
+            label_split_threshold: Character threshold for splitting long labels.
+            label_size: Font size for labels.
+            label_weight: Font weight for labels.
+            label_box_alpha: Alpha (transparency) value for label background boxes.
+            y_threshold: Minimum significance threshold for labeling.
+            x_positive_threshold: Minimum positive effect threshold for labeling.
+            x_negative_threshold: Maximum negative effect threshold for labeling.
+
+        Returns:
+            adjustText object for label positioning.
         """
 
         # Get the data for labeling, either use a list of phecodes/phecode names of choice or use x & y thresholds
@@ -1184,68 +1097,39 @@ class Plot:
     ) -> None:
         """
         Create volcano plot visualization of PheWAS results.
-        
+
         Generates volcano plot showing effect size vs significance with
         customizable thresholds, labeling, and visual elements.
-        
-        :param phecode_list: Specific phecodes to label on plot.
-        :type phecode_list: list[str] | str | None
-        :param phecode_string_list: Specific phecode descriptions to label.
-        :type phecode_string_list: list[str] | str | None
-        :param label_count: Maximum number of points to label.
-        :type label_count: int
-        :param x_col: Column name for x-axis values (effect size).
-        :type x_col: str
-        :param y_col: Column name for y-axis values (significance).
-        :type y_col: str
-        :param x_axis_label: Custom label for x-axis.
-        :type x_axis_label: str | None
-        :param exclude_infinity: Whether to exclude infinite significance values.
-        :type exclude_infinity: bool
-        :param y_threshold: Significance threshold for labeling and reference line.
-        :type y_threshold: float | None
-        :param x_negative_threshold: Negative effect threshold for labeling and reference line.
-        :type x_negative_threshold: float | None
-        :param x_positive_threshold: Positive effect threshold for labeling and reference line.
-        :type x_positive_threshold: float | None
-        :param bonferroni_line: Whether to display Bonferroni correction line.
-        :type bonferroni_line: bool
-        :param nominal_significance_line: Whether to display nominal significance line.
-        :type nominal_significance_line: bool
-        :param infinity_line: Whether to display infinity proxy line.
-        :type infinity_line: bool
-        :param y_limit: Maximum y-axis value for display.
-        :type y_limit: float | None
-        :param title: Plot title text.
-        :type title: str | None
-        :param title_text_size: Font size for plot title.
-        :type title_text_size: int | None
-        :param axis_text_size: Font size for axis labels.
-        :type axis_text_size: int | None
-        :param marker_size_col: Column name for marker sizing.
-        :type marker_size_col: str | None
-        :param marker_shape: Shape of markers for plotting.
-        :type marker_shape: str
-        :param fill_marker: Whether to fill markers with color.
-        :type fill_marker: bool
-        :param marker_alpha: Transparency level for markers.
-        :type marker_alpha: float
-        :param label_box_alpha: Alpha (transparency) value for label background boxes.
-        :type label_box_alpha: float
-        :param show_legend: Whether to display size legend.
-        :type show_legend: bool
-        :param legend_marker_scale: Scale factor for legend markers.
-        :type legend_marker_scale: float
-        :param legend_label_count: Number of items in size legend.
-        :type legend_label_count: int
-        :param dpi: Plot resolution in dots per inch.
-        :type dpi: int
-        :param save_plot: Whether to save plot to file.
-        :type save_plot: bool
-        :param output_file_path: Full path including extension (e.g., "plot.png", "results.pdf"), auto-generated if None.
-        :type output_file_path: str | None
-        :return: Creates and optionally saves volcano plot.
-        :rtype: None
+
+        Args:
+            phecode_list: Specific phecodes to label on plot.
+            phecode_string_list: Specific phecode descriptions to label.
+            label_count: Maximum number of points to label.
+            x_col: Column name for x-axis values (effect size).
+            y_col: Column name for y-axis values (significance).
+            x_axis_label: Custom label for x-axis.
+            exclude_infinity: Whether to exclude infinite significance values.
+            y_threshold: Significance threshold for labeling and reference line.
+            x_negative_threshold: Negative effect threshold for labeling and reference line.
+            x_positive_threshold: Positive effect threshold for labeling and reference line.
+            bonferroni_line: Whether to display Bonferroni correction line.
+            nominal_significance_line: Whether to display nominal significance line.
+            infinity_line: Whether to display infinity proxy line.
+            y_limit: Maximum y-axis value for display.
+            title: Plot title text.
+            title_text_size: Font size for plot title.
+            axis_text_size: Font size for axis labels.
+            marker_size_col: Column name for marker sizing.
+            marker_shape: Shape of markers for plotting.
+            fill_marker: Whether to fill markers with color.
+            marker_alpha: Transparency level for markers.
+            label_box_alpha: Alpha (transparency) value for label background boxes.
+            show_legend: Whether to display size legend.
+            legend_marker_scale: Scale factor for legend markers.
+            legend_label_count: Number of items in size legend.
+            dpi: Plot resolution in dots per inch.
+            save_plot: Whether to save plot to file.
+            output_file_path: Full path including extension (e.g., "plot.png", "results.pdf"), auto-generated if None.
         """
 
         # set offset
@@ -1363,51 +1247,32 @@ class Plot:
     ) -> None:
         """
         Create forest plot for selected phecodes from PheWAS results.
-        
+
         Generates forest plot showing effect sizes with confidence intervals,
         arranged vertically with statistical information in adjacent panels.
         Automatically detects column names from PheWAS output format. If no
         specific phecodes are provided, automatically selects top positive
         and negative effect values.
-        
-        :param phecode_list: Specific phecodes to include in forest plot, auto-selects top effects if None.
-        :type phecode_list: list[str] | str | None
-        :param n_top_values: Number of top positive and negative effect values to include when auto-selecting.
-        :type n_top_values: int
-        :param plot_odds_ratio: Whether to plot odds ratio instead of beta for logistic regression results.
-        :type plot_odds_ratio: bool
-        :param show_phecode: Whether to show phecode alongside phenotype description, defaults to True.
-        :type show_phecode: bool
-        :param title: Plot title, auto-generated if None.
-        :type title: str | None
-        :param axis_text_size: Font size for axis labels.
-        :type axis_text_size: int
-        :param label_size: Font size for text labels.
-        :type label_size: int
-        :param marker_shape: Shape of center point markers (default: "s" for square).
-        :type marker_shape: str
-        :param marker_size: Size of center point markers.
-        :type marker_size: int
-        :param highlight_significance: Whether to use bold text and thicker lines for significant results.
-        :type highlight_significance: bool
-        :param highlight_phecodes: Specific phecodes to highlight with bold text and thick lines, overrides significance-based highlighting.
-        :type highlight_phecodes: list[str] | str | None
-        :param highlight_p_value_threshold: P-value threshold for significance highlighting, defaults to Bonferroni correction if None.
-        :type highlight_p_value_threshold: float | None
-        :param show_p_value_asterisks: Whether to show significance asterisks next to p-values (* p<0.05, ** p<0.01, *** p<0.001).
-        :type show_p_value_asterisks: bool
-        :param show_count: Whether to show cases/controls panel with N(cases,controls) title.
-        :type show_count: bool
-        :param show_sex_restriction: Whether to show sex restriction values from phecode data.
-        :type show_sex_restriction: bool
-        :param dpi: Plot resolution in dots per inch.
-        :type dpi: int
-        :param save_plot: Whether to save plot to file.
-        :type save_plot: bool
-        :param output_file_path: Full path including extension, auto-generated if None.
-        :type output_file_path: str | None
-        :return: Creates and optionally saves forest plot.
-        :rtype: None
+
+        Args:
+            phecode_list: Specific phecodes to include in forest plot, auto-selects top effects if None.
+            n_top_values: Number of top positive and negative effect values to include when auto-selecting.
+            plot_odds_ratio: Whether to plot odds ratio instead of beta for logistic regression results.
+            show_phecode: Whether to show phecode alongside phenotype description, defaults to True.
+            title: Plot title, auto-generated if None.
+            axis_text_size: Font size for axis labels.
+            label_size: Font size for text labels.
+            marker_shape: Shape of center point markers (default: "s" for square).
+            marker_size: Size of center point markers.
+            highlight_significance: Whether to use bold text and thicker lines for significant results.
+            highlight_phecodes: Specific phecodes to highlight with bold text and thick lines, overrides significance-based highlighting.
+            highlight_p_value_threshold: P-value threshold for significance highlighting, defaults to Bonferroni correction if None.
+            show_p_value_asterisks: Whether to show significance asterisks next to p-values (* p<0.05, ** p<0.01, *** p<0.001).
+            show_count: Whether to show cases/controls panel with N(cases,controls) title.
+            show_sex_restriction: Whether to show sex restriction values from phecode data.
+            dpi: Plot resolution in dots per inch.
+            save_plot: Whether to save plot to file.
+            output_file_path: Full path including extension, auto-generated if None.
         """
         
         

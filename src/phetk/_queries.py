@@ -11,8 +11,11 @@ def phecode_icd_query(ds):
     The reason for this is to ensure vocabulary_id values of V codes, many of which overlap between ICD9CM & ICD10CM,
     are correct.
 
-    :param ds: Google BigQuery dataset ID containing OMOP data tables
-    :return: a SQL query that would generate a table contains participant IDs and their ICD codes from unique dates
+    Args:
+        ds: Google BigQuery dataset ID containing OMOP data tables.
+
+    Returns:
+        A SQL query that would generate a table contains participant IDs and their ICD codes from unique dates.
     """
     icd_query: str = f"""
         (
@@ -141,11 +144,14 @@ def phecode_icd_query(ds):
 
 def current_age_query(ds, participant_ids):
     """
-    This method is exclusively for All of Us platform
-    :param ds: Google BigQuery dataset ID containing OMOP data tables
-    :param participant_ids: list of participant IDs to query
-    :return: a SQL query that would generate a table
-            containing participant IDs and their natural age
+    This method is exclusively for All of Us platform.
+
+    Args:
+        ds: Google BigQuery dataset ID containing OMOP data tables.
+        participant_ids: List of participant IDs to query.
+
+    Returns:
+        A SQL query that would generate a table containing participant IDs and their natural age.
     """
     query: str = f"""
         SELECT
@@ -183,12 +189,17 @@ def current_age_query(ds, participant_ids):
 def ehr_dx_code_query(ds, participant_ids):
     """
     This method is exclusively for the All of Us platform.
+
     In the condition occurrence table, diagnosis codes belong to ICD9CM, ICD10CM, are counted.
     In the observation table, diagnosis codes belong to ICD9CM and ICD10CM are counted.
-    :param ds: Google BigQuery dataset ID containing OMOP data tables
-    :param participant_ids: list of participant IDs to query
-    :return: a SQL query that would generate a table contains participant IDs and
-            their ehr length (days), diagnosis code count(ICD), and age at the last event
+
+    Args:
+        ds: Google BigQuery dataset ID containing OMOP data tables.
+        participant_ids: List of participant IDs to query.
+
+    Returns:
+        A SQL query that would generate a table contains participant IDs and
+        their ehr length (days), diagnosis code count(ICD), and age at the last event.
     """
     query: str = f"""
         SELECT DISTINCT
@@ -291,11 +302,15 @@ def ehr_dx_code_query(ds, participant_ids):
 
 def sex_at_birth(ds, participant_ids):
     """
-    This method is exclusively for All of Us platform
-    :param ds: Google BigQuery dataset ID containing OMOP data tables
-    :param participant_ids: list of participant IDs to query
-    :return: a SQL query that would generate a table contains participant IDs and
-            their sex at birth; male = 1, female = 0
+    This method is exclusively for All of Us platform.
+
+    Args:
+        ds: Google BigQuery dataset ID containing OMOP data tables.
+        participant_ids: List of participant IDs to query.
+
+    Returns:
+        A SQL query that would generate a table contains participant IDs and
+        their sex at birth; male = 1, female = 0.
     """
     query: str = f"""
         SELECT

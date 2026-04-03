@@ -40,53 +40,31 @@ class Dsub:
     ):
         """
         Initialize a Dsub instance for running jobs on Google Cloud Platform.
-        
-        :param docker_image: Name of the Docker image to use for the job
-        :type docker_image: str
-        :param job_script_name: Path to the script file to execute in the job (None for command-only jobs)
-        :type job_script_name: str | None
-        :param job_name: Name for the job (auto-generated if None)
-        :type job_name: str | None
-        :param input_dict: Dictionary mapping input variable names to GCS paths
-        :type input_dict: dict | None
-        :param output_dict: Dictionary mapping output variable names to GCS paths
-        :type output_dict: dict | None
-        :param env_dict: Dictionary of environment variables to set in the job
-        :type env_dict: dict | None
-        :param log_file_path: Custom path for log files (auto-generated if None)
-        :type log_file_path: str | None
-        :param machine_type: GCP machine type to use for the job
-        :type machine_type: str
-        :param disk_type: Type of disk to use (None for default)
-        :type disk_type: str | None
-        :param boot_disk_size: Size of boot disk in GB
-        :type boot_disk_size: int
-        :param disk_size: Size of additional disk in GB
-        :type disk_size: int
-        :param user_project: Google Cloud project for billing
-        :type user_project: str
-        :param project: Google Cloud project to run the job in
-        :type project: str
-        :param dsub_user_name: Username for dsub job identification
-        :type dsub_user_name: str
-        :param user_name: Username for job naming and identification
-        :type user_name: str
-        :param bucket: Google Cloud Storage bucket for logs and data
-        :type bucket: str
-        :param google_project: Google Cloud project ID
-        :type google_project: str
-        :param region: GCP region to run the job in
-        :type region: str
-        :param provider: Dsub provider to use (google-batch, google-v2, etc.)
-        :type provider: str
-        :param preemptible: Whether to use preemptible instances
-        :type preemptible: bool
-        :param use_private_address: Whether to use private IP addresses
-        :type use_private_address: bool
-        :param custom_args: Additional custom arguments for dsub command
-        :type custom_args: str | None
-        :param use_aou_docker_prefix: Whether to prepend AoU artifact registry prefix
-        :type use_aou_docker_prefix: bool
+
+        Args:
+            docker_image: Name of the Docker image to use for the job.
+            job_script_name: Path to the script file to execute in the job (None for command-only jobs).
+            job_name: Name for the job (auto-generated if None).
+            input_dict: Dictionary mapping input variable names to GCS paths.
+            output_dict: Dictionary mapping output variable names to GCS paths.
+            env_dict: Dictionary of environment variables to set in the job.
+            log_file_path: Custom path for log files (auto-generated if None).
+            machine_type: GCP machine type to use for the job.
+            disk_type: Type of disk to use (None for default).
+            boot_disk_size: Size of boot disk in GB.
+            disk_size: Size of additional disk in GB.
+            user_project: Google Cloud project for billing.
+            project: Google Cloud project to run the job in.
+            dsub_user_name: Username for dsub job identification.
+            user_name: Username for job naming and identification.
+            bucket: Google Cloud Storage bucket for logs and data.
+            google_project: Google Cloud project ID.
+            region: GCP region to run the job in.
+            provider: Dsub provider to use (google-batch, google-v2, etc.).
+            preemptible: Whether to use preemptible instances.
+            use_private_address: Whether to use private IP addresses.
+            custom_args: Additional custom arguments for dsub command.
+            use_aou_docker_prefix: Whether to prepend AoU artifact registry prefix.
         """
         # Standard attributes
         self.docker_image = docker_image
@@ -144,9 +122,9 @@ class Dsub:
     def _dsub_script(self) -> str:
         """
         Generate the dsub command script with all configured parameters.
-        
-        :return: Complete dsub command as a string
-        :rtype: str
+
+        Returns:
+            Complete dsub command as a string.
         """
         # Get base script
         base_script = self.dsub_base_script()
@@ -203,17 +181,12 @@ class Dsub:
     def _print_final_status(self, status_value: str, last_update: str, status_detail: str, message: str) -> None:
         """
         Print the final job status in the formatted 3-line display.
-        
-        :param status_value: The actual status value detected from dstat
-        :type status_value: str
-        :param last_update: The timestamp from last-update field
-        :type last_update: str
-        :param status_detail: The status detail from status-detail field
-        :type status_detail: str
-        :param message: The completion message to display
-        :type message: str
-        :return: None
-        :rtype: None
+
+        Args:
+            status_value: The actual status value detected from dstat.
+            last_update: The timestamp from last-update field.
+            status_detail: The status detail from status-detail field.
+            message: The completion message to display.
         """
         print("\r" + " " * 80)  # Clear current line
         print(f"\rLast update: {last_update}")
@@ -226,12 +199,7 @@ class Dsub:
     
     @staticmethod
     def _print_separator_line() -> None:
-        """
-        Print a separator line filled with dashes across the terminal width.
-        
-        :return: None
-        :rtype: None
-        """
+        """Print a separator line filled with dashes across the terminal width."""
         import shutil
         terminal_width = shutil.get_terminal_size().columns
         print("#" * terminal_width)
@@ -239,11 +207,9 @@ class Dsub:
     def _perform_job_cleanup(self, cleanup_delay: int) -> None:
         """
         Perform job cleanup with optional countdown delay.
-        
-        :param cleanup_delay: Seconds to wait before cleaning up job
-        :type cleanup_delay: int
-        :return: None
-        :rtype: None
+
+        Args:
+            cleanup_delay: Seconds to wait before cleaning up job.
         """
         self._print_separator_line()
         if cleanup_delay > 0:
@@ -261,13 +227,13 @@ class Dsub:
     def _merge_custom_args(base_command: str, custom_args: str) -> str:
         """
         Merge custom arguments with base command, allowing custom args to override existing ones.
-        
-        :param base_command: The base command string
-        :type base_command: str
-        :param custom_args: Custom arguments that may override existing ones
-        :type custom_args: str
-        :return: Merged command string with custom args taking precedence
-        :rtype: str
+
+        Args:
+            base_command: The base command string.
+            custom_args: Custom arguments that may override existing ones.
+
+        Returns:
+            Merged command string with custom args taking precedence.
         """
         if not custom_args:
             return base_command
@@ -302,11 +268,12 @@ class Dsub:
     def _check_job_status(self, stdout: str) -> tuple[str, bool, bool, bool, str, str]:
         """
         Check job status from dstat output and identify terminal states.
-        
-        :param stdout: Output from dstat command
-        :type stdout: str
-        :return: Tuple of (status_value, has_success, has_failed, has_canceled, last_update, status_detail)
-        :rtype: tuple[str, bool, bool, bool, str, str]
+
+        Args:
+            stdout: Output from dstat command.
+
+        Returns:
+            Tuple of (status_value, has_success, has_failed, has_canceled, last_update, status_detail).
         """
         status_value = ""
         has_success = False
@@ -360,23 +327,15 @@ class Dsub:
     ) -> None:
         """
         Check the status of the submitted job using dstat command.
-        
-        :param full: Whether to show full detailed status information
-        :type full: bool
-        :param custom_args: Additional custom arguments for dstat command
-        :type custom_args: str | None
-        :param streaming: Whether to continuously monitor status with auto-refresh
-        :type streaming: bool
-        :param update_interval: Seconds between status updates when streaming
-        :type update_interval: int
-        :param verbose: Whether to print debug information for status detection
-        :type verbose: bool
-        :param auto_job_cleanup: Whether to automatically cleanup job after completion or failure
-        :type auto_job_cleanup: bool
-        :param cleanup_delay: Seconds to wait after completion/failure before cleaning up job
-        :type cleanup_delay: int
-        :return: None
-        :rtype: None
+
+        Args:
+            full: Whether to show full detailed status information.
+            custom_args: Additional custom arguments for dstat command.
+            streaming: Whether to continuously monitor status with auto-refresh.
+            update_interval: Seconds between status updates when streaming.
+            verbose: Whether to print debug information for status detection.
+            auto_job_cleanup: Whether to automatically cleanup job after completion or failure.
+            cleanup_delay: Seconds to wait after completion/failure before cleaning up job.
         """
 
         # base command
@@ -549,13 +508,10 @@ class Dsub:
     def view_log(self, log_type: str = "stdout", n_lines: int = 10) -> None:
         """
         View the job logs from Google Cloud Storage.
-        
-        :param log_type: Type of log to view ('stdout', 'stderr', or 'full')
-        :type log_type: str
-        :param n_lines: Number of lines to display from the log file
-        :type n_lines: int
-        :return: None
-        :rtype: None
+
+        Args:
+            log_type: Type of log to view ('stdout', 'stderr', or 'full').
+            n_lines: Number of lines to display from the log file.
         """
 
         tail = f" | head -n {n_lines}"
@@ -575,11 +531,8 @@ class Dsub:
     def kill(self) -> None:
         """
         Kill/cancel the running job using ddel command.
-        
+
         Note: Requires that the job has been submitted and job_id is available.
-        
-        :return: None
-        :rtype: None
         """
         kill_job = (
             f"ddel  --provider {self.provider} --users \"{self.user_name}\" --project {self.project} --jobs \"{self.job_id}\""
@@ -587,24 +540,14 @@ class Dsub:
         subprocess.run([kill_job], shell=True)
 
     def view_all(self) -> None:
-        """
-        View all running jobs linked to user account and project using dstat command.
-
-        :return: None
-        :rtype: None
-        """
+        """View all running jobs linked to user account and project using dstat command."""
         view_jobs = (
             f"dstat --provider {self.provider} --users \"{self.user_name}\" --project {self.project} --jobs \"*\" "
         )
         subprocess.run([view_jobs], shell=True)
 
     def kill_all(self) -> None:
-        """
-        Kill/cancel all running jobs linked to user account and project using ddel command.
-
-        :return: None
-        :rtype: None
-        """
+        """Kill/cancel all running jobs linked to user account and project using ddel command."""
         kill_jobs = (
             f"ddel --provider {self.provider} --users \"{self.user_name}\" --project {self.project} --jobs \"*\" "
         )
@@ -613,13 +556,10 @@ class Dsub:
     def run(self, show_command: bool = False, timeout: int = 60) -> None:
         """
         Submit and run the dsub job on Google Cloud Platform.
-        
-        :param show_command: Whether to display the dsub command being executed
-        :type show_command: bool
-        :param timeout: Maximum time in seconds to wait for job submission
-        :type timeout: int
-        :return: None
-        :rtype: None
+
+        Args:
+            show_command: Whether to display the dsub command being executed.
+            timeout: Maximum time in seconds to wait for job submission.
         """
         process = None
         try:
@@ -668,13 +608,13 @@ class Dsub:
     def dsub_base_script(self) -> str:
         """
         Generate the base dsub command script with core configuration parameters.
-        
+
         This method extracts the base dsub command structure without input/output
         flags, environment variables, or script commands. Useful for creating
         custom dsub commands or testing.
-        
-        :return: Base dsub command with provider, machine, networking, and logging configuration
-        :rtype: str
+
+        Returns:
+            Base dsub command with provider, machine, networking, and logging configuration.
         """
         if self.use_aou_docker_prefix:
             aou_docker_prefix = os.getenv("ARTIFACT_REGISTRY_DOCKER_REPO")
@@ -712,21 +652,16 @@ class Dsub:
     ) -> None:
         """
         Run a simple echo test using dsub to verify configuration and connectivity.
-        
+
         This method executes a minimal dsub job that echoes "Hello" to stdout.
         Useful for testing dsub setup, authentication, and basic job execution
         without running complex scripts.
-        
-        :param stream_status: Whether to automatically stream status after submission
-        :type stream_status: bool
-        :param update_interval: Seconds between status updates when streaming
-        :type update_interval: int
-        :param use_private_address: Whether to use private IP addresses
-        :type use_private_address: bool
-        :param custom_args: Additional custom arguments for dsub command
-        :type custom_args: str | None
-        :return: None
-        :rtype: None
+
+        Args:
+            stream_status: Whether to automatically stream status after submission.
+            update_interval: Seconds between status updates when streaming.
+            use_private_address: Whether to use private IP addresses.
+            custom_args: Additional custom arguments for dsub command.
         """
         # Get base script and add command
         test_command = self.dsub_base_script() + " --command 'echo Hello'"

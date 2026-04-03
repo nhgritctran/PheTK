@@ -23,12 +23,10 @@ class Cohort:
         All of Us or custom database platforms. Configures database version and CDR paths
         based on specified platform.
 
-        :param platform: Database platform, currently supports "aou" (All of Us) or "custom".
-        :type platform: str
-        :param aou_db_version: Version of All of Us database (6-8), e.g., 7 for CDR v7.
-        :type aou_db_version: int
-        :param gbq_dataset_id: BigQuery dataset ID. Overrides WORKSPACE_CDR on AoU. Required for custom platform.
-        :type gbq_dataset_id: str | None
+        Args:
+            platform: Database platform, currently supports "aou" (All of Us) or "custom".
+            aou_db_version: Version of All of Us database (6-8), e.g., 7 for CDR v7.
+            gbq_dataset_id: BigQuery dataset ID. Overrides WORKSPACE_CDR on AoU. Required for custom platform.
         """
         self.aou_max_version = 8
 
@@ -93,31 +91,19 @@ class Cohort:
         variant, filters participants by requested genotype groups, and creates cohort
         file with person IDs and genotype labels. Handles multi-allelic sites.
 
-        :param chromosome_number: Chromosome number for variant location.
-        :type chromosome_number: int
-        :param genomic_position: Genomic position of variant on chromosome.
-        :type genomic_position: int
-        :param ref_allele: Reference allele for variant.
-        :type ref_allele: str
-        :param alt_allele: Alternative allele for variant.
-        :type alt_allele: str
-        :param gt_dict: Genotype mapping dictionary, e.g., {0: "0/0", 1: ["0/1", "1/1"]}.
-        :type gt_dict: dict[int, str | list[str]] | None
-        :param reference_genome: Reference genome version, accepts "GRCh37" or "GRCh38".
-        :type reference_genome: str
-        :param data_format: Genotype data format: "vcf" (default) or "hail".
-        :type data_format: str
-        :param call_set: AoU callset name for path construction: "acaf_threshold" (default) or "exome".
-        :type call_set: str
-        :param data_path: Override path to genotype data. For vcf, path to a VCF file
-            (.vcf.gz, .vcf.bgz, .bcf) or AoU shard directory. For hail, the .mt directory path.
-        :type data_path: str | None
-        :param mt_path: Deprecated. Use data_path instead. Kept for backward compatibility.
-        :type mt_path: str | None
-        :param output_file_path: Path of output TSV file.
-        :type output_file_path: str | None
-        :return: Creates genotype cohort TSV file with person IDs and genotype labels.
-        :rtype: None
+        Args:
+            chromosome_number: Chromosome number for variant location.
+            genomic_position: Genomic position of variant on chromosome.
+            ref_allele: Reference allele for variant.
+            alt_allele: Alternative allele for variant.
+            gt_dict: Genotype mapping dictionary, e.g., {0: "0/0", 1: ["0/1", "1/1"]}.
+            reference_genome: Reference genome version, accepts "GRCh37" or "GRCh38".
+            data_format: Genotype data format: "vcf" (default) or "hail".
+            call_set: AoU callset name for path construction: "acaf_threshold" (default) or "exome".
+            data_path: Override path to genotype data. For vcf, path to a VCF file
+                (.vcf.gz, .vcf.bgz, .bcf) or AoU shard directory. For hail, the .mt directory path.
+            mt_path: Deprecated. Use data_path instead. Kept for backward compatibility.
+            output_file_path: Path of output TSV file.
         """
         # handle deprecated mt_path
         if mt_path is not None and data_path is not None:
@@ -429,12 +415,15 @@ class Cohort:
         then narrows the search. Requires ~log2(N) index reads instead of
         downloading all N interval lists.
 
-        :param vcf_dir: GCS directory path containing VCF shards.
-        :param chromosome_number: Chromosome number.
-        :param genomic_position: Genomic position on chromosome.
-        :param reference_genome: "GRCh38" or "GRCh37".
-        :param user_project: GCP project ID for requester-pays billing.
-        :return: Full path to the matching .vcf.bgz file.
+        Args:
+            vcf_dir: GCS directory path containing VCF shards.
+            chromosome_number: Chromosome number.
+            genomic_position: Genomic position on chromosome.
+            reference_genome: "GRCh38" or "GRCh37".
+            user_project: GCP project ID for requester-pays billing.
+
+        Returns:
+            Full path to the matching .vcf.bgz file.
         """
         import math
         import pysam
@@ -648,17 +637,17 @@ class Cohort:
     ) -> pl.DataFrame | None:
         """
         Retrieve ancestry predictions and principal components for specified participants.
-        
+
         Loads ancestry prediction data from All of Us CDR, extracts and formats
         principal components (PCs) from pca_features, and filters for requested
         participant IDs. Method specifically designed for All of Us database.
-        
-        :param user_project: Google Cloud project ID for requester pays access.
-        :type user_project: str
-        :param participant_ids: Participant IDs to retrieve ancestry data for.
-        :type participant_ids: tuple[int, ...]
-        :return: Ancestry predictions and PCs dataframe, or None if data unavailable.
-        :rtype: pl.DataFrame | None
+
+        Args:
+            user_project: Google Cloud project ID for requester pays access.
+            participant_ids: Participant IDs to retrieve ancestry data for.
+
+        Returns:
+            Ancestry predictions and PCs dataframe, or None if data unavailable.
         """
         n_pc = 16  # AoU specific
         if self.db_version in range(6, self.aou_max_version+1):
@@ -702,15 +691,16 @@ class Cohort:
     ) -> pl.DataFrame:
         """
         Generate covariate data for specified participant IDs.
-        
+
         Core internal function that retrieves demographic, clinical, and genetic
         covariates based on instance configuration. Queries All of Us database
         for age, sex, EHR statistics, and ancestry data as requested.
-        
-        :param participant_ids: Participant IDs to retrieve covariates for.
-        :type participant_ids: tuple[int, ...]
-        :return: Dataframe containing requested covariates for participants.
-        :rtype: pl.DataFrame
+
+        Args:
+            participant_ids: Participant IDs to retrieve covariates for.
+
+        Returns:
+            Dataframe containing requested covariates for participants.
         """
 
         # initial data prep
@@ -801,51 +791,31 @@ class Cohort:
     ) -> None:
         """
         Add demographic, clinical, and genetic covariates to existing cohort.
-        
+
         Retrieves specified covariates from database and merges with input cohort file.
         Uses multi-threading for efficient processing of large cohorts. Supports
         various demographic, EHR-derived, and genetic ancestry variables.
-        
-        :param cohort_file_path: Path to cohort CSV or TSV file containing person_id column.
-        :type cohort_file_path: str | None
-        :param date_of_birth: Include participant date of birth.
-        :type date_of_birth: bool
-        :param year_of_birth: Include year of birth for participants.
-        :type year_of_birth: bool
-        :param current_age: Include current age of participants.
-        :type current_age: bool
-        :param current_age_squared: Include current age squared for participants.
-        :type current_age_squared: bool
-        :param current_age_cubed: Include current age cubed for participants.
-        :type current_age_cubed: bool
-        :param sex_at_birth: Include sex at birth from survey and observation data.
-        :type sex_at_birth: bool
-        :param last_ehr_date: Include date of last diagnosis event in EHR.
-        :type last_ehr_date: bool
-        :param age_at_last_ehr_event: Include age at last diagnosis event in EHR.
-        :type age_at_last_ehr_event: bool
-        :param age_at_last_ehr_event_squared: Include age at last diagnosis event squared.
-        :type age_at_last_ehr_event_squared: bool
-        :param age_at_last_ehr_event_cubed: Include age at last diagnosis event cubed.
-        :type age_at_last_ehr_event_cubed: bool
-        :param ehr_length: Include number of years that EHR record spans.
-        :type ehr_length: bool
-        :param dx_code_occurrence_count: Include count of diagnosis code occurrences on unique dates throughout EHR history.
-        :type dx_code_occurrence_count: bool
-        :param dx_condition_count: Include count of unique diagnosis conditions throughout EHR history.
-        :type dx_condition_count: bool
-        :param genetic_ancestry: Include predicted ancestry based on sequencing data.
-        :type genetic_ancestry: bool
-        :param first_n_pcs: Number of first principal components to include (0 for none).
-        :type first_n_pcs: int
-        :param chunk_size: Number of participant IDs per processing thread.
-        :type chunk_size: int
-        :param drop_nulls: Whether to drop rows with null values.
-        :type drop_nulls: bool
-        :param output_file_path: Path to output TSV file, can include \".tsv\" extension.
-        :type output_file_path: str | None
-        :return: Creates enhanced cohort TSV file with requested covariates.
-        :rtype: None
+
+        Args:
+            cohort_file_path: Path to cohort CSV or TSV file containing person_id column.
+            date_of_birth: Include participant date of birth.
+            year_of_birth: Include year of birth for participants.
+            current_age: Include current age of participants.
+            current_age_squared: Include current age squared for participants.
+            current_age_cubed: Include current age cubed for participants.
+            sex_at_birth: Include sex at birth from survey and observation data.
+            last_ehr_date: Include date of last diagnosis event in EHR.
+            age_at_last_ehr_event: Include age at last diagnosis event in EHR.
+            age_at_last_ehr_event_squared: Include age at last diagnosis event squared.
+            age_at_last_ehr_event_cubed: Include age at last diagnosis event cubed.
+            ehr_length: Include number of years that EHR record spans.
+            dx_code_occurrence_count: Include count of diagnosis code occurrences on unique dates throughout EHR history.
+            dx_condition_count: Include count of unique diagnosis conditions throughout EHR history.
+            genetic_ancestry: Include predicted ancestry based on sequencing data.
+            first_n_pcs: Number of first principal components to include (0 for none).
+            chunk_size: Number of participant IDs per processing thread.
+            drop_nulls: Whether to drop rows with null values.
+            output_file_path: Path to output TSV file, can include \".tsv\" extension.
         """
         # assign attributes
         self.date_of_birth = date_of_birth

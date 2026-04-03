@@ -27,12 +27,10 @@ class Phecode:
         All of Us OMOP database or custom file. Validates vocabulary types and
         creates ICD version flags for downstream processing.
 
-        :param platform: Data platform, supports "aou" (All of Us) or "custom".
-        :type platform: str
-        :param icd_file_path: Path to ICD table CSV/TSV file with columns "person_id", "ICD", "vocabulary_id".
-        :type icd_file_path: str | None
-        :param gbq_dataset_id: BigQuery dataset ID. Overrides WORKSPACE_CDR on AoU.
-        :type gbq_dataset_id: str | None
+        Args:
+            platform: Data platform, supports "aou" (All of Us) or "custom".
+            icd_file_path: Path to ICD table CSV/TSV file with columns "person_id", "ICD", "vocabulary_id".
+            gbq_dataset_id: BigQuery dataset ID. Overrides WORKSPACE_CDR on AoU.
         """
         self.platform = platform
 
@@ -96,21 +94,19 @@ class Phecode:
     ) -> None:
         """
         Generate phecode counts from ICD code data.
-        
+
         Maps ICD codes to phecodes using specified version and mapping table,
         aggregates counts per person-phecode combination, and calculates first
         event dates. Creates output file with person-level phecode statistics.
-        
-        :param phecode_version: Phecode version to use, "X" or "1.2".
-        :type phecode_version: str
-        :param icd_version: ICD mapping version, "US", "WHO", or "custom".
-        :type icd_version: str
-        :param phecode_map_file_path: Path to custom phecode mapping table.
-        :type phecode_map_file_path: str | None
-        :param output_file_path: Path for output TSV file.
-        :type output_file_path: str | None
-        :return: Creates phecode counts TSV file with person_id, phecode, count, and first_event_date.
-        :rtype: None
+
+        Args:
+            phecode_version: Phecode version to use, "X" or "1.2".
+            icd_version: ICD mapping version, "US", "WHO", or "custom".
+            phecode_map_file_path: Path to custom phecode mapping table.
+            output_file_path: Path for output TSV file.
+
+        Returns:
+            Creates phecode counts TSV file with person_id, phecode, count, and first_event_date.
         """        
         # load the phecode mapping file by version or by custom path
         phecode_df = _utils.get_phecode_mapping_table(
@@ -177,17 +173,17 @@ class Phecode:
     ) -> None:
         """
         Calculate age at first phecode event for each participant.
-        
+
         Retrieves participant birth dates from OMOP database and calculates
         age at first phecode occurrence. Uses chunked processing for efficient
         handling of large datasets.
-        
-        :param phecode_count_file_path: Path to phecode counts TSV file with person_id, phecode, and first_event_date columns.
-        :type phecode_count_file_path: str
-        :param output_file_path: Path for output file with age calculations.
-        :type output_file_path: str | None
-        :return: Creates enhanced phecode counts TSV file with age_at_first_event column.
-        :rtype: None
+
+        Args:
+            phecode_count_file_path: Path to phecode counts TSV file with person_id, phecode, and first_event_date columns.
+            output_file_path: Path for output file with age calculations.
+
+        Returns:
+            Creates enhanced phecode counts TSV file with age_at_first_event column.
         """
         print("Calculating age at first event...")
         sep = _utils.detect_delimiter(phecode_count_file_path)
@@ -244,23 +240,20 @@ class Phecode:
     ) -> None:
         """
         Calculate time from study start to first phecode event for survival analysis.
-        
+
         Computes time-to-event for each phecode relative to participant study
         start dates. Useful for Cox regression and time-to-event analyses in
         longitudinal cohort studies.
-        
-        :param phecode_count_file_path: Path to phecode counts CSV/TSV file.
-        :type phecode_count_file_path: str
-        :param cohort_file_path: Path to cohort CSV/TSV file with study start dates.
-        :type cohort_file_path: str
-        :param study_start_date_col: Column name containing study start dates.
-        :type study_start_date_col: str
-        :param time_unit: Time unit for calculations, "days" or "years".
-        :type time_unit: str
-        :param output_file_path: Path for output file with time calculations.
-        :type output_file_path: str | None
-        :return: Creates enhanced phecode counts TSV file with phecode_time_to_event column.
-        :rtype: None
+
+        Args:
+            phecode_count_file_path: Path to phecode counts CSV/TSV file.
+            cohort_file_path: Path to cohort CSV/TSV file with study start dates.
+            study_start_date_col: Column name containing study start dates.
+            time_unit: Time unit for calculations, "days" or "years".
+            output_file_path: Path for output file with time calculations.
+
+        Returns:
+            Creates enhanced phecode counts TSV file with phecode_time_to_event column.
         """
 
         print("Calculating time to event for each phecode...")
