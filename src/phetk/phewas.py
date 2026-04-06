@@ -520,7 +520,7 @@ class PheWAS:
             # otherwise, data is fine as is, i.e., nothing needed to be done
             if (
                 (sex_restriction == "Male" and male_value not in sex_values)
-                or (sex_restriction == "Male") and (male_value not in sex_values)
+                or (sex_restriction == "Female" and female_value not in sex_values)
             ):
                 return pl.DataFrame(), pl.DataFrame(), []
 
