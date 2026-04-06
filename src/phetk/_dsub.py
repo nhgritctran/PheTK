@@ -66,6 +66,19 @@ class Dsub:
             custom_args: Additional custom arguments for dsub command.
             use_aou_docker_prefix: Whether to prepend AoU artifact registry prefix.
         """
+        # Set up Verily Workbench env vars if needed
+        _utils.setup_verily_env()
+
+        # Re-read env vars for params that defaulted to None at import time
+        if user_project is None:
+            user_project = os.getenv("GOOGLE_PROJECT")
+        if project is None:
+            project = os.getenv("GOOGLE_PROJECT")
+        if bucket is None:
+            bucket = os.getenv("WORKSPACE_BUCKET")
+        if google_project is None:
+            google_project = os.getenv("GOOGLE_PROJECT")
+
         # Standard attributes
         self.docker_image = docker_image
         self.job_script_name = job_script_name

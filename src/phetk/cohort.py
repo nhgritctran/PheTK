@@ -46,6 +46,7 @@ class Cohort:
 
         # generate attributes for AoU class instance
         if self.platform == "aou":
+            _utils.setup_verily_env()
             self.db_version = aou_db_version
             if gbq_dataset_id is not None:
                 self.cdr = gbq_dataset_id

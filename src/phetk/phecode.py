@@ -35,13 +35,15 @@ class Phecode:
         self.platform = platform
 
         if platform == "aou":
+            _utils.setup_verily_env()
             if gbq_dataset_id is not None:
                 self.cdr = gbq_dataset_id
             else:
                 self.cdr = os.getenv("WORKSPACE_CDR")
             if self.cdr is None:
                 print("WORKSPACE_CDR environment variable is not set. "
-                      "Please provide gbq_dataset_id in the constructor: "
+                      "On Verily Workbench, run phetk.setup_verily_env() first. "
+                      "Or provide gbq_dataset_id in the constructor: "
                       "Phecode(gbq_dataset_id=\"your_dataset_id\"), "
                       "or use Phecode(platform=\"custom\", icd_file_path=\"...\") "
                       "for non-AoU environments.")

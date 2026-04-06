@@ -5,12 +5,109 @@ from tqdm import tqdm
 
 import argparse
 import csv
+import json
 import os
 import polars as pl
 import psutil
 import pyarrow as pa
+import re
+import subprocess
 import sys
 import time
+
+
+def setup_verily_env() -> None:
+    """
+    Set up environment variables for the Verily Workbench platform.
+
+    Extracts GOOGLE_PROJECT, GOOGLE_CLOUD_PROJECT, and WORKSPACE_CDR from the
+    Verily `wb` CLI and sets only the ones not already present in the environment.
+    If multiple CDR datasets are found, the latest version is selected based on
+    the C{year}Q{quarter}R{release} naming convention.
+
+    Silently returns if the `wb` CLI is not available (i.e., not on Verily Workbench).
+    """
+    env_vars = ["GOOGLE_PROJECT", "GOOGLE_CLOUD_PROJECT", "WORKSPACE_CDR"]
+    already_set = {v for v in env_vars if os.environ.get(v)}
+
+    if already_set == set(env_vars):
+        print("All Verily environment variables already set.")
+        return
+
+    try:
+        # Detect Verily Workbench
+        result = subprocess.run(
+            ["wb", "workspace", "describe", "--format=json"],
+            capture_output=True, text=True, timeout=30
+        )
+        if result.returncode != 0:
+            return
+        print("Verily Workbench detected. Checking environment variables...")
+        workspace_info = json.loads(result.stdout)
+
+        # Get Google project ID
+        if "GOOGLE_PROJECT" not in already_set or "GOOGLE_CLOUD_PROJECT" not in already_set:
+            project_id = workspace_info.get("googleProjectId")
+            if project_id:
+                if "GOOGLE_PROJECT" not in already_set:
+                    os.environ["GOOGLE_PROJECT"] = project_id
+                if "GOOGLE_CLOUD_PROJECT" not in already_set:
+                    os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
+
+        # Get WORKSPACE_CDR
+        if "WORKSPACE_CDR" not in already_set:
+            result = subprocess.run(
+                ["wb", "resource", "list", "--format=json"],
+                capture_output=True, text=True, timeout=30
+            )
+            if result.returncode != 0:
+                print(f"Warning: 'wb resource list' failed (exit code {result.returncode}).")
+                if result.stderr:
+                    print(f"  {result.stderr.strip()}")
+                return
+            resources = json.loads(result.stdout)
+
+            cdr_candidates = []
+            for resource in resources:
+                resource_type = resource.get("resourceType", "")
+                if resource_type not in ("BQ_DATASET", "BIGQUERY_DATASET"):
+                    continue
+                dataset_id = resource.get("datasetId", "")
+                project_id = resource.get("projectId", "")
+                match = re.match(r"^C(\d{4})Q(\d+)R(\d+)$", dataset_id)
+                if match:
+                    sort_key = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+                    cdr_candidates.append((sort_key, project_id, dataset_id))
+
+            if cdr_candidates:
+                cdr_candidates.sort()
+                _, best_project, best_dataset = cdr_candidates[-1]
+                os.environ["WORKSPACE_CDR"] = f"{best_project}.{best_dataset}"
+            else:
+                print("Warning: No CDR dataset matching pattern C{year}Q{quarter}R{release} found.")
+
+        # Print summary
+        newly_set = []
+        skipped = []
+        for v in env_vars:
+            if v in already_set:
+                skipped.append(f"  {v}={os.environ[v]}")
+            elif os.environ.get(v):
+                newly_set.append(f"  {v}={os.environ[v]}")
+        if newly_set:
+            print("Verily Workbench environment variables set:")
+            for line in newly_set:
+                print(line)
+        if skipped:
+            print("Already set (skipped):")
+            for line in skipped:
+                print(line)
+
+    except FileNotFoundError:
+        # wb CLI not found — not on Verily Workbench
+        return
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, KeyError):
+        return
 
 
 def str_to_bool(v) -> bool:
