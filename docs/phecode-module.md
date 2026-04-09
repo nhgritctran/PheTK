@@ -2,6 +2,10 @@
 
 Extract ICD codes and map them to phecodes for phenome-wide association studies.
 
+### Recommended VM Configuration
+For the full _All of Us_ CDR v8 cohort, a **4 CPU / 26 GB RAM** VM with `engine="duckdb"` has been tested and is sufficient for `count_phecode`. DuckDB keeps memory bounded via its spill-capable pipeline, so this modest config is enough even on the full v8 cohort.
+Polars is a bit faster, but requires more RAM, e.g. **16 CPU / 104 GB RAM** for the full v8 cohort.
+
 ## count_phecode
 
 Generate phecode counts from ICD code data. Maps ICD codes to phecodes and aggregates counts per person-phecode combination.
@@ -11,6 +15,8 @@ Generate phecode counts from ICD code data. Maps ICD codes to phecodes and aggre
 - `icd_version`: ICD mapping version, "US", "WHO", or "custom" (str, default: "US")
 - `phecode_map_file_path`: Path to custom phecode mapping table (str, optional)
 - `output_file_path`: Path for output TSV file (str, optional)
+- `engine`: Backend used for the ICD→phecode join and aggregation, `"duckdb"` or `"polars"` (str, default: `"duckdb"`). `"duckdb"` uses a streaming, spill-capable pipeline with a configurable memory ceiling, which keeps memory bounded on large cohorts. `"polars"` runs fully in-memory and is typically a bit faster when the working set comfortably fits in RAM.
+- `memory_limit`: DuckDB memory ceiling, e.g. `"10GB"` (str, optional). Only used when `engine="duckdb"`. Defaults to ~90% of currently available RAM when not provided.
 
 ### Notebook Example
 ```python
@@ -21,7 +27,8 @@ phecode = Phecode(platform="aou")
 phecode.count_phecode(
     phecode_version="X",
     icd_version="US",
-    output_file_path="phecode_counts.tsv"
+    output_file_path="phecode_counts.tsv",
+    engine="duckdb",
 )
 ```
 
@@ -31,7 +38,8 @@ phetk phecode count-phecode \
   --platform "aou" \
   --phecode_version "X" \
   --icd_version "US" \
-  --output_file_path "phecode_counts.tsv"
+  --output_file_path "phecode_counts.tsv" \
+  --engine "duckdb"
 ```
 
 ## add_age_at_first_event
