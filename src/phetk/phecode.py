@@ -1,8 +1,42 @@
 import os
+import duckdb
 import polars as pl
+import psutil
 import sys
 # noinspection PyUnresolvedReferences,PyProtectedMember
 from phetk import _queries, _utils
+
+
+def _enable_line_buffered_stdout() -> None:
+    """
+    Force stdout to line-buffered so CLI progress prints show up immediately.
+
+    Under non-TTY stdouts (dsub logs, piped terminals, captured subprocesses)
+    Python defaults to block buffering, which makes phetk CLI runs look
+    completely silent until the process exits. Switching to line buffering
+    flushes on every newline -- cheap, safe, and makes `print(...)` Just Work.
+    """
+    try:
+        sys.stdout.reconfigure(line_buffering=True)
+        sys.stderr.reconfigure(line_buffering=True)
+    except Exception:
+        # older Python / exotic streams: fall back silently; callers that
+        # really need a flush can still use print(..., flush=True).
+        pass
+
+
+def _auto_memory_limit_gb(fraction: float = 0.9, minimum_gb: int = 4) -> int:
+    """
+    Pick a DuckDB memory_limit based on currently-available RAM.
+
+    Uses psutil.virtual_memory().available (not total) so already-resident
+    objects like self.icd_events are accounted for. The default fraction
+    (90% of available) leaves a thin margin for the OS and for the polars
+    DataFrame we hand back after the join + aggregation -- the aggregated
+    result is small, so this margin doesn't need to be large.
+    """
+    available_gb = psutil.virtual_memory().available // (1024 ** 3)
+    return max(minimum_gb, int(available_gb * fraction))
 
 
 class Phecode:
@@ -49,13 +83,13 @@ class Phecode:
                       "for non-AoU environments.")
                 sys.exit(1)
             self.icd_query = _queries.phecode_icd_query(self.cdr)
-            print("Start querying ICD codes...")
+            print("Start querying ICD codes...", flush=True)
             self.icd_events = _utils.polars_gbq(self.icd_query)
 
         elif platform == "custom":
             self.cdr = gbq_dataset_id
             if icd_file_path is not None:
-                print("Loading user's ICD data from file...")
+                print("Loading user's ICD data from file...", flush=True)
                 sep = _utils.detect_delimiter(icd_file_path)
                 self.icd_events = pl.read_csv(
                     icd_file_path,
@@ -85,14 +119,16 @@ class Phecode:
         else:
             self.icd_events = self.icd_events.with_columns(pl.col("flag").cast(pl.Int8))
 
-        print("Done!")
+        print("Done!", flush=True)
 
     def count_phecode(
             self,
             phecode_version: str = "X",
             icd_version: str = "US",
             phecode_map_file_path: str | None = None,
-            output_file_path: str | None = None
+            output_file_path: str | None = None,
+            engine: str = "duckdb",
+            memory_limit: str | None = None,
     ) -> None:
         """
         Generate phecode counts from ICD code data.
@@ -106,10 +142,21 @@ class Phecode:
             icd_version: ICD mapping version, "US", "WHO", or "custom".
             phecode_map_file_path: Path to custom phecode mapping table.
             output_file_path: Path for output TSV file.
+            engine: Execution engine for the ICD->phecode mapping step.
+                "duckdb" (default): DuckDB performs the join + group_by, spilling
+                to disk if it exceeds `memory_limit`. Handles large cohorts
+                (e.g. full AoU v8) without OOM.
+                "polars": in-memory polars join. Lowest overhead for
+                small/medium cohorts but can OOM on very large cohorts.
+            memory_limit: DuckDB memory limit (e.g. "64GB"). Only used when
+                engine="duckdb". If None (default), auto-sized to ~90% of
+                currently-available RAM, which keeps the join in memory on
+                large AoU VMs (e.g. ~90 GB on a 104 GB machine) instead of
+                forcing it to spill and crawl.
 
         Returns:
             Creates phecode counts TSV file with person_id, phecode, count, and first_event_date.
-        """        
+        """
         # load the phecode mapping file by version or by custom path
         phecode_df = _utils.get_phecode_mapping_table(
             phecode_version=phecode_version,
@@ -122,48 +169,127 @@ class Phecode:
         if phecode_version == "1.2":
             phecode_version_string = " " + phecode_version
 
-        # make a copy of self.icd_events
-        icd_events = self.icd_events.clone()
+        # resolve output path once (shared across engines)
+        if output_file_path is None:
+            file_path = "{0}_{1}_phecode{2}_counts.tsv".format(
+                self.platform, icd_version, phecode_version.upper().replace(".", ""))
+        else:
+            file_path = output_file_path
 
-        # keep only the necessary columns
-        icd_events = icd_events[["person_id", "date", "ICD", "flag"]]
+        # shared: select only the needed columns (no clone -- polars returns a new frame,
+        # self.icd_events is not mutated, so this is safe to reuse across engines and
+        # across multiple count_phecode calls on the same instance)
+        icd_events = self.icd_events.select(["person_id", "date", "ICD", "flag"])
 
         print()
-        print(f"Mapping ICD codes to phecode{phecode_version_string}...")
-        if phecode_version == "X":
-            phecode_counts = icd_events.join(phecode_df,
-                                             how="inner",
-                                             on=["ICD", "flag"])
-        elif phecode_version == "1.2":
-            phecode_counts = icd_events.join(phecode_df,
-                                             how="inner",
-                                             on=["ICD", "flag"])
-            phecode_counts = phecode_counts.rename({"phecode_unrolled": "phecode"})
-        else:
-            phecode_counts = pl.DataFrame()
-            
-        if not phecode_counts.is_empty():
-            phecode_counts = phecode_counts.group_by(
-                ["person_id", "phecode"]
-            ).agg(
-                pl.len(), pl.col("date").min()
-            ).rename(
-                {"len": "count", "date": "first_event_date"}
-            )
+        print(f"Mapping ICD codes to phecode{phecode_version_string}...", flush=True)
 
-        # report result
-        if not phecode_counts.is_empty():
-            if output_file_path is None:
-                file_path = "{0}_{1}_phecode{2}_counts.tsv".format(self.platform, icd_version,
-                                                                   phecode_version.upper().replace(".", ""))
+        if engine == "polars":
+            # ---------- polars path (existing logic minus redundant clone) ----------
+            if phecode_version == "X":
+                phecode_counts = icd_events.join(phecode_df,
+                                                 how="inner",
+                                                 on=["ICD", "flag"])
+            elif phecode_version == "1.2":
+                phecode_counts = icd_events.join(phecode_df,
+                                                 how="inner",
+                                                 on=["ICD", "flag"])
+                phecode_counts = phecode_counts.rename({"phecode_unrolled": "phecode"})
             else:
-                file_path = output_file_path
+                phecode_counts = pl.DataFrame()
+
+            if not phecode_counts.is_empty():
+                phecode_counts = phecode_counts.group_by(
+                    ["person_id", "phecode"]
+                ).agg(
+                    pl.len(), pl.col("date").min()
+                ).rename(
+                    {"len": "count", "date": "first_event_date"}
+                )
+
+        elif engine == "duckdb":
+            # ---------- duckdb path ----------
+            # DuckDB performs the row-multiplying join + aggregation. On a large
+            # VM with a properly sized memory_limit this runs entirely in RAM;
+            # if the intermediate exceeds memory_limit DuckDB spills to disk
+            # instead of OOM-ing.
+            #
+            # We then hand the small aggregated result back to polars zero-copy
+            # via Arrow and let polars's object-store backend handle the write
+            # -- this is what makes gs:// / s3:// destinations work without
+            # configuring DuckDB's httpfs extension and credentials.
+            #
+            # The aggregated result is bounded by the number of unique
+            # (person_id, phecode) pairs, which is orders of magnitude smaller
+            # than the join expansion, so it fits in RAM even when the join
+            # itself does not.
+            if memory_limit is None:
+                resolved_memory_limit = f"{_auto_memory_limit_gb()}GB"
+            else:
+                resolved_memory_limit = memory_limit
+            n_threads = psutil.cpu_count(logical=True) or 1
+            print(
+                f"  DuckDB engine: memory_limit={resolved_memory_limit}, "
+                f"threads={n_threads}",
+                flush=True,
+            )
+            with duckdb.connect() as con:
+                con.execute(f"PRAGMA memory_limit='{resolved_memory_limit}'")
+                con.execute(f"PRAGMA threads={n_threads}")
+                con.register("events_view", icd_events)
+                con.register("mapping_view", phecode_df)
+
+                if phecode_version == "X":
+                    # phecode mapping already has a "phecode" column for version X
+                    sql = """
+                        SELECT
+                            e.person_id,
+                            m.phecode          AS phecode,
+                            COUNT(*)           AS count,
+                            MIN(e.date)        AS first_event_date
+                        FROM events_view AS e
+                        INNER JOIN mapping_view AS m USING (ICD, flag)
+                        GROUP BY e.person_id, m.phecode
+                    """
+                elif phecode_version == "1.2":
+                    # phecode 1.2 mapping uses "phecode_unrolled" -- rename via SQL alias.
+                    # GROUP BY references the raw column because SELECT aliases
+                    # aren't visible in GROUP BY in standard SQL.
+                    sql = """
+                        SELECT
+                            e.person_id,
+                            m.phecode_unrolled AS phecode,
+                            COUNT(*)           AS count,
+                            MIN(e.date)        AS first_event_date
+                        FROM events_view AS e
+                        INNER JOIN mapping_view AS m USING (ICD, flag)
+                        GROUP BY e.person_id, m.phecode_unrolled
+                    """
+                else:
+                    sql = None
+
+                if sql is not None:
+                    # .pl() returns a polars DataFrame backed by an Arrow result;
+                    # the buffers are owned by the polars frame and remain valid
+                    # after the connection is closed.
+                    phecode_counts = con.execute(sql).pl()
+                else:
+                    phecode_counts = pl.DataFrame()
+
+        else:
+            raise ValueError(f"engine must be 'polars' or 'duckdb', got {engine!r}")
+
+        # shared write + reporting
+        if not phecode_counts.is_empty():
+            print()
+            print(f"Mapping done. Writing output to {file_path}...", flush=True)
+            # polars handles local paths and cloud paths (gs://, s3://, ...)
+            # via its built-in object-store backend.
             phecode_counts.write_csv(file_path, separator="\t")
             print(f"Successfully generated phecode{phecode_version} counts for cohort participants!")
             print()
             print(f"Saved to\033[1m {file_path}\033[0m")
             print()
-
         else:
             print("\033[1mNo phecode count generated. Check your input data.\033[0m")
             print()
@@ -303,7 +429,9 @@ class Phecode:
 def main_count_phecode():
     """Main entry point for count-phecode CLI command."""
     import argparse
-    
+
+    _enable_line_buffered_stdout()
+
     parser = argparse.ArgumentParser(
         description="Generate phecode counts from ICD code data"
     )
@@ -327,9 +455,18 @@ def main_count_phecode():
     # Output argument
     parser.add_argument("--output_file_path", "-o", type=str, default=None,
                         help="Path for output TSV file")
-    
+
+    # Engine argument
+    parser.add_argument("--engine", type=str, default="duckdb", choices=["duckdb", "polars"],
+                        help="Execution engine for ICD->phecode mapping: "
+                             "'duckdb' (default, out-of-core, recommended for large cohorts) "
+                             "or 'polars' (in-memory)")
+    parser.add_argument("--memory_limit", type=str, default=None,
+                        help="DuckDB memory limit (e.g. '64GB'). Only used with --engine=duckdb. "
+                             "If omitted, auto-sized to ~90%% of available RAM.")
+
     args = parser.parse_args()
-    
+
     # Create phecode instance
     phecode = Phecode(
         platform=args.platform,
@@ -342,14 +479,18 @@ def main_count_phecode():
         phecode_version=args.phecode_version,
         icd_version=args.icd_version,
         phecode_map_file_path=args.phecode_map_file_path,
-        output_file_path=args.output_file_path
+        output_file_path=args.output_file_path,
+        engine=args.engine,
+        memory_limit=args.memory_limit,
     )
 
 
 def main_add_age_at_first_event():
     """Main entry point for add-age-at-first-event CLI command."""
     import argparse
-    
+
+    _enable_line_buffered_stdout()
+
     parser = argparse.ArgumentParser(
         description="Calculate age at first phecode event for each participant"
     )
@@ -389,7 +530,9 @@ def main_add_age_at_first_event():
 def main_add_phecode_time_to_event():
     """Main entry point for add-phecode-time-to-event CLI command."""
     import argparse
-    
+
+    _enable_line_buffered_stdout()
+
     parser = argparse.ArgumentParser(
         description="Calculate time from study start to first phecode event for survival analysis"
     )

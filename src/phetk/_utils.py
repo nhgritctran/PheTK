@@ -30,8 +30,10 @@ def setup_verily_env() -> None:
     env_vars = ["GOOGLE_PROJECT", "GOOGLE_CLOUD_PROJECT", "WORKSPACE_CDR"]
     already_set = {v for v in env_vars if os.environ.get(v)}
 
-    if already_set == set(env_vars):
-        print("All Verily environment variables already set.")
+    # If the AoU-essential vars are already set (e.g., on Terra), skip the wb
+    # CLI call entirely. GOOGLE_CLOUD_PROJECT is Verily-specific and not needed
+    # on Terra.
+    if "GOOGLE_PROJECT" in already_set and "WORKSPACE_CDR" in already_set:
         return
 
     try:
@@ -103,8 +105,8 @@ def setup_verily_env() -> None:
             for line in skipped:
                 print(line)
 
-    except FileNotFoundError:
-        # wb CLI not found — not on Verily Workbench
+    except (FileNotFoundError, PermissionError):
+        # wb CLI not found or not executable — not on Verily Workbench
         return
     except (subprocess.TimeoutExpired, json.JSONDecodeError, KeyError):
         return
