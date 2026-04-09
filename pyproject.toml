@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "phetk"
-version = "0.2.6"
+version = "0.2.7"
 requires-python = ">=3.10"
 license = {text = "GPL-3.0"}
 authors = [
@@ -23,6 +23,7 @@ readme = "README.md"
 dependencies = [
     "adjusttext",
     "connectorx",
+    "duckdb",
     "google-cloud-bigquery",
     "google-cloud-storage",
     "lifelines>=0.28.0,<0.30.1",
