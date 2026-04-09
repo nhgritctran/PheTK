@@ -2,8 +2,108 @@
 Unit tests for _dsub.py — test Dsub construction, command generation, and argument merging.
 No actual GCP/dsub calls are made.
 """
+import subprocess
+from unittest.mock import patch, MagicMock
+
 import pytest
-from phetk._dsub import Dsub
+
+import phetk._utils as _utils
+from phetk._dsub import Dsub, _check_dsub_version, _PINNED_DSUB_VERSION
+
+
+@pytest.fixture(autouse=True)
+def _reset_verily_cache():
+    """
+    Reset the module-level Verily detection cache before and after every test
+    so cross-test contamination is impossible.
+    """
+    _utils._VERILY_WORKBENCH_CACHED = None
+    yield
+    _utils._VERILY_WORKBENCH_CACHED = None
+
+
+def _make_subprocess_result(stdout: str = "", stderr: str = "", returncode: int = 0):
+    """Build a MagicMock that mimics a subprocess.CompletedProcess."""
+    m = MagicMock()
+    m.stdout = stdout
+    m.stderr = stderr
+    m.returncode = returncode
+    return m
+
+
+def _default_subprocess_router(cmd, *args, **kwargs):
+    """
+    Default subprocess.run stub used by the autouse fixture.
+
+    Routes by inspecting the command list:
+        - `wb workspace ...` → FileNotFoundError (i.e., not on Verily)
+        - `dsub --version`   → returncode=0, stdout="dsub version 0.5.0"
+        - anything else      → harmless empty-stdout success result
+    """
+    if isinstance(cmd, list):
+        if cmd[:2] == ["wb", "workspace"]:
+            raise FileNotFoundError("wb not installed")
+        if cmd[:1] == ["dsub"] and "--version" in cmd:
+            return _make_subprocess_result(
+                stdout=f"dsub version {_PINNED_DSUB_VERSION}\n",
+            )
+    return _make_subprocess_result()
+
+
+@pytest.fixture(autouse=True)
+def _mock_dsub_and_wb_subprocess(request):
+    """
+    Globally stub out subprocess.run for the external CLIs this module probes
+    (`dsub --version` and `wb workspace describe`) so no test ever shells out.
+
+    Tests that need to customise subprocess behaviour should declare the
+    explicit `mock_subprocess` fixture, in which case this fixture yields
+    without patching.
+    """
+    if "mock_subprocess" in request.fixturenames:
+        yield
+        return
+
+    with patch("subprocess.run", side_effect=_default_subprocess_router):
+        yield
+
+
+@pytest.fixture
+def mock_subprocess():
+    """
+    Single subprocess.run patch shared by `phetk._dsub` and `phetk._utils`.
+
+    Both modules `import subprocess` at module level, so a single patch of
+    `subprocess.run` replaces the attribute globally for both. Tests that
+    exercise only one CLI can use `.return_value`; tests that trigger both
+    (e.g. `Dsub.__init__`, which calls both `is_verily_workbench` and
+    `_check_dsub_version`) should use `.side_effect` with a routing function.
+
+    The returned dict aliases both `"dsub"` and `"utils"` to the same mock
+    so existing dict-style access patterns continue to work.
+    """
+    with patch("subprocess.run") as m:
+        yield {"dsub": m, "utils": m, "run": m}
+
+
+def _routing_side_effect(wb_returncode: int = 0, dsub_version: str = _PINNED_DSUB_VERSION):
+    """
+    Build a side_effect callable that routes `subprocess.run` calls by the
+    command keyword. Used in tests where Dsub.__init__ triggers both a
+    `wb workspace describe` and a `dsub --version` subprocess call.
+    """
+    def _fake(cmd, *args, **kwargs):
+        if isinstance(cmd, list):
+            if cmd[:2] == ["wb", "workspace"]:
+                return _make_subprocess_result(
+                    stdout="{}", returncode=wb_returncode,
+                )
+            if cmd[:1] == ["dsub"] and "--version" in cmd:
+                return _make_subprocess_result(
+                    stdout=f"dsub version {dsub_version}\n",
+                )
+        return _make_subprocess_result()
+    return _fake
 
 
 @pytest.fixture
@@ -253,3 +353,214 @@ class TestCheckJobStatus:
         stdout = "status: error\nlast-update: '2024-01-01'"
         _, _, has_failed, _, _, _ = dsub._check_job_status(stdout)
         assert has_failed is True
+
+
+# ---------------------------------------------------------------------------
+# Verily Workbench detection (_utils.is_verily_workbench)
+# ---------------------------------------------------------------------------
+
+class TestIsVerilyWorkbench:
+    def test_returns_true_when_wb_succeeds(self, mock_subprocess):
+        result = MagicMock(returncode=0, stdout="{}", stderr="")
+        mock_subprocess["utils"].return_value = result
+        assert _utils.is_verily_workbench() is True
+
+    def test_returns_false_when_wb_returns_nonzero(self, mock_subprocess):
+        result = MagicMock(returncode=1, stdout="", stderr="error")
+        mock_subprocess["utils"].return_value = result
+        assert _utils.is_verily_workbench() is False
+
+    def test_returns_false_when_wb_not_installed(self, mock_subprocess):
+        mock_subprocess["utils"].side_effect = FileNotFoundError("wb not found")
+        assert _utils.is_verily_workbench() is False
+
+    def test_returns_false_on_timeout(self, mock_subprocess):
+        mock_subprocess["utils"].side_effect = subprocess.TimeoutExpired("wb", 10)
+        assert _utils.is_verily_workbench() is False
+
+    def test_result_is_cached(self, mock_subprocess):
+        result = MagicMock(returncode=0, stdout="{}", stderr="")
+        mock_subprocess["utils"].return_value = result
+        assert _utils.is_verily_workbench() is True
+        # Second call should not shell out again.
+        mock_subprocess["utils"].reset_mock()
+        assert _utils.is_verily_workbench() is True
+        mock_subprocess["utils"].assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# dsub version check (_check_dsub_version)
+# ---------------------------------------------------------------------------
+
+class TestCheckDsubVersion:
+    def test_no_warning_when_version_matches(self, mock_subprocess, capsys):
+        result = MagicMock(
+            stdout=f"dsub version {_PINNED_DSUB_VERSION}\n",
+            stderr="",
+            returncode=0,
+        )
+        mock_subprocess["dsub"].return_value = result
+        _check_dsub_version()
+        captured = capsys.readouterr()
+        assert "Warning" not in captured.out
+
+    def test_warns_on_wrong_version(self, mock_subprocess, capsys):
+        result = MagicMock(
+            stdout="dsub version 0.4.13\n",
+            stderr="",
+            returncode=0,
+        )
+        mock_subprocess["dsub"].return_value = result
+        _check_dsub_version()
+        captured = capsys.readouterr()
+        assert "Warning" in captured.out
+        assert "0.4.13" in captured.out
+        assert _PINNED_DSUB_VERSION in captured.out
+        assert "RESTART" in captured.out
+
+    def test_warns_when_binary_missing(self, mock_subprocess, capsys):
+        mock_subprocess["dsub"].side_effect = FileNotFoundError("dsub not found")
+        _check_dsub_version()
+        captured = capsys.readouterr()
+        assert "Warning" in captured.out
+        assert "not found" in captured.out
+        assert "RESTART" in captured.out
+
+    def test_warns_on_timeout(self, mock_subprocess, capsys):
+        mock_subprocess["dsub"].side_effect = subprocess.TimeoutExpired("dsub", 10)
+        _check_dsub_version()
+        captured = capsys.readouterr()
+        assert "Warning" in captured.out
+        assert "timed out" in captured.out
+
+    def test_extracts_version_from_stderr(self, mock_subprocess, capsys):
+        # Some dsub versions write to stderr instead of stdout.
+        result = MagicMock(
+            stdout="",
+            stderr=f"dsub version {_PINNED_DSUB_VERSION}\n",
+            returncode=0,
+        )
+        mock_subprocess["dsub"].return_value = result
+        _check_dsub_version()
+        captured = capsys.readouterr()
+        assert "Warning" not in captured.out
+
+
+# ---------------------------------------------------------------------------
+# Verily auto-disable of AoU docker prefix in Dsub.__init__
+# ---------------------------------------------------------------------------
+
+class TestDsubInitVerilyAutoDisablePrefix:
+    def test_prefix_disabled_on_verily(self, aou_env, mock_subprocess, capsys):
+        # wb returns success → Verily detected; dsub version matches → no warning
+        mock_subprocess["run"].side_effect = _routing_side_effect(wb_returncode=0)
+        d = Dsub(docker_image="phetk/phetk:latest", use_aou_docker_prefix=True)
+        assert d.use_aou_docker_prefix is False
+        captured = capsys.readouterr()
+        assert "Verily Workbench detected" in captured.out
+
+    def test_prefix_preserved_on_aou(self, aou_env, mock_subprocess):
+        # wb missing → not on Verily; dsub version matches
+        def _route(cmd, *args, **kwargs):
+            if isinstance(cmd, list) and cmd[:2] == ["wb", "workspace"]:
+                raise FileNotFoundError("wb not found")
+            if isinstance(cmd, list) and cmd[:1] == ["dsub"] and "--version" in cmd:
+                return _make_subprocess_result(
+                    stdout=f"dsub version {_PINNED_DSUB_VERSION}\n",
+                )
+            return _make_subprocess_result()
+
+        mock_subprocess["run"].side_effect = _route
+        d = Dsub(docker_image="phetk/phetk:latest", use_aou_docker_prefix=True)
+        assert d.use_aou_docker_prefix is True
+
+    def test_prefix_still_false_if_user_passed_false_on_verily(
+        self, aou_env, mock_subprocess
+    ):
+        mock_subprocess["run"].side_effect = _routing_side_effect(wb_returncode=0)
+        d = Dsub(docker_image="phetk/phetk:latest", use_aou_docker_prefix=False)
+        assert d.use_aou_docker_prefix is False
+
+
+# ---------------------------------------------------------------------------
+# Base script regression tests — lock in AoU + Verily generated flags so we
+# don't inadvertently break the dsub command downstream.
+# ---------------------------------------------------------------------------
+
+class TestDsubBaseScriptAouRegression:
+    """AoU default path — must match the original pre-Verily format."""
+
+    def test_aou_uses_short_network(self, dsub):
+        assert '--network "global/networks/network"' in dsub.dsub_base_script()
+
+    def test_aou_uses_short_subnetwork(self, dsub):
+        assert '--subnetwork "regions/us-central1/subnetworks/subnetwork"' in dsub.dsub_base_script()
+
+    def test_aou_uses_gcloud_service_account(self, dsub):
+        assert '--service-account "$(gcloud config get-value account)"' in dsub.dsub_base_script()
+
+    def test_aou_image_has_prefix_when_enabled(self, aou_env):
+        d = Dsub(docker_image="phetk/phetk:latest", use_aou_docker_prefix=True)
+        script = d.dsub_base_script()
+        assert "us-docker.pkg.dev/test-project/test-repo/phetk/phetk:latest" in script
+
+    def test_aou_image_no_prefix_when_disabled(self, dsub):
+        script = dsub.dsub_base_script()
+        assert '--image "phetk/phetk:latest"' in script
+        assert "us-docker.pkg.dev" not in script
+
+
+class TestDsubBaseScriptVerilyRegression:
+    """Verily path — swaps network/subnetwork/service-account + strips prefix."""
+
+    @pytest.fixture
+    def verily_dsub(self, aou_env, mock_subprocess, monkeypatch):
+        mock_subprocess["run"].side_effect = _routing_side_effect(wb_returncode=0)
+        monkeypatch.setenv("PET_SA_EMAIL", "pet-123@verily-project.iam.gserviceaccount.com")
+        return Dsub(docker_image="phetk/phetk:latest", use_aou_docker_prefix=True)
+
+    def test_verily_uses_fully_qualified_network(self, verily_dsub):
+        assert (
+            '--network "projects/test-project-id/global/networks/network"'
+            in verily_dsub.dsub_base_script()
+        )
+
+    def test_verily_uses_fully_qualified_subnetwork(self, verily_dsub):
+        assert (
+            '--subnetwork "projects/test-project-id/regions/us-central1/subnetworks/subnetwork"'
+            in verily_dsub.dsub_base_script()
+        )
+
+    def test_verily_uses_pet_sa_email(self, verily_dsub):
+        assert (
+            '--service-account "pet-123@verily-project.iam.gserviceaccount.com"'
+            in verily_dsub.dsub_base_script()
+        )
+
+    def test_verily_falls_back_to_google_service_account_email(
+        self, aou_env, mock_subprocess, monkeypatch
+    ):
+        mock_subprocess["run"].side_effect = _routing_side_effect(wb_returncode=0)
+        monkeypatch.delenv("PET_SA_EMAIL", raising=False)
+        monkeypatch.setenv(
+            "GOOGLE_SERVICE_ACCOUNT_EMAIL",
+            "pet-456@verily-project.iam.gserviceaccount.com",
+        )
+        d = Dsub(docker_image="phetk/phetk:latest", use_aou_docker_prefix=True)
+        assert (
+            '--service-account "pet-456@verily-project.iam.gserviceaccount.com"'
+            in d.dsub_base_script()
+        )
+
+    def test_verily_image_has_no_prefix(self, verily_dsub):
+        script = verily_dsub.dsub_base_script()
+        assert '--image "phetk/phetk:latest"' in script
+        assert "us-docker.pkg.dev" not in script
+
+    def test_verily_base_script_still_contains_core_flags(self, verily_dsub):
+        script = verily_dsub.dsub_base_script()
+        assert "--provider \"google-batch\"" in script
+        assert "--regions \"us-central1\"" in script
+        assert "--machine-type \"c2d-highcpu-4\"" in script
+        assert "--boot-disk-size 50" in script
+        assert "--disk-size 256" in script
