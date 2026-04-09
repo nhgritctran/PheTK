@@ -51,51 +51,109 @@ class TestPhecodeCustomInit:
 # count_phecode
 # ---------------------------------------------------------------------------
 
+@pytest.mark.parametrize("engine", ["polars", "duckdb"])
 class TestCountPhecodeLocal:
-    def test_phecodeX_US_creates_output_file(self, custom_phecode, tmp_path):
+    def test_phecodeX_US_creates_output_file(self, custom_phecode, tmp_path, engine):
         out = str(tmp_path / "counts.tsv")
-        custom_phecode.count_phecode(phecode_version="X", icd_version="US", output_file_path=out)
+        custom_phecode.count_phecode(
+            phecode_version="X", icd_version="US", output_file_path=out, engine=engine
+        )
         assert os.path.exists(out)
 
-    def test_phecodeX_US_has_required_columns(self, custom_phecode, tmp_path):
+    def test_phecodeX_US_has_required_columns(self, custom_phecode, tmp_path, engine):
         out = str(tmp_path / "counts.tsv")
-        custom_phecode.count_phecode(phecode_version="X", icd_version="US", output_file_path=out)
+        custom_phecode.count_phecode(
+            phecode_version="X", icd_version="US", output_file_path=out, engine=engine
+        )
         result = pl.read_csv(out, separator="\t", schema_overrides={"phecode": str})
         for col in ["person_id", "phecode", "count", "first_event_date"]:
             assert col in result.columns
 
-    def test_count_values_are_positive(self, custom_phecode, tmp_path):
+    def test_count_values_are_positive(self, custom_phecode, tmp_path, engine):
         out = str(tmp_path / "counts.tsv")
-        custom_phecode.count_phecode(phecode_version="X", icd_version="US", output_file_path=out)
+        custom_phecode.count_phecode(
+            phecode_version="X", icd_version="US", output_file_path=out, engine=engine
+        )
         result = pl.read_csv(out, separator="\t", schema_overrides={"phecode": str})
         assert all(c > 0 for c in result["count"].to_list())
 
-    def test_phecode12_US_creates_output_file(self, custom_phecode, tmp_path):
+    def test_phecode12_US_creates_output_file(self, custom_phecode, tmp_path, engine):
         out = str(tmp_path / "counts12.tsv")
-        custom_phecode.count_phecode(phecode_version="1.2", icd_version="US", output_file_path=out)
+        custom_phecode.count_phecode(
+            phecode_version="1.2", icd_version="US", output_file_path=out, engine=engine
+        )
         if os.path.exists(out):
             result = pl.read_csv(out, separator="\t", schema_overrides={"phecode": str})
             assert "phecode" in result.columns
 
-    def test_phecodeX_WHO_creates_output_file(self, custom_phecode, tmp_path):
+    def test_phecodeX_WHO_creates_output_file(self, custom_phecode, tmp_path, engine):
         out = str(tmp_path / "counts_who.tsv")
-        custom_phecode.count_phecode(phecode_version="X", icd_version="WHO", output_file_path=out)
+        custom_phecode.count_phecode(
+            phecode_version="X", icd_version="WHO", output_file_path=out, engine=engine
+        )
         if os.path.exists(out):
             result = pl.read_csv(out, separator="\t", schema_overrides={"phecode": str})
             assert "phecode" in result.columns
 
-    def test_default_output_filename_generated(self, custom_phecode, tmp_path, monkeypatch):
+    def test_default_output_filename_generated(self, custom_phecode, tmp_path, monkeypatch, engine):
         monkeypatch.chdir(tmp_path)
-        custom_phecode.count_phecode(phecode_version="X", icd_version="US")
+        custom_phecode.count_phecode(phecode_version="X", icd_version="US", engine=engine)
         expected = tmp_path / "custom_US_phecodeX_counts.tsv"
         assert expected.exists()
 
-    def test_no_duplicate_person_phecode_pairs(self, custom_phecode, tmp_path):
+    def test_no_duplicate_person_phecode_pairs(self, custom_phecode, tmp_path, engine):
         out = str(tmp_path / "counts.tsv")
-        custom_phecode.count_phecode(phecode_version="X", icd_version="US", output_file_path=out)
+        custom_phecode.count_phecode(
+            phecode_version="X", icd_version="US", output_file_path=out, engine=engine
+        )
         result = pl.read_csv(out, separator="\t", schema_overrides={"phecode": str})
         n_unique = result.select(["person_id", "phecode"]).n_unique()
         assert n_unique == len(result)
+
+
+class TestCountPhecodeEngineEquivalence:
+    """Both engines must produce identical phecode count tables (row-wise)."""
+
+    def test_phecodeX_US_polars_vs_duckdb_match(self, custom_phecode, tmp_path):
+        polars_out = str(tmp_path / "counts_polars.tsv")
+        duckdb_out = str(tmp_path / "counts_duckdb.tsv")
+
+        custom_phecode.count_phecode(
+            phecode_version="X", icd_version="US",
+            output_file_path=polars_out, engine="polars",
+        )
+        custom_phecode.count_phecode(
+            phecode_version="X", icd_version="US",
+            output_file_path=duckdb_out, engine="duckdb",
+        )
+
+        sort_cols = ["person_id", "phecode"]
+        schema = {"phecode": str}
+        a = pl.read_csv(polars_out, separator="\t", schema_overrides=schema).sort(sort_cols)
+        b = pl.read_csv(duckdb_out, separator="\t", schema_overrides=schema).sort(sort_cols)
+        assert a.equals(b)
+
+    def test_phecode12_US_polars_vs_duckdb_match(self, custom_phecode, tmp_path):
+        polars_out = str(tmp_path / "counts12_polars.tsv")
+        duckdb_out = str(tmp_path / "counts12_duckdb.tsv")
+
+        custom_phecode.count_phecode(
+            phecode_version="1.2", icd_version="US",
+            output_file_path=polars_out, engine="polars",
+        )
+        custom_phecode.count_phecode(
+            phecode_version="1.2", icd_version="US",
+            output_file_path=duckdb_out, engine="duckdb",
+        )
+
+        if not (os.path.exists(polars_out) and os.path.exists(duckdb_out)):
+            pytest.skip("phecode 1.2 produced no output for this fixture")
+
+        sort_cols = ["person_id", "phecode"]
+        schema = {"phecode": str}
+        a = pl.read_csv(polars_out, separator="\t", schema_overrides=schema).sort(sort_cols)
+        b = pl.read_csv(duckdb_out, separator="\t", schema_overrides=schema).sort(sort_cols)
+        assert a.equals(b)
 
 
 # ---------------------------------------------------------------------------
