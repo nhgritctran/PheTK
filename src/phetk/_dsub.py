@@ -1,10 +1,74 @@
 import datetime
 import os
+import re
 import subprocess
 import sys
 import time
 # noinspection PyUnresolvedReferences,PyProtectedMember
 from phetk import _utils
+
+
+# dsub version that has been validated by the All of Us (AoU) team.
+# See docs/dsub-considerations.md for context: this is the only version
+# confirmed to work end-to-end on AoU + Google Batch without the AoU docker
+# registry prefix, and it is what PheTK's dsub tutorials are written against.
+_PINNED_DSUB_VERSION = "0.5.0"
+
+
+def _check_dsub_version(required: str = _PINNED_DSUB_VERSION) -> None:
+    """
+    Warn if the installed `dsub` CLI is not the version PheTK is pinned to.
+
+    Runs `dsub --version` as a subprocess and parses the reported version.
+    Prints an actionable, non-fatal warning if the version differs or the
+    binary is missing. This is intentionally a warning rather than a hard
+    error so users who have pre-tested a different version can proceed.
+
+    Suggested invocation point: call from `Dsub.__init__`, which is the
+    earliest place in the dsub workflow that the user hits. That way, if
+    the version is wrong, the user sees the warning BEFORE spending time
+    building a job, and has an opportunity to `pip install dsub==0.5.0`
+    and restart the kernel (required for the new version to take effect in
+    an already-running Python/Jupyter process).
+
+    Args:
+        required: Expected dsub version string (default: the PheTK-pinned version).
+    """
+    try:
+        result = subprocess.run(
+            ["dsub", "--version"],
+            capture_output=True, text=True, timeout=10,
+        )
+        version_output = (result.stdout + result.stderr).strip()
+        match = re.search(r"\d+\.\d+\.\d+", version_output)
+        installed = match.group(0) if match else version_output or "<unknown>"
+        if installed != required:
+            print(
+                f"\033[1mWarning:\033[0m PheTK is pinned to dsub=={required}, "
+                f"but detected dsub=={installed}.",
+                flush=True,
+            )
+            print(
+                f"  To install the pinned version, run:\n"
+                f"    pip install dsub=={required}\n"
+                f"  Then RESTART your notebook/Jupyter kernel for the new "
+                f"version to take effect before running any dsub jobs.",
+                flush=True,
+            )
+    except (FileNotFoundError, PermissionError):
+        print(
+            f"\033[1mWarning:\033[0m dsub CLI not found on PATH. "
+            f"Install with: pip install dsub=={required}, "
+            f"then RESTART your notebook/Jupyter kernel.",
+            flush=True,
+        )
+    except subprocess.TimeoutExpired:
+        print(
+            "\033[1mWarning:\033[0m `dsub --version` timed out; "
+            "skipping dsub version check.",
+            flush=True,
+        )
+
 
 class Dsub:
     """
@@ -68,6 +132,21 @@ class Dsub:
         """
         # Set up Verily Workbench env vars if needed
         _utils.setup_verily_env()
+
+        # dsub 0.5.0 tested working on Verily without AoU prefix, so the AoU docker
+        # prefix must be disabled. Do this before any base-script generation.
+        if _utils.is_verily_workbench() and use_aou_docker_prefix:
+            print(
+                "Verily Workbench detected - disabling AoU docker image prefix "
+                "(use_aou_docker_prefix=False).",
+                flush=True,
+            )
+            use_aou_docker_prefix = False
+
+        # Verify the installed dsub CLI matches the PheTK-pinned version.
+        # If this warns, install the pinned version and RESTART the kernel
+        # before instantiating Dsub again.
+        _check_dsub_version()
 
         # Re-read env vars for params that defaulted to None at import time
         if user_project is None:
@@ -634,7 +713,26 @@ class Dsub:
             image_tag = f"{aou_docker_prefix}/{self.docker_image}"
         else:
             image_tag = self.docker_image
-            
+
+        # Verily Workbench uses fully-qualified network/subnetwork paths and
+        # a workspace "pet" service account. AoU uses short-form network paths
+        # and the user's own gcloud account. See docs/dsub-considerations.md
+        # and https://support.workbench.verily.com/docs/guides/workflows/dsub/
+        if _utils.is_verily_workbench():
+            network = f"projects/{self.project}/global/networks/network"
+            subnetwork = (
+                f"projects/{self.project}/regions/{self.region}/subnetworks/subnetwork"
+            )
+            service_account = (
+                os.getenv("PET_SA_EMAIL")
+                or os.getenv("GOOGLE_SERVICE_ACCOUNT_EMAIL")
+                or "$(gcloud config get-value account)"
+            )
+        else:
+            network = "global/networks/network"
+            subnetwork = f"regions/{self.region}/subnetworks/subnetwork"
+            service_account = "$(gcloud config get-value account)"
+
         base_script = (
             f"dsub" + " " +
             f"--provider \"{self.provider}\"" + " " +
@@ -645,15 +743,15 @@ class Dsub:
             f"--user-project \"{self.user_project}\"" + " " +
             f"--project \"{self.project}\"" + " " +
             f"--image \"{image_tag}\"" + " " +
-            f"--network \"global/networks/network\"" + " " +
-            f"--subnetwork \"regions/{self.region}/subnetworks/subnetwork\"" + " " +
-            f"--service-account \"$(gcloud config get-value account)\"" + " " +
+            f"--network \"{network}\"" + " " +
+            f"--subnetwork \"{subnetwork}\"" + " " +
+            f"--service-account \"{service_account}\"" + " " +
             f"--user \"{self.dsub_user_name}\"" + " " +
             f"--logging {self.log_file_path} $@" + " " +
             f"--name \"{self.job_name}\"" + " " +
             f"--env GOOGLE_PROJECT=\"{self.google_project}\"" + " "
         )
-        
+
         return base_script
     
     def echo_hello_test(

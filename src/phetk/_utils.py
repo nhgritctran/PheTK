@@ -16,24 +16,71 @@ import sys
 import time
 
 
+# Cached result of Verily Workbench detection. Populated on first call to
+# is_verily_workbench() and reused thereafter to avoid repeated `wb` CLI probes.
+_VERILY_WORKBENCH_CACHED: bool | None = None
+
+
+def is_verily_workbench() -> bool:
+    """
+    Detect whether the current process is running on Verily Workbench.
+
+    Probes the `wb` CLI with `wb workspace describe`; a zero-exit response is
+    treated as a positive detection. The result is cached at module level so
+    subsequent calls are O(1). Tests can reset the cache by setting
+    `phetk._utils._VERILY_WORKBENCH_CACHED = None`.
+
+    This is a read-only check and does not mutate environment variables. It is
+    intentionally separate from `setup_verily_env()` so that existing callers
+    of the latter are unaffected.
+
+    Returns:
+        True if running on Verily Workbench, False otherwise (including when
+        the `wb` CLI is not installed, times out, or returns non-zero).
+    """
+    global _VERILY_WORKBENCH_CACHED
+    if _VERILY_WORKBENCH_CACHED is not None:
+        return _VERILY_WORKBENCH_CACHED
+    try:
+        result = subprocess.run(
+            ["wb", "workspace", "describe", "--format=json"],
+            capture_output=True, text=True, timeout=10,
+        )
+        _VERILY_WORKBENCH_CACHED = (result.returncode == 0)
+    except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired):
+        _VERILY_WORKBENCH_CACHED = False
+    return _VERILY_WORKBENCH_CACHED
+
+
 def setup_verily_env() -> None:
     """
     Set up environment variables for the Verily Workbench platform.
 
-    Extracts GOOGLE_PROJECT, GOOGLE_CLOUD_PROJECT, and WORKSPACE_CDR from the
-    Verily `wb` CLI and sets only the ones not already present in the environment.
-    If multiple CDR datasets are found, the latest version is selected based on
-    the C{year}Q{quarter}R{release} naming convention.
+    Extracts GOOGLE_PROJECT, GOOGLE_CLOUD_PROJECT, WORKSPACE_CDR, WORKSPACE_BUCKET,
+    and WORKSPACE_TEMP_BUCKET from the Verily `wb` CLI and sets only the ones not
+    already present in the environment. If multiple CDR datasets are found, the
+    latest version is selected based on the C{year}Q{quarter}R{release} naming
+    convention.
 
     Silently returns if the `wb` CLI is not available (i.e., not on Verily Workbench).
     """
-    env_vars = ["GOOGLE_PROJECT", "GOOGLE_CLOUD_PROJECT", "WORKSPACE_CDR"]
+    env_vars = [
+        "GOOGLE_PROJECT",
+        "GOOGLE_CLOUD_PROJECT",
+        "WORKSPACE_CDR",
+        "WORKSPACE_BUCKET",
+        "WORKSPACE_TEMP_BUCKET",
+    ]
     already_set = {v for v in env_vars if os.environ.get(v)}
 
     # If the AoU-essential vars are already set (e.g., on Terra), skip the wb
-    # CLI call entirely. GOOGLE_CLOUD_PROJECT is Verily-specific and not needed
-    # on Terra.
-    if "GOOGLE_PROJECT" in already_set and "WORKSPACE_CDR" in already_set:
+    # CLI call entirely. GOOGLE_CLOUD_PROJECT and WORKSPACE_TEMP_BUCKET are
+    # Verily-specific and not needed on Terra.
+    if (
+        "GOOGLE_PROJECT" in already_set
+        and "WORKSPACE_CDR" in already_set
+        and "WORKSPACE_BUCKET" in already_set
+    ):
         return
 
     try:
@@ -56,8 +103,11 @@ def setup_verily_env() -> None:
                 if "GOOGLE_CLOUD_PROJECT" not in already_set:
                     os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
 
-        # Get WORKSPACE_CDR
-        if "WORKSPACE_CDR" not in already_set:
+        # Get WORKSPACE_CDR, WORKSPACE_BUCKET, WORKSPACE_TEMP_BUCKET
+        needs_cdr = "WORKSPACE_CDR" not in already_set
+        needs_bucket = "WORKSPACE_BUCKET" not in already_set
+        needs_temp_bucket = "WORKSPACE_TEMP_BUCKET" not in already_set
+        if needs_cdr or needs_bucket or needs_temp_bucket:
             result = subprocess.run(
                 ["wb", "resource", "list", "--format=json"],
                 capture_output=True, text=True, timeout=30
@@ -70,23 +120,100 @@ def setup_verily_env() -> None:
             resources = json.loads(result.stdout)
 
             cdr_candidates = []
+            gcs_buckets = []
             for resource in resources:
                 resource_type = resource.get("resourceType", "")
-                if resource_type not in ("BQ_DATASET", "BIGQUERY_DATASET"):
-                    continue
-                dataset_id = resource.get("datasetId", "")
-                project_id = resource.get("projectId", "")
-                match = re.match(r"^C(\d{4})Q(\d+)R(\d+)$", dataset_id)
-                if match:
-                    sort_key = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
-                    cdr_candidates.append((sort_key, project_id, dataset_id))
 
-            if cdr_candidates:
-                cdr_candidates.sort()
-                _, best_project, best_dataset = cdr_candidates[-1]
-                os.environ["WORKSPACE_CDR"] = f"{best_project}.{best_dataset}"
-            else:
-                print("Warning: No CDR dataset matching pattern C{year}Q{quarter}R{release} found.")
+                # CDR BigQuery datasets
+                if resource_type in ("BQ_DATASET", "BIGQUERY_DATASET"):
+                    if not needs_cdr:
+                        continue
+                    dataset_id = resource.get("datasetId", "")
+                    project_id = resource.get("projectId", "")
+                    match = re.match(r"^C(\d{4})Q(\d+)R(\d+)$", dataset_id)
+                    if match:
+                        sort_key = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+                        cdr_candidates.append((sort_key, project_id, dataset_id))
+
+                # Workspace GCS buckets — collect all; classify below
+                elif resource_type == "GCS_BUCKET":
+                    bucket_name = resource.get("bucketName") or ""
+                    resource_id = resource.get("id") or resource.get("name") or ""
+                    stewardship = resource.get("stewardshipType") or ""
+                    if bucket_name:
+                        gcs_buckets.append((resource_id, bucket_name, stewardship))
+
+            if needs_cdr:
+                if cdr_candidates:
+                    cdr_candidates.sort()
+                    _, best_project, best_dataset = cdr_candidates[-1]
+                    os.environ["WORKSPACE_CDR"] = f"{best_project}.{best_dataset}"
+                else:
+                    print("Warning: No CDR dataset matching pattern C{year}Q{quarter}R{release} found.")
+
+            # Classify GCS buckets into workspace vs temp.
+            # Verily workspaces typically contain:
+            #   - dataproc-staging-* (auto, CONTROLLED) — Dataproc cluster staging
+            #   - dataproc-temp-*    (auto, CONTROLLED) — Dataproc cluster temp, ideal for WORKSPACE_TEMP_BUCKET
+            #   - <user-named>       (user,  CONTROLLED) — the user's primary workspace bucket
+            #   - <referenced>       (REFERENCED)       — external/read-only, skipped
+            if needs_bucket or needs_temp_bucket:
+                # Only CONTROLLED buckets are writable by the user.
+                controlled = [
+                    (rid, bn) for rid, bn, stew in gcs_buckets if stew == "CONTROLLED"
+                ]
+
+                if needs_temp_bucket:
+                    temp_candidates = [
+                        (rid, bn) for rid, bn in controlled
+                        if rid.lower().startswith("dataproc-temp")
+                    ]
+                    if len(temp_candidates) == 1:
+                        os.environ["WORKSPACE_TEMP_BUCKET"] = f"gs://{temp_candidates[0][1]}"
+                    elif len(temp_candidates) > 1:
+                        print(
+                            "Warning: multiple dataproc-temp-* buckets found; "
+                            "cannot auto-select WORKSPACE_TEMP_BUCKET. Candidates:"
+                        )
+                        for rid, bn in temp_candidates:
+                            print(f"  id={rid}  bucket=gs://{bn}")
+
+                if needs_bucket:
+                    # Prefer user-created (non-dataproc) controlled buckets.
+                    user_candidates = [
+                        (rid, bn) for rid, bn in controlled
+                        if not rid.lower().startswith("dataproc-")
+                    ]
+                    if len(user_candidates) == 1:
+                        os.environ["WORKSPACE_BUCKET"] = f"gs://{user_candidates[0][1]}"
+                    elif len(user_candidates) > 1:
+                        print(
+                            "Warning: multiple user-created GCS buckets found; "
+                            "cannot auto-select WORKSPACE_BUCKET. Candidates:"
+                        )
+                        for rid, bn in user_candidates:
+                            print(f"  id={rid}  bucket=gs://{bn}")
+                        print(
+                            "  Set WORKSPACE_BUCKET manually before calling phetk, e.g.:\n"
+                            "    os.environ['WORKSPACE_BUCKET'] = 'gs://<your-bucket>'"
+                        )
+                    else:
+                        # Fall back to dataproc-staging-* if no user bucket exists.
+                        staging_candidates = [
+                            (rid, bn) for rid, bn in controlled
+                            if rid.lower().startswith("dataproc-staging")
+                        ]
+                        if len(staging_candidates) == 1:
+                            os.environ["WORKSPACE_BUCKET"] = f"gs://{staging_candidates[0][1]}"
+                        elif not gcs_buckets:
+                            print("Warning: No GCS_BUCKET resources found in `wb resource list`.")
+                        else:
+                            print(
+                                "Warning: could not auto-select WORKSPACE_BUCKET. "
+                                "GCS_BUCKET resources seen:"
+                            )
+                            for rid, bn, stew in gcs_buckets:
+                                print(f"  id={rid}  bucket=gs://{bn}  stewardship={stew}")
 
         # Print summary
         newly_set = []
