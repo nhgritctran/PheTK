@@ -44,7 +44,8 @@ def is_verily_workbench() -> bool:
     try:
         result = subprocess.run(
             ["wb", "workspace", "describe", "--format=json"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, text=True, timeout=30,
+            stdin=subprocess.DEVNULL,
         )
         _VERILY_WORKBENCH_CACHED = (result.returncode == 0)
     except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired):
@@ -54,43 +55,72 @@ def is_verily_workbench() -> bool:
 
 def setup_verily_env() -> None:
     """
-    Set up environment variables for the Verily Workbench platform.
+    Set up environment variables for Verily Workbench VMs.
 
-    Extracts GOOGLE_PROJECT, GOOGLE_CLOUD_PROJECT, WORKSPACE_CDR, WORKSPACE_BUCKET,
-    and WORKSPACE_TEMP_BUCKET from the Verily `wb` CLI and sets only the ones not
-    already present in the environment. If multiple CDR datasets are found, the
-    latest version is selected based on the C{year}Q{quarter}R{release} naming
-    convention.
+    On standard Verily VMs, uses the `wb` CLI to extract GOOGLE_PROJECT,
+    GOOGLE_CLOUD_PROJECT, WORKSPACE_CDR, and WORKSPACE_BUCKET. On NEMO GPU
+    VMs (where `wb` is Weights & Biases), falls back to `gcloud` for project
+    and bucket discovery; WORKSPACE_CDR must be set manually in that case.
 
-    Silently returns if the `wb` CLI is not available (i.e., not on Verily Workbench).
+    If multiple CDR datasets are found, the latest version is selected based
+    on the C{year}Q{quarter}R{release} naming convention.
+
+    Silently returns on non-Verily platforms (e.g., AoU/Terra) where the `wb`
+    CLI is not installed.
     """
     env_vars = [
         "GOOGLE_PROJECT",
         "GOOGLE_CLOUD_PROJECT",
         "WORKSPACE_CDR",
         "WORKSPACE_BUCKET",
-        "WORKSPACE_TEMP_BUCKET",
+        "WORKSPACE_REFERENCED_BUCKET",
     ]
     already_set = {v for v in env_vars if os.environ.get(v)}
 
-    # If the AoU-essential vars are already set (e.g., on Terra), skip the wb
-    # CLI call entirely. GOOGLE_CLOUD_PROJECT and WORKSPACE_TEMP_BUCKET are
-    # Verily-specific and not needed on Terra.
-    if (
-        "GOOGLE_PROJECT" in already_set
-        and "WORKSPACE_CDR" in already_set
-        and "WORKSPACE_BUCKET" in already_set
-    ):
+    essential = {"GOOGLE_PROJECT", "WORKSPACE_CDR", "WORKSPACE_BUCKET"}
+    if essential.issubset(already_set):
+        print("Environment variables already set:")
+        for v in env_vars:
+            val = os.environ.get(v)
+            if val:
+                print(f"  {v}={val}")
         return
 
     try:
-        # Detect Verily Workbench
+        # Detect Verily Workbench CLI
         result = subprocess.run(
             ["wb", "workspace", "describe", "--format=json"],
-            capture_output=True, text=True, timeout=30
+            capture_output=True, text=True, timeout=30,
+            stdin=subprocess.DEVNULL,
         )
         if result.returncode != 0:
+            # Check if `wb` is actually Weights & Biases (wandb) — e.g. on
+            # NEMO GPU VMs. If so, fall back to gcloud for project + buckets.
+            combined_output = (result.stdout + result.stderr).lower()
+            if ("wandb" in combined_output
+                    or "weights" in combined_output
+                    or "no such command" in combined_output):
+                _setup_verily_env_gcloud(env_vars, already_set)
+                return
+
+            # wb is likely the Verily CLI but the command failed.
+            print(
+                f"Warning: 'wb workspace describe' returned exit code "
+                f"{result.returncode}."
+            )
+            if result.stderr:
+                print(f"  stderr: {result.stderr.strip()}")
+            print(
+                "  The wb CLI may not be logged in or no workspace is set.\n"
+                "  Try running:\n"
+                "    wb auth login\n"
+                "    wb workspace set --id=<your-workspace-id>\n"
+                "  Then restart the kernel and try again.\n"
+                "  Environment variables were NOT set automatically."
+            )
             return
+
+        # --- Standard Verily VM path (wb CLI available) ---
         print("Verily Workbench detected. Checking environment variables...")
         workspace_info = json.loads(result.stdout)
 
@@ -103,140 +133,326 @@ def setup_verily_env() -> None:
                 if "GOOGLE_CLOUD_PROJECT" not in already_set:
                     os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
 
-        # Get WORKSPACE_CDR, WORKSPACE_BUCKET, WORKSPACE_TEMP_BUCKET
+        # Get WORKSPACE_CDR and WORKSPACE_BUCKET from wb resource list
         needs_cdr = "WORKSPACE_CDR" not in already_set
         needs_bucket = "WORKSPACE_BUCKET" not in already_set
-        needs_temp_bucket = "WORKSPACE_TEMP_BUCKET" not in already_set
-        if needs_cdr or needs_bucket or needs_temp_bucket:
+        if needs_cdr or needs_bucket:
             result = subprocess.run(
                 ["wb", "resource", "list", "--format=json"],
-                capture_output=True, text=True, timeout=30
+                capture_output=True, text=True, timeout=30,
+                stdin=subprocess.DEVNULL,
             )
             if result.returncode != 0:
                 print(f"Warning: 'wb resource list' failed (exit code {result.returncode}).")
                 if result.stderr:
                     print(f"  {result.stderr.strip()}")
-                return
-            resources = json.loads(result.stdout)
+            else:
+                resources = json.loads(result.stdout)
 
-            cdr_candidates = []
-            gcs_buckets = []
-            for resource in resources:
-                resource_type = resource.get("resourceType", "")
+                if not resources:
+                    print("Warning: `wb resource list` returned an empty list.")
+                    print(
+                        "  This workspace may not have any resources added yet.\n"
+                        "  Add the CDR dataset and create a GCS bucket, or set\n"
+                        "  environment variables manually:\n"
+                        "    os.environ['WORKSPACE_CDR'] = '<project_id>.<dataset_id>'\n"
+                        "    os.environ['WORKSPACE_BUCKET'] = 'gs://<bucket-name>'"
+                    )
 
-                # CDR BigQuery datasets
-                if resource_type in ("BQ_DATASET", "BIGQUERY_DATASET"):
-                    if not needs_cdr:
-                        continue
-                    dataset_id = resource.get("datasetId", "")
-                    project_id = resource.get("projectId", "")
-                    match = re.match(r"^C(\d{4})Q(\d+)R(\d+)$", dataset_id)
-                    if match:
-                        sort_key = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
-                        cdr_candidates.append((sort_key, project_id, dataset_id))
+                # Parse resources
+                cdr_candidates = []
+                all_bq_datasets = []
+                gcs_buckets = []
+                for resource in resources:
+                    resource_type = resource.get("resourceType", "")
 
-                # Workspace GCS buckets — collect all; classify below
-                elif resource_type == "GCS_BUCKET":
-                    bucket_name = resource.get("bucketName") or ""
-                    resource_id = resource.get("id") or resource.get("name") or ""
-                    stewardship = resource.get("stewardshipType") or ""
-                    if bucket_name:
-                        gcs_buckets.append((resource_id, bucket_name, stewardship))
+                    if resource_type in ("BQ_DATASET", "BIGQUERY_DATASET"):
+                        dataset_id = resource.get("datasetId", "")
+                        project_id = resource.get("projectId", "")
+                        all_bq_datasets.append((resource_type, project_id, dataset_id))
+                        if needs_cdr:
+                            match = re.match(r"^C(\d{4})Q(\d+)R(\d+)$", dataset_id)
+                            if match:
+                                sort_key = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+                                cdr_candidates.append((sort_key, project_id, dataset_id))
 
-            if needs_cdr:
-                if cdr_candidates:
-                    cdr_candidates.sort()
-                    _, best_project, best_dataset = cdr_candidates[-1]
-                    os.environ["WORKSPACE_CDR"] = f"{best_project}.{best_dataset}"
-                else:
-                    print("Warning: No CDR dataset matching pattern C{year}Q{quarter}R{release} found.")
+                    elif resource_type == "GCS_BUCKET":
+                        bucket_name = resource.get("bucketName") or ""
+                        resource_id = resource.get("id") or resource.get("name") or ""
+                        stewardship = resource.get("stewardshipType") or ""
+                        if bucket_name:
+                            gcs_buckets.append((resource_id, bucket_name, stewardship))
 
-            # Classify GCS buckets into workspace vs temp.
-            # Verily workspaces typically contain:
-            #   - dataproc-staging-* (auto, CONTROLLED) — Dataproc cluster staging
-            #   - dataproc-temp-*    (auto, CONTROLLED) — Dataproc cluster temp, ideal for WORKSPACE_TEMP_BUCKET
-            #   - <user-named>       (user,  CONTROLLED) — the user's primary workspace bucket
-            #   - <referenced>       (REFERENCED)       — external/read-only, skipped
-            if needs_bucket or needs_temp_bucket:
-                # Only CONTROLLED buckets are writable by the user.
-                controlled = [
-                    (rid, bn) for rid, bn, stew in gcs_buckets if stew == "CONTROLLED"
-                ]
-
-                if needs_temp_bucket:
-                    temp_candidates = [
-                        (rid, bn) for rid, bn in controlled
-                        if rid.lower().startswith("dataproc-temp")
-                    ]
-                    if len(temp_candidates) == 1:
-                        os.environ["WORKSPACE_TEMP_BUCKET"] = f"gs://{temp_candidates[0][1]}"
-                    elif len(temp_candidates) > 1:
-                        print(
-                            "Warning: multiple dataproc-temp-* buckets found; "
-                            "cannot auto-select WORKSPACE_TEMP_BUCKET. Candidates:"
-                        )
-                        for rid, bn in temp_candidates:
-                            print(f"  id={rid}  bucket=gs://{bn}")
-
-                if needs_bucket:
-                    # Prefer user-created (non-dataproc) controlled buckets.
-                    user_candidates = [
-                        (rid, bn) for rid, bn in controlled
-                        if not rid.lower().startswith("dataproc-")
-                    ]
-                    if len(user_candidates) == 1:
-                        os.environ["WORKSPACE_BUCKET"] = f"gs://{user_candidates[0][1]}"
-                    elif len(user_candidates) > 1:
-                        print(
-                            "Warning: multiple user-created GCS buckets found; "
-                            "cannot auto-select WORKSPACE_BUCKET. Candidates:"
-                        )
-                        for rid, bn in user_candidates:
-                            print(f"  id={rid}  bucket=gs://{bn}")
-                        print(
-                            "  Set WORKSPACE_BUCKET manually before calling phetk, e.g.:\n"
-                            "    os.environ['WORKSPACE_BUCKET'] = 'gs://<your-bucket>'"
-                        )
+                # CDR
+                if needs_cdr:
+                    if cdr_candidates:
+                        cdr_candidates.sort()
+                        _, best_project, best_dataset = cdr_candidates[-1]
+                        os.environ["WORKSPACE_CDR"] = f"{best_project}.{best_dataset}"
                     else:
-                        # Fall back to dataproc-staging-* if no user bucket exists.
-                        staging_candidates = [
-                            (rid, bn) for rid, bn in controlled
-                            if rid.lower().startswith("dataproc-staging")
-                        ]
-                        if len(staging_candidates) == 1:
-                            os.environ["WORKSPACE_BUCKET"] = f"gs://{staging_candidates[0][1]}"
-                        elif not gcs_buckets:
-                            print("Warning: No GCS_BUCKET resources found in `wb resource list`.")
-                        else:
-                            print(
-                                "Warning: could not auto-select WORKSPACE_BUCKET. "
-                                "GCS_BUCKET resources seen:"
-                            )
-                            for rid, bn, stew in gcs_buckets:
-                                print(f"  id={rid}  bucket=gs://{bn}  stewardship={stew}")
+                        print("Warning: No CDR dataset matching pattern C{year}Q{quarter}R{release} found.")
+                        if all_bq_datasets:
+                            print("  BigQuery datasets found (none matched CDR pattern):")
+                            for rtype, pid, did in all_bq_datasets:
+                                print(f"    type={rtype}  project={pid}  dataset={did}")
+                        print(
+                            "  To set WORKSPACE_CDR manually:\n"
+                            "    os.environ['WORKSPACE_CDR'] = '<project_id>.<dataset_id>'"
+                        )
+
+                # Buckets — user-created CONTROLLED only, skip all dataproc-*
+                if needs_bucket:
+                    _classify_wb_buckets(gcs_buckets, resources)
 
         # Print summary
-        newly_set = []
-        skipped = []
-        for v in env_vars:
-            if v in already_set:
-                skipped.append(f"  {v}={os.environ[v]}")
-            elif os.environ.get(v):
-                newly_set.append(f"  {v}={os.environ[v]}")
-        if newly_set:
-            print("Verily Workbench environment variables set:")
-            for line in newly_set:
-                print(line)
-        if skipped:
-            print("Already set (skipped):")
-            for line in skipped:
-                print(line)
+        _print_env_summary(env_vars, already_set)
 
-    except (FileNotFoundError, PermissionError):
-        # wb CLI not found or not executable — not on Verily Workbench
+    except FileNotFoundError:
+        # wb CLI not installed — not on Verily Workbench (e.g. AoU/Terra).
+        # Stay silent; this is the normal path for non-Verily platforms.
         return
-    except (subprocess.TimeoutExpired, json.JSONDecodeError, KeyError):
+    except PermissionError:
+        print(
+            "Warning: wb CLI found but not executable (PermissionError). "
+            "Environment variables were NOT set automatically."
+        )
         return
+    except subprocess.TimeoutExpired:
+        print(
+            "Warning: 'wb workspace describe' timed out after 30 seconds. "
+            "Environment variables were NOT set automatically."
+        )
+        return
+    except json.JSONDecodeError as e:
+        print(
+            f"Warning: could not parse wb CLI output (JSONDecodeError: {e}). "
+            f"Environment variables were NOT set automatically."
+        )
+        return
+    except KeyError as e:
+        print(
+            f"Warning: unexpected format in wb output — missing key {e}. "
+            f"Environment variables were NOT set automatically."
+        )
+        return
+
+
+def _classify_wb_buckets(gcs_buckets: list, resources: list) -> None:
+    """
+    Classify GCS buckets from ``wb resource list`` and set env vars.
+
+    Skips ``dataproc-*`` and ``vwb-aou-*`` buckets. Remaining buckets are
+    split by stewardship type:
+
+    - CONTROLLED → ``WORKSPACE_BUCKET`` (or ``WORKSPACE_BUCKET1``, ``2``, ...)
+    - REFERENCED → ``WORKSPACE_REFERENCED_BUCKET`` (or numbered)
+
+    Args:
+        gcs_buckets: List of (resource_id, bucket_name, stewardship) tuples.
+        resources: Full resource list (used for diagnostics if no buckets found).
+    """
+    skip_prefixes = ("dataproc-", "vwb-aou-")
+    controlled = [
+        (rid, bn) for rid, bn, stew in gcs_buckets
+        if stew == "CONTROLLED"
+        and not any(rid.lower().startswith(p) for p in skip_prefixes)
+    ]
+    referenced = [
+        (rid, bn) for rid, bn, stew in gcs_buckets
+        if stew == "REFERENCED"
+        and not any(rid.lower().startswith(p) for p in skip_prefixes)
+    ]
+
+    # --- CONTROLLED → WORKSPACE_BUCKET ---
+    if len(controlled) == 1:
+        os.environ["WORKSPACE_BUCKET"] = f"gs://{controlled[0][1]}"
+    elif len(controlled) > 1:
+        for i, (rid, bn) in enumerate(controlled, 1):
+            os.environ[f"WORKSPACE_BUCKET{i}"] = f"gs://{bn}"
+        print(
+            "  Multiple controlled buckets found. Set WORKSPACE_BUCKET to "
+            "the one you want to use, e.g.:\n"
+            "    os.environ['WORKSPACE_BUCKET'] = os.environ['WORKSPACE_BUCKET1']"
+        )
+
+    # --- REFERENCED → WORKSPACE_REFERENCED_BUCKET ---
+    if len(referenced) == 1:
+        os.environ["WORKSPACE_REFERENCED_BUCKET"] = f"gs://{referenced[0][1]}"
+    elif len(referenced) > 1:
+        for i, (rid, bn) in enumerate(referenced, 1):
+            os.environ[f"WORKSPACE_REFERENCED_BUCKET{i}"] = f"gs://{bn}"
+        print(
+            "  Multiple referenced buckets found. Set "
+            "WORKSPACE_REFERENCED_BUCKET to the one you want to use, e.g.:\n"
+            "    os.environ['WORKSPACE_REFERENCED_BUCKET'] = "
+            "os.environ['WORKSPACE_REFERENCED_BUCKET1']"
+        )
+
+    # --- No user buckets at all ---
+    if not controlled and not referenced:
+        if not gcs_buckets:
+            resource_types_seen = {
+                r.get("resourceType", "<none>") for r in resources
+            }
+            print(
+                "Warning: No GCS_BUCKET resources found in `wb resource list`.\n"
+                f"  Resource types found: {', '.join(sorted(resource_types_seen)) or 'none'}\n"
+                "  Create a GCS bucket in this workspace, or set manually:\n"
+                "    os.environ['WORKSPACE_BUCKET'] = 'gs://<bucket-name>'"
+            )
+        else:
+            print(
+                "Warning: No user-created GCS bucket found.\n"
+                "  Create a GCS bucket in this workspace, or set manually:\n"
+                "    os.environ['WORKSPACE_BUCKET'] = 'gs://<bucket-name>'"
+            )
+
+
+def _classify_gcloud_buckets(bucket_names: list) -> None:
+    """
+    Classify GCS buckets from ``gcloud storage ls`` and set WORKSPACE_BUCKET.
+
+    ``gcloud storage ls`` only returns CONTROLLED buckets (not referenced).
+    Skips all ``dataproc-*``, ``cloned-*``, and ``vwb-aou-*`` buckets.
+    Remaining ones are user-created and become WORKSPACE_BUCKET. If multiple
+    exist, numbered variables are set instead.
+
+    Args:
+        bucket_names: List of bucket name strings (without ``gs://`` prefix).
+    """
+    skip_prefixes = ("dataproc-", "cloned-", "vwb-aou-")
+    user_candidates = [
+        bn for bn in bucket_names
+        if not any(bn.lower().startswith(p) for p in skip_prefixes)
+    ]
+
+    if len(user_candidates) == 1:
+        os.environ["WORKSPACE_BUCKET"] = f"gs://{user_candidates[0]}"
+    elif len(user_candidates) > 1:
+        print("Multiple user-created GCS buckets found:")
+        for i, bn in enumerate(user_candidates, 1):
+            os.environ[f"WORKSPACE_BUCKET{i}"] = f"gs://{bn}"
+            print(f"  WORKSPACE_BUCKET{i}=gs://{bn}")
+        print(
+            "  Set WORKSPACE_BUCKET to the one you want to use, e.g.:\n"
+            "    os.environ['WORKSPACE_BUCKET'] = os.environ['WORKSPACE_BUCKET1']"
+        )
+    else:
+        print(
+            "Warning: No user-created GCS bucket found.\n"
+            "  Create a GCS bucket, or set manually:\n"
+            "    os.environ['WORKSPACE_BUCKET'] = 'gs://<bucket-name>'"
+        )
+
+
+def _setup_verily_env_gcloud(env_vars: list, already_set: set) -> None:
+    """
+    Fallback for VMs where the Verily Workbench CLI is not available (e.g.
+    NEMO GPU VMs where ``wb`` is Weights & Biases). Uses ``gcloud`` for
+    project and bucket discovery. WORKSPACE_CDR cannot be auto-detected
+    without the ``wb`` CLI and must be set manually.
+
+    Args:
+        env_vars: List of environment variable names to track.
+        already_set: Set of variable names already present in the environment.
+    """
+    print("Attempting to set environment variables using gcloud...")
+
+    # GOOGLE_PROJECT via gcloud
+    if "GOOGLE_PROJECT" not in already_set or "GOOGLE_CLOUD_PROJECT" not in already_set:
+        try:
+            result = subprocess.run(
+                ["gcloud", "config", "get-value", "project"],
+                capture_output=True, text=True, timeout=15,
+                stdin=subprocess.DEVNULL,
+            )
+            project_id = result.stdout.strip()
+            if result.returncode == 0 and project_id:
+                if "GOOGLE_PROJECT" not in already_set:
+                    os.environ["GOOGLE_PROJECT"] = project_id
+                if "GOOGLE_CLOUD_PROJECT" not in already_set:
+                    os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
+            else:
+                print(
+                    "Warning: could not determine project from gcloud.\n"
+                    "  Set manually: os.environ['GOOGLE_PROJECT'] = '<project-id>'"
+                )
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            print(
+                "Warning: gcloud CLI not available.\n"
+                "  Set manually: os.environ['GOOGLE_PROJECT'] = '<project-id>'"
+            )
+
+    # WORKSPACE_CDR — cannot be auto-detected without wb resource list
+    if "WORKSPACE_CDR" not in already_set:
+        print(
+            "WORKSPACE_CDR must be set manually:\n"
+            "  os.environ['WORKSPACE_CDR'] = '<project_id>.<dataset_id>'"
+        )
+
+    # WORKSPACE_BUCKET via gcloud storage ls
+    if "WORKSPACE_BUCKET" not in already_set:
+        project_id = os.environ.get("GOOGLE_PROJECT") or os.environ.get("GOOGLE_CLOUD_PROJECT")
+        if project_id:
+            try:
+                result = subprocess.run(
+                    ["gcloud", "storage", "ls", f"--project={project_id}"],
+                    capture_output=True, text=True, timeout=30,
+                    stdin=subprocess.DEVNULL,
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    # Parse bucket names: "gs://bucket-name/" → "bucket-name"
+                    bucket_names = [
+                        line.strip().removeprefix("gs://").rstrip("/")
+                        for line in result.stdout.strip().splitlines()
+                        if line.strip().startswith("gs://")
+                    ]
+                    _classify_gcloud_buckets(bucket_names)
+                else:
+                    print(
+                        "Warning: `gcloud storage ls` returned no buckets.\n"
+                        "  Create a GCS bucket, or set manually:\n"
+                        "    os.environ['WORKSPACE_BUCKET'] = 'gs://<bucket-name>'"
+                    )
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                print(
+                    "Warning: gcloud CLI not available for bucket listing.\n"
+                    "  Set manually: os.environ['WORKSPACE_BUCKET'] = 'gs://<bucket-name>'"
+                )
+        else:
+            print(
+                "Warning: GOOGLE_PROJECT not set; cannot list buckets.\n"
+                "  Set manually: os.environ['WORKSPACE_BUCKET'] = 'gs://<bucket-name>'"
+            )
+
+    _print_env_summary(env_vars, already_set)
+
+
+def _print_env_summary(env_vars: list, already_set: set) -> None:
+    """Print summary of which environment variables were set vs skipped."""
+    newly_set = []
+    skipped = []
+    for v in env_vars:
+        if v in already_set:
+            skipped.append(f"  {v}={os.environ[v]}")
+        elif os.environ.get(v):
+            newly_set.append(f"  {v}={os.environ[v]}")
+        # Check for numbered variants (e.g. WORKSPACE_BUCKET1, WORKSPACE_BUCKET2)
+        for i in range(1, 20):
+            numbered = f"{v}{i}"
+            val = os.environ.get(numbered)
+            if val:
+                newly_set.append(f"  {numbered}={val}")
+            else:
+                break
+    if newly_set:
+        print("Environment variables set:")
+        for line in newly_set:
+            print(line)
+    if skipped:
+        print("Already set (skipped):")
+        for line in skipped:
+            print(line)
 
 
 def str_to_bool(v) -> bool:

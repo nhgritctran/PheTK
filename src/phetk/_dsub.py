@@ -38,6 +38,7 @@ def _check_dsub_version(required: str = _PINNED_DSUB_VERSION) -> None:
         result = subprocess.run(
             ["dsub", "--version"],
             capture_output=True, text=True, timeout=10,
+            stdin=subprocess.DEVNULL,
         )
         version_output = (result.stdout + result.stderr).strip()
         match = re.search(r"\d+\.\d+\.\d+", version_output)
@@ -473,7 +474,7 @@ class Dsub:
                     last_check_time = current_time
                     
                     # Run command and capture output
-                    result = subprocess.run([check_status], shell=True, capture_output=True, text=True)
+                    result = subprocess.run([check_status], shell=True, capture_output=True, text=True, stdin=subprocess.DEVNULL)
                     current_status = result.stdout.strip()
 
                     # Check for terminal states using full status
@@ -483,7 +484,7 @@ class Dsub:
                     if result.stdout:
                         # Get full status to check actual job status line
                         full_status_cmd = check_status + " --full"
-                        full_result = subprocess.run([full_status_cmd], shell=True, capture_output=True, text=True)
+                        full_result = subprocess.run([full_status_cmd], shell=True, capture_output=True, text=True, stdin=subprocess.DEVNULL)
 
                         # Use helper function to check job status
                         status_value, has_success, has_failed, has_canceled, last_update, status_detail = self._check_job_status(full_result.stdout)
@@ -577,14 +578,14 @@ class Dsub:
                 time.sleep(1)
         else:
             # Run status check once
-            result = subprocess.run([check_status], shell=True, capture_output=True, text=True)
+            result = subprocess.run([check_status], shell=True, capture_output=True, text=True, stdin=subprocess.DEVNULL)
             print(result.stdout)
-            
+
             # For auto-cleanup in non-streaming mode, check if job is completed/failed
             if auto_job_cleanup and result.stdout:
                 # Get full status to check actual job status
                 full_status_cmd = check_status + " --full"
-                full_result = subprocess.run([full_status_cmd], shell=True, capture_output=True, text=True)
+                full_result = subprocess.run([full_status_cmd], shell=True, capture_output=True, text=True, stdin=subprocess.DEVNULL)
                 
                 # Use helper function to check job status
                 status_value, has_success, has_failed, has_canceled, last_update, status_detail = self._check_job_status(full_result.stdout)
@@ -618,7 +619,7 @@ class Dsub:
             print("log_type must be 'stdout', 'stderr', or 'full'.")
             sys.exit(1)
 
-        subprocess.run([full_command], shell=True)
+        subprocess.run([full_command], shell=True, stdin=subprocess.DEVNULL)
 
     def kill(self) -> None:
         """
@@ -629,21 +630,21 @@ class Dsub:
         kill_job = (
             f"ddel  --provider {self.provider} --users \"{self.user_name}\" --project {self.project} --jobs \"{self.job_id}\""
         )
-        subprocess.run([kill_job], shell=True)
+        subprocess.run([kill_job], shell=True, stdin=subprocess.DEVNULL)
 
     def view_all(self) -> None:
         """View all running jobs linked to user account and project using dstat command."""
         view_jobs = (
             f"dstat --provider {self.provider} --users \"{self.user_name}\" --project {self.project} --jobs \"*\" "
         )
-        subprocess.run([view_jobs], shell=True)
+        subprocess.run([view_jobs], shell=True, stdin=subprocess.DEVNULL)
 
     def kill_all(self) -> None:
         """Kill/cancel all running jobs linked to user account and project using ddel command."""
         kill_jobs = (
             f"ddel --provider {self.provider} --users \"{self.user_name}\" --project {self.project} --jobs \"*\" "
         )
-        subprocess.run([kill_jobs], shell=True)
+        subprocess.run([kill_jobs], shell=True, stdin=subprocess.DEVNULL)
 
     def run(self, show_command: bool = False, timeout: int = 60) -> None:
         """
