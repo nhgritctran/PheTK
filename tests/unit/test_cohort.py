@@ -279,14 +279,8 @@ class TestResolveDataPath:
         result = c._resolve_data_path("vcf", "acaf_threshold", "/my/path", 1)
         assert result == "/my/path"
 
-    def test_aou_vcf_uses_env_var(self, aou_env, monkeypatch):
-        monkeypatch.setenv("WGS_ACAF_THRESHOLD_VCF_PATH", "/env/vcf_dir")
-        c = Cohort(platform="aou", aou_db_version=8)
-        result = c._resolve_data_path("vcf", "acaf_threshold", None, 1)
-        assert result == "/env/vcf_dir"
-
-    def test_aou_vcf_constructs_dir_path(self, aou_env, monkeypatch):
-        monkeypatch.delenv("WGS_ACAF_THRESHOLD_VCF_PATH", raising=False)
+    @pytest.mark.aou
+    def test_aou_vcf_constructs_dir_path(self, aou_env):
         c = Cohort(platform="aou", aou_db_version=8)
         result = c._resolve_data_path("vcf", "acaf_threshold", None, 1)
         expected = (
@@ -295,33 +289,44 @@ class TestResolveDataPath:
         )
         assert result == expected
 
+    @pytest.mark.aou
     def test_aou_vcf_verily_bucket(self, aou_env, monkeypatch):
-        monkeypatch.delenv("WGS_ACAF_THRESHOLD_VCF_PATH", raising=False)
         monkeypatch.setenv("GOOGLE_PROJECT", "wb-cold-eggplant-9083")
         c = Cohort(platform="aou", aou_db_version=8)
         result = c._resolve_data_path("vcf", "acaf_threshold", None, 1)
         assert "vwb-aou-datasets-controlled" in result
 
-    def test_aou_vcf_exome_call_set(self, aou_env, monkeypatch):
-        monkeypatch.delenv("WGS_ACAF_THRESHOLD_VCF_PATH", raising=False)
+    @pytest.mark.aou
+    def test_aou_vcf_exome_call_set(self, aou_env):
         c = Cohort(platform="aou", aou_db_version=8)
         result = c._resolve_data_path("vcf", "exome", None, 22)
         assert "exome" in result
         assert "vcf" in result
 
-    def test_aou_hail_uses_env_var(self, aou_env, monkeypatch):
-        monkeypatch.setenv("WGS_ACAF_THRESHOLD_SPLIT_HAIL_PATH", "/env/hail.mt")
-        c = Cohort(platform="aou")
+    @pytest.mark.aou
+    def test_aou_hail_constructs_path(self, aou_env):
+        c = Cohort(platform="aou", aou_db_version=8)
         result = c._resolve_data_path("hail", "acaf_threshold", None, 1)
-        assert result == "/env/hail.mt"
+        expected = (
+            "gs://fc-aou-datasets-controlled/v8"
+            "/wgs/short_read/snpindel/acaf_threshold/splitMT/hail.mt"
+        )
+        assert result == expected
 
-    def test_aou_hail_missing_env_exits(self, aou_env, monkeypatch):
-        monkeypatch.delenv("WGS_ACAF_THRESHOLD_SPLIT_HAIL_PATH", raising=False)
-        c = Cohort(platform="aou")
-        # Remove the hardcoded fallback so the "no path" branch is reached
-        monkeypatch.delattr("phetk._paths.cdr8_mt_path")
-        with pytest.raises(SystemExit):
-            c._resolve_data_path("hail", "acaf_threshold", None, 1)
+    @pytest.mark.aou
+    def test_aou_hail_exome_call_set(self, aou_env):
+        c = Cohort(platform="aou", aou_db_version=8)
+        result = c._resolve_data_path("hail", "exome", None, 1)
+        assert "exome" in result
+        assert "hail.mt" in result
+
+    @pytest.mark.aou
+    def test_call_set_respected_when_env_var_set(self, aou_env, monkeypatch):
+        monkeypatch.setenv("WGS_ACAF_THRESHOLD_VCF_PATH", "/env/vcf_dir")
+        c = Cohort(platform="aou", aou_db_version=8)
+        result = c._resolve_data_path("vcf", "exome", None, 1)
+        assert "exome" in result
+        assert result != "/env/vcf_dir"
 
     def test_custom_platform_requires_data_path(self):
         c = Cohort(platform="custom", gbq_dataset_id="proj.ds")

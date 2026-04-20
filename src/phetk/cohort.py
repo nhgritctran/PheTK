@@ -139,13 +139,13 @@ class Cohort:
         if data_format == "hail":
             polars_df = self._extract_genotypes_hail(
                 data_path, locus, variant_string, reference_genome,
-                getattr(self, "user_project", None),
+                getattr(self, "user_project", None), call_set,
             )
         else:
             polars_df = self._extract_genotypes_vcf(
                 data_path, chromosome_number, genomic_position,
                 ref_allele, alt_allele, reference_genome,
-                getattr(self, "user_project", None),
+                getattr(self, "user_project", None), call_set,
             )
 
         # filter, map, and write output
@@ -154,7 +154,7 @@ class Cohort:
             self._write_cohort_output(cohort, output_file_path)
         else:
             print()
-            print(f"Variant {variant_string} not found!")
+            print(f"Variant {variant_string} not found in {call_set} call set!")
             print()
 
     # ------------------------------------------------------------------
@@ -225,23 +225,15 @@ class Cohort:
 
         if self.platform == "aou":
             if data_format == "vcf":
-                env_path = os.getenv("WGS_ACAF_THRESHOLD_VCF_PATH")
-                if env_path is not None:
-                    return env_path
                 return (
                     f"gs://{_paths.controlled_bucket()}/v{self.db_version}"
                     f"/wgs/short_read/snpindel/{call_set}/vcf/"
                 )
             else:  # hail
-                env_path = os.getenv("WGS_ACAF_THRESHOLD_SPLIT_HAIL_PATH")
-                if env_path is not None:
-                    return env_path
-                mt_path_func = getattr(_paths, f"cdr{self.db_version}_mt_path", None)
-                if mt_path_func is not None:
-                    return mt_path_func()
-                print("Hail split matrix table path is not available. "
-                      "Please provide data_path directly.")
-                sys.exit(1)
+                return (
+                    f"gs://{_paths.controlled_bucket()}/v{self.db_version}"
+                    f"/wgs/short_read/snpindel/{call_set}/splitMT/hail.mt"
+                )
         else:
             # custom platform requires explicit data_path
             print(f"For custom platform, data_path is required.")
@@ -287,6 +279,7 @@ class Cohort:
         variant_string: str,
         reference_genome: str,
         user_project: str | None = None,
+        call_set: str = "acaf_threshold",
     ) -> pl.DataFrame | None:
         """Extract genotypes from a Hail split matrix table.
 
@@ -312,7 +305,7 @@ class Cohort:
         mt = mt.filter_rows(mt.locus == hl.Locus.parse(locus))
         if mt.count_rows() == 0:
             print()
-            print(f"\033[1mLocus {locus} not found!\033[0m")
+            print(f"\033[1mLocus {locus} not found in {call_set} call set!\033[0m")
             return None
         elif mt.count_rows() >= 1:
             print()
@@ -524,6 +517,7 @@ class Cohort:
         alt_allele: str,
         reference_genome: str,
         user_project: str | None = None,
+        call_set: str = "acaf_threshold",
     ) -> pl.DataFrame | None:
         """Extract genotypes from a VCF file using pysam.
 
@@ -576,13 +570,13 @@ class Cohort:
                     break
         except ValueError:
             print()
-            print(f"\033[1mContig {contig} not found in VCF header!\033[0m")
+            print(f"\033[1mContig {contig} not found in {call_set} VCF header!\033[0m")
             vcf.close()
             return None
 
         if target_record is None:
             print()
-            print(f"\033[1mVariant {locus_str}:{ref_allele}:{alt_allele} not found!\033[0m")
+            print(f"\033[1mVariant {locus_str}:{ref_allele}:{alt_allele} not found in {call_set} call set!\033[0m")
             vcf.close()
             return None
 
