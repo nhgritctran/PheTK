@@ -70,10 +70,12 @@ def setup_verily_env() -> None:
     Silently returns on non-Verily platforms (e.g., AoU/Terra) where the `wb`
     CLI is not installed.
     """
-    # On Verily Workbench, always re-detect WORKSPACE_BUCKET. Kernel init
-    # scripts can overwrite it with a stale or incorrect value (e.g. a
-    # cloned-* bucket) on kernel restart.
-    if is_verily_workbench():
+    # On Verily Workbench, kernel init scripts can overwrite
+    # WORKSPACE_BUCKET with a stale "cloned-*" bucket on kernel restart.
+    # Only pop it when that's detected, to avoid re-running detection
+    # on every call.
+    bucket_val = os.environ.get("WORKSPACE_BUCKET", "")
+    if is_verily_workbench() and "cloned-" in bucket_val:
         os.environ.pop("WORKSPACE_BUCKET", None)
 
     env_vars = [
