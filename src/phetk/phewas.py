@@ -1,21 +1,17 @@
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from datetime import datetime
-from io import StringIO
-from lifelines import CoxPHFitter, utils as u
 from multiprocessing import get_context
 from tqdm import tqdm
 import argparse
 import copy
 import numpy as np
 import os
-import pandas as pd
 import polars as pl
-import statsmodels
-import statsmodels.api as sm
 import sys
 import warnings
 # noinspection PyUnresolvedReferences,PyProtectedMember
 from phetk import _utils
+from phetk.regression import get_backend, available_methods
 
 
 
@@ -45,6 +41,9 @@ class PheWAS:
         verbose: bool = False,
         suppress_warnings: bool = True,
         method: str = "logit",
+        firth_penalty_weight: float = 0.5,
+        firth_max_iter: int | None = None,
+        firth_use_lrt: bool = True,
         batch_size: int | None = None,
         fall_back_to_serial: bool = False
     ):
@@ -78,7 +77,10 @@ class PheWAS:
             output_file_path: Output file path, auto-generated if None.
             verbose: If True, print progress information for each phecode.
             suppress_warnings: If True, suppress convergence and statistical warnings.
-            method: Analysis method ("logit" for logistic regression or "cox" for Cox regression).
+            method: Analysis method ("logit", "cox", "firth_logit", or "firth_cox").
+            firth_penalty_weight: Penalty weight for Firth methods (default 0.5).
+            firth_max_iter: Maximum iterations for Firth methods (default None uses backend defaults).
+            firth_use_lrt: Whether to use likelihood ratio test p-values for Firth methods.
             batch_size: Number of phecodes to process per batch for parallelization. If None, defaults to 1 for logit and 10 for cox.
             fall_back_to_serial: Whether to fall back to serial processing when parallelization fails.
         """
@@ -157,12 +159,23 @@ class PheWAS:
         self.min_cases = min_cases
         self.min_phecode_count = min_phecode_count
         self.suppress_warnings = suppress_warnings
+
+        # Validate method
+        if method not in available_methods():
+            print(f"Error: Unknown method '{method}'. Available: {available_methods()}")
+            sys.exit(1)
         self.method = method
+
+        # Firth parameters
+        self.firth_penalty_weight = firth_penalty_weight
+        self.firth_max_iter = firth_max_iter
+        self.firth_use_lrt = firth_use_lrt
+
         # Set default batch_size based on method if None
         if batch_size is None:
-            if method == "logit":
+            if method in ("logit", "firth_logit"):
                 self.batch_size = 1
-            elif method == "cox":
+            elif method in ("cox", "firth_cox"):
                 self.batch_size = 10
             else:
                 self.batch_size = 1  # fallback default
@@ -171,13 +184,13 @@ class PheWAS:
         self.fall_back_to_serial = fall_back_to_serial
 
         # For Cox regression:
-        if (method == "cox") and (
+        if (method in ("cox", "firth_cox")) and (
                 (cox_control_observed_time_col is None) |
                 (cox_phecode_observed_time_col is None)
         ):
             print()
-            print("Warning: cox_control_observed_time_col and cox_phecode_observed_time_col are all required for Cox regression.")
-            print("Please provide these parameters when using --method cox")
+            print("Warning: cox_control_observed_time_col and cox_phecode_observed_time_col are all required for Cox/Firth-Cox regression.")
+            print("Please provide these parameters when using --method cox or --method firth_cox")
             print()
             sys.exit(1)
         else:
@@ -271,7 +284,7 @@ class PheWAS:
         # Keep only relevant columns in covariate_df
         cols_to_keep = list(set(["person_id"] + self.var_cols))
         # For Cox regression add stratification and observed time to covariate df
-        if method == "cox":
+        if method in ("cox", "firth_cox"):
             cols_to_keep = cols_to_keep + [cox_control_observed_time_col]
             if cox_start_date_col is not None:
                 cols_to_keep = cols_to_keep + [cox_start_date_col]
@@ -284,7 +297,7 @@ class PheWAS:
         # Update phecode_counts to only participants of interest
         self.cohort_ids = self.covariate_df["person_id"].unique().to_list()
         self.phecode_counts = self.phecode_counts.filter(pl.col("person_id").is_in(self.cohort_ids))
-        if (cox_start_date_col is not None) and (method == "cox"):
+        if (cox_start_date_col is not None) and (method in ("cox", "firth_cox")):
             self.phecode_counts = self.phecode_counts.join(
                 self.covariate_df[["person_id", cox_start_date_col]], how="left", on="person_id"
             )
@@ -333,11 +346,13 @@ class PheWAS:
         print("Total number of phecode events: ", self.phecode_counts.shape[0])
         print("Number of phecode batches to process: ", len(self.phecode_batch_list))
         print()
-        method_text = ""
-        if self.method == "cox":
-            method_text = "Cox regression"
-        elif self.method == "logit":
-            method_text = "Logistic regression"
+        method_text_map = {
+            "logit": "Logistic regression",
+            "cox": "Cox regression",
+            "firth_logit": "Firth penalized logistic regression",
+            "firth_cox": "Firth penalized Cox regression",
+        }
+        method_text = method_text_map.get(self.method, self.method)
         print("Analysis method: ", method_text)
         print()
         
@@ -346,7 +361,7 @@ class PheWAS:
         os.makedirs(self.temp_dir, exist_ok=True)
 
     @staticmethod
-    def _to_polars(df: pd.DataFrame | pl.DataFrame) -> pl.DataFrame:
+    def _to_polars(df) -> pl.DataFrame:
         """
         Convert pandas DataFrame to polars DataFrame if necessary.
 
@@ -356,6 +371,7 @@ class PheWAS:
         Returns:
             Polars DataFrame object.
         """
+        import pandas as pd
         if isinstance(df, pd.DataFrame):
             polars_df = pl.from_pandas(df)
         else:
@@ -563,7 +579,7 @@ class PheWAS:
             controls = covariate_df.filter(~(pl.col("person_id").is_in(exclude_ids)))
 
             # PROCESS OBSERVED TIME FOR COX REGRESSION
-            if method == "cox":
+            if method in ("cox", "firth_cox"):
                 # CASES
                 case_observed_time_df = phecode_counts.filter(
                     (pl.col("person_id").is_in(case_ids)) & (pl.col("phecode") == phecode)
@@ -580,7 +596,7 @@ class PheWAS:
                 controls = controls.rename({cox_control_observed_time_col: "observed_time"})
 
             # KEEP ONLY REQUIRED COLUMNS
-            if method == "cox":
+            if method in ("cox", "firth_cox"):
                 analysis_var_cols = analysis_var_cols + ["observed_time"]
                 if ((sex_restriction == "Both") and
                     ((cox_stratification_col is not None) and
@@ -639,111 +655,17 @@ class PheWAS:
             print(f"No phecode data for {phecode}")
             return None
 
-    @staticmethod
-    def _logit_result_prep(
-            result, 
-            var_of_interest_index: int
-    ) -> dict[str, float | str]:
-        """
-        Extract and format key statistics from logistic regression results.
-
-        Processes statsmodels logistic regression output to extract p-values,
-        confidence intervals, odds ratios, and convergence information for
-        the variable of interest.
-
-        Args:
-            result: Statsmodels logistic regression result object.
-            var_of_interest_index: Index position of variable of interest in model.
-
-        Returns:
-            Dictionary containing formatted statistical results.
-        """
-        results_as_html = result.summary().tables[0].as_html()
-        converged = pd.read_html(StringIO(results_as_html))[0].iloc[5, 1]
-        results_as_html = result.summary().tables[1].as_html()
-        res = pd.read_html(StringIO(results_as_html), header=0, index_col=0)[0]
-
-        p_value = result.pvalues[var_of_interest_index]
-        neg_log_p_value = -np.log10(p_value)
-        standard_error = res.iloc[var_of_interest_index]['std err']
-        beta = result.params[var_of_interest_index]
-        conf_int_1 = res.iloc[var_of_interest_index]['[0.025']
-        conf_int_2 = res.iloc[var_of_interest_index]['0.975]']
-        odds_ratio = np.exp(beta)
-        log10_odds_ratio = np.log10(odds_ratio)
-
-        return {
-            "p_value": p_value,
-            "neg_log_p_value": neg_log_p_value,
-            "standard_error": standard_error,
-            "beta": beta,
-            "conf_int_1": conf_int_1,
-            "conf_int_2": conf_int_2,
-            "odds_ratio": odds_ratio,
-            "log10_odds_ratio": log10_odds_ratio,
-            "converged": converged
-        }
-
-    def _cox_result_prep(
-            self, 
-            result, 
-            stratified_by: str, 
-            warning_message: str | None = None
-    ) -> dict[str, float | str]:
-        """
-        Extract and format key statistics from Cox regression results.
-
-        Processes lifelines Cox proportional hazards model output to extract
-        hazard ratios, confidence intervals, p-values, concordance index,
-        and convergence information for the variable of interest.
-
-        Args:
-            result: Lifelines CoxPHFitter result object.
-            stratified_by: Name of stratification variable or "None" if unstratified.
-            warning_message: Convergence or warning messages to include in results.
-
-        Returns:
-            Dictionary containing formatted Cox regression statistics.
-        """
-        result_df = result.summary
-
-        p_value = result_df.loc[self.independent_variable_of_interest]["p"]
-        neg_log_p_value = -np.log10(p_value)
-        standard_error = result_df.loc[self.independent_variable_of_interest]["se(coef)"]
-        hazard_ratio = result_df.loc[self.independent_variable_of_interest]["exp(coef)"]
-        hazard_ratio_low = result_df.loc[self.independent_variable_of_interest]["exp(coef) lower 95%"]
-        hazard_ratio_high = result_df.loc[self.independent_variable_of_interest]["exp(coef) upper 95%"]
-        log_hazard_ratio = result_df.loc[self.independent_variable_of_interest]["coef"]
-
-        concordance_index = result.concordance_index_
-        stratified_by = stratified_by
-
-        result_dict = {
-            "p_value": p_value,
-            "neg_log_p_value": neg_log_p_value,
-            "standard_error": standard_error,
-            "hazard_ratio": hazard_ratio,
-            "hazard_ratio_low": hazard_ratio_low,
-            "hazard_ratio_high": hazard_ratio_high,
-            "log_hazard_ratio": log_hazard_ratio,
-            "concordance_index": concordance_index,
-            "stratified_by": stratified_by,
-            "convergence": warning_message
-        }
-
-        return result_dict
-
     # noinspection PyInconsistentReturns
     def _regression(
-            self, 
+            self,
             phecode: str
     ) -> dict[str, float | str | int] | None:
         """
-        Perform regression analysis (logistic or Cox) for a single phecode.
+        Perform regression analysis for a single phecode using the registered backend.
 
         Conducts the complete statistical analysis pipeline for one phecode:
-        prepares case-control data, fits the specified regression model,
-        handles convergence issues, and formats results. Returns None if
+        prepares case-control data, fits the specified regression model via
+        the registry backend, and formats results. Returns None if
         insufficient cases/controls or if model fitting fails.
 
         Args:
@@ -796,92 +718,27 @@ class PheWAS:
                          "cases": len(cases),
                          "controls": len(controls)}
 
-            # OPTION 1: COX REGRESSION
-            if method == "cox":
-                # For cox regression, warnings are always on to catch convergence status
-                warnings.simplefilter("always")
+            # Dispatch to registered backend
+            backend = get_backend(method)
+            stats_dict = backend.fit(
+                regressors=regressors,
+                y=y,
+                analysis_var_cols=analysis_var_cols,
+                independent_variable_of_interest=independent_variable_of_interest,
+                cox_stratification_col=cox_stratification_col,
+                cox_fallback_step_size=cox_fallback_step_size,
+                verbose=verbose,
+                suppress_warnings=suppress_warnings,
+                firth_penalty_weight=self.firth_penalty_weight,
+                firth_max_iter=self.firth_max_iter,
+                firth_use_lrt=self.firth_use_lrt,
+            )
 
-                strata = None
-                stratified_by = "None"
-                if cox_stratification_col in regressors.columns:
-                    strata = stratified_by = cox_stratification_col
-                cox = CoxPHFitter()
-                combined_warning = "Converged"
-                try:
-                    # Wrap fit() in warning handler
-                    captured_warnings = []
-                    with warnings.catch_warnings(record=True) as w:
-                        result = cox.fit(
-                            df=regressors.to_pandas(use_pyarrow_extension_array=True),
-                            event_col="y",
-                            duration_col="observed_time",
-                            strata=strata,
-                        )
-                    for warning in w:
-                        warning_message = str(warning.message)
-                        captured_warnings.append(warning_message)
-                    if captured_warnings:
-                        combined_warning = "\n".join(captured_warnings)
-                except u.ConvergenceError:
-                    combined_warning = f"Convergence error. step_size was lowered to {cox_fallback_step_size} (default is 0.95)."
-                    result = cox.fit(
-                        df=regressors.to_pandas(use_pyarrow_extension_array=True),
-                        event_col="y",
-                        duration_col="observed_time",
-                        strata=strata,
-                        fit_options={"step_size": cox_fallback_step_size}
-                    )
-                except Exception as e:
-                    print("Exception:", e)
-                    result = None
-
-                # Process result
-                if result is not None:
-                    stats_dict = self._cox_result_prep(
-                        result,
-                        stratified_by=stratified_by,
-                        warning_message=combined_warning
-                    )
-                    result_dict = {**base_dict, **stats_dict}
-
-                    # Choose to see results on the fly
-                    if verbose:
-                        print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls): {result_dict}\n")
-
-                    return result_dict
-
-            # OPTION 2: LOGISTIC REGRESSION
-            if method == "logit":
-                regressors = regressors[analysis_var_cols]
-                # Get index of variable of interest
-                var_index = regressors.columns.index(independent_variable_of_interest)
-                regressors = regressors.to_numpy()
-                regressors = sm.tools.add_constant(regressors, prepend=False)
-                logit = sm.Logit(y, regressors, missing="drop")
-
-                # Catch Singular matrix error
-                try:
-                    result = logit.fit(disp=False)
-                except (np.linalg.linalg.LinAlgError, statsmodels.tools.sm_exceptions.PerfectSeparationError) as err:
-                    if "Singular matrix" in str(err) or "Perfect separation" in str(err):
-                        if verbose:
-                            print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls):", str(err), "\n")
-                        pass
-                    else:
-                        raise
-                    result = None
-
-                if result is not None:
-                    # Process result
-                    stats_dict = self._logit_result_prep(result=result, var_of_interest_index=var_index)
-                    result_dict = {**base_dict, **stats_dict}  # python 3.5 or later
-                    # result_dict = base_dict | stats_dict  # python 3.9 or later
-
-                    # Choose to see results on the fly
-                    if verbose:
-                        print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls): {result_dict}\n")
-
-                    return result_dict
+            if stats_dict is not None:
+                result_dict = {**base_dict, **stats_dict}
+                if verbose:
+                    print(f"Phecode {phecode} ({len(cases)} cases/{len(controls)} controls): {result_dict}\n")
+                return result_dict
 
         else:
             if verbose:
@@ -1014,8 +871,8 @@ class PheWAS:
             "--method": self.method,
             "--batch_size": self.batch_size,
         }
-        # Add cox params when method = cox
-        if self.method == "cox":
+        # Add cox params when method requires time-to-event
+        if self.method in ("cox", "firth_cox"):
             if self.cox_start_date_col is not None:
                 param_dict["--cox_start_date_col"] = self.cox_start_date_col
             if self.cox_control_observed_time_col is not None:
@@ -1026,6 +883,14 @@ class PheWAS:
                 param_dict["--cox_stratification_col"] = self.cox_stratification_col
             if self.cox_fallback_step_size is not None:
                 param_dict["--cox_fallback_step_size"] = self.cox_fallback_step_size
+        # Add Firth params when method is a Firth variant
+        if self.method.startswith("firth"):
+            if self.firth_penalty_weight != 0.5:
+                param_dict["--firth_penalty_weight"] = self.firth_penalty_weight
+            if self.firth_max_iter is not None:
+                param_dict["--firth_max_iter"] = self.firth_max_iter
+            if not self.firth_use_lrt:
+                param_dict["--firth_use_lrt"] = "False"
         # These params are optional; default values will be used without being listed
         # and will only be listed in the script if different from default values
         if self.icd_version != "US":
@@ -1190,9 +1055,9 @@ class PheWAS:
 
         # Assign an optimal parallelization method when it is not specified
         if parallelization is None:
-            if self.method == "logit":
+            if self.method in ("logit", "firth_logit"):
                 parallelization = "multithreading"
-            elif self.method == "cox":
+            elif self.method in ("cox", "firth_cox"):
                 parallelization = "multiprocessing"
 
         _utils.print_banner("Running PheWAS")
@@ -1382,8 +1247,8 @@ def main() -> None:
                         type=str, required=True, choices=["1.2", "X"],
                         help="Phecode version.")
     parser.add_argument("--method",
-                        type=str, required=False, default="logit", choices=["logit", "cox"],
-                        help="Phecode regression method. Can be 'logit' or 'cox'.")
+                        type=str, required=False, default="logit", choices=["logit", "cox", "firth_logit", "firth_cox"],
+                        help="Phecode regression method. Can be 'logit', 'cox', 'firth_logit', or 'firth_cox'.")
     parser.add_argument("--cox_start_date_col",
                         type=str, required=False,
                         help="Start date column for Cox regression.")
@@ -1447,6 +1312,15 @@ def main() -> None:
                         type=_utils.str_to_bool, required=False, default=True, help="Whether to suppress warnings.")
     parser.add_argument("--verbose",
                         type=_utils.str_to_bool, required=False, default=False, help="Whether to print verbose progress information.")
+    parser.add_argument("--firth_penalty_weight",
+                        type=float, required=False, default=0.5,
+                        help="Penalty weight for Firth methods (default 0.5).")
+    parser.add_argument("--firth_max_iter",
+                        type=int, required=False, default=None,
+                        help="Maximum iterations for Firth methods.")
+    parser.add_argument("--firth_use_lrt",
+                        type=_utils.str_to_bool, required=False, default=True,
+                        help="Whether to use likelihood ratio test p-values for Firth methods (default True).")
     args = parser.parse_args()
 
     # Run PheWAS
@@ -1471,6 +1345,9 @@ def main() -> None:
         min_phecode_count=args.min_phecode_count,
         output_file_path=args.output_file_path,
         method=args.method,
+        firth_penalty_weight=args.firth_penalty_weight,
+        firth_max_iter=args.firth_max_iter,
+        firth_use_lrt=args.firth_use_lrt,
         batch_size=args.batch_size,
         fall_back_to_serial=args.fall_back_to_serial,
         suppress_warnings=args.suppress_warnings,

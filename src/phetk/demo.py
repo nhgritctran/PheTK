@@ -49,7 +49,8 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary",
             "sex": np.random.randint(0, n_sex, cohort_size),
             "pc1": np.random.uniform(-1, 1, cohort_size),
             "pc2": np.random.uniform(-1, 1, cohort_size),
-            "pc3": np.random.uniform(-1, 1, cohort_size)}
+            "pc3": np.random.uniform(-1, 1, cohort_size),
+            "observed_time": np.random.uniform(0.5, 10.0, cohort_size)}
     if var_type == "binary":
         cols["independent_variable_of_interest"] = np.random.randint(0, 2, cohort_size)
     elif var_type == "continuous":
@@ -79,6 +80,7 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary",
             cols["person_id"] = np.array(ids)
             cols["phecode"] = np.array([phecode] * len(ids))
             cols["count"] = np.random.randint(1, 3, len(ids))
+            cols["phecode_observed_time"] = np.random.uniform(0.1, 8.0, len(ids))
         else:
             cols = {}
             ids = random.sample(cohort["person_id"].to_list(),
@@ -86,6 +88,7 @@ def generate_examples(phecode="GE_979.2", cohort_size=500, var_type="binary",
             cols["person_id"] = np.array(ids)
             cols["phecode"] = np.array([phecodes[np.random.randint(1, len(phecodes))]] * len(ids))
             cols["count"] = np.random.randint(1, 10, len(ids))
+            cols["phecode_observed_time"] = np.random.uniform(0.1, 8.0, len(ids))
         df = pl.from_dict(cols)
         if phecode_counts is None:
             phecode_counts = df
@@ -123,7 +126,8 @@ def _prompt():
 def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
         independent_variable_of_interest="independent_variable_of_interest",
         phecode_to_process=None,
-        verbose=False):
+        verbose=False,
+        method="logit"):
     """
     Execute interactive PheWAS demonstration with mock data generation and analysis.
 
@@ -136,10 +140,12 @@ def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
         independent_variable_of_interest: Name of primary variable for analysis.
         phecode_to_process: Specific phecodes to analyze or "all" for complete analysis.
         verbose: Whether to display detailed progress information during analysis.
+        method: Regression method ("logit", "cox", "firth_logit", or "firth_cox").
 
     Returns:
         Completes demonstration workflow and displays results.
     """
+    valid_methods = ("logit", "cox", "firth_logit", "firth_cox")
     print("\033[1mWelcome to PheTK PheWAS Demo\033[0m")
     print("This quick demo shows PheWAS analysis using mock data (~1 minute).")
     print("For detailed tutorials, see the included documentations.")
@@ -184,7 +190,26 @@ def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
     print()
     print("This shows phecodes mapped from each person's ICD codes and their counts.")
     _prompt()
-    print("\033[1mStep 2: Run PheWAS Analysis\033[0m")
+    print("\033[1mStep 2: Choose Regression Method\033[0m")
+    print()
+    print("Available methods:")
+    print("  - logit       : Standard logistic regression")
+    print("  - cox         : Cox proportional hazards regression")
+    print("  - firth_logit : Firth penalized logistic regression")
+    print("  - firth_cox   : Firth penalized Cox regression")
+    print()
+    method_input = input(f"Which regression method? ({'/'.join(valid_methods)}) [{method}] ")
+    if method_input.strip():
+        if method_input.lower() == "quit":
+            print()
+            print("\033[1mExiting demo. Thank you!\033[0m")
+            sys.exit(0)
+        elif method_input.lower() in valid_methods:
+            method = method_input.lower()
+        else:
+            print(f"Invalid method '{method_input}'. Using default: {method}")
+    _prompt()
+    print("\033[1mStep 3: Run PheWAS Analysis\033[0m")
     print()
     print("Command line equivalent:")
     print("\033[1mpython3 -m phetk.phewas --cohort_file_path\033[0m example_cohort.tsv",
@@ -193,6 +218,7 @@ def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
           "\033[1m--sex_at_birth_col\033[0m sex",
           "\033[1m--covariates\033[0m age sex pc1 pc2 pc3",
           "\033[1m--independent_variable_of_interest\033[0m independent_variable_of_interest",
+          f"\033[1m--method\033[0m {method}",
           "\033[1m--min_cases\033[0m 50",
           "\033[1m--min_phecode_count\033[0m 2",
           "\033[1m--output_file_path\033[0m example_phewas_results.tsv")
@@ -201,23 +227,38 @@ def run(covariates_cols=("age", "sex", "pc1", "pc2", "pc3"),
     print()
     if isinstance(covariates_cols, tuple):
         covariates_cols = list(covariates_cols)
-    phewas = PheWAS(
-        cohort_file_path="example_cohort.tsv",
-        phecode_count_file_path="example_phecode_counts.tsv",
-        phecode_version="X",
-        sex_at_birth_col="sex",
-        phecode_to_process=phecode_to_process,
-        covariate_cols=list(covariates_cols),
-        independent_variable_of_interest=independent_variable_of_interest,
-        min_cases=50,
-        min_phecode_count=2,
-        output_file_path="example_phewas_results.tsv",
-        verbose=verbose)
+
+    phewas_kwargs = {
+        "cohort_file_path": "example_cohort.tsv",
+        "phecode_count_file_path": "example_phecode_counts.tsv",
+        "phecode_version": "X",
+        "sex_at_birth_col": "sex",
+        "phecode_to_process": phecode_to_process,
+        "covariate_cols": list(covariates_cols),
+        "independent_variable_of_interest": independent_variable_of_interest,
+        "min_cases": 50,
+        "min_phecode_count": 2,
+        "output_file_path": "example_phewas_results.tsv",
+        "verbose": verbose,
+        "method": method,
+    }
+    # Add Cox params if method requires time-to-event
+    if method in ("cox", "firth_cox"):
+        phewas_kwargs["cox_control_observed_time_col"] = "observed_time"
+        phewas_kwargs["cox_phecode_observed_time_col"] = "phecode_observed_time"
+
+    phewas = PheWAS(**phewas_kwargs)
     phewas.run()
     print("\033[1mTop Results (sorted by p-value):\033[0m")
     print(pl.read_csv("example_phewas_results.tsv", separator="\t", schema_overrides={"phecode": str}).sort(by="p_value").head())
     print()
-    print("PheWAS ran logistic regressions: phecode ~ independent_variable + covariates")
+    method_desc = {
+        "logit": "logistic regressions",
+        "cox": "Cox proportional hazards regressions",
+        "firth_logit": "Firth penalized logistic regressions",
+        "firth_cox": "Firth penalized Cox regressions",
+    }
+    print(f"PheWAS ran {method_desc.get(method, method)}: phecode ~ independent_variable + covariates")
     print()
     print("Key parameters:")
     print(f"  - min_phecode_count: {2} (minimum count to be a case)")
