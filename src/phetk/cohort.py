@@ -510,6 +510,28 @@ class Cohort:
         return result
 
     @staticmethod
+    def _normalize_alleles(pos: int, ref: str, alt: str) -> tuple[int, str, str]:
+        """Normalize a VCF (REF, ALT) pair by trimming common suffix then prefix.
+
+        Mirrors the decomposition that bcftools norm -m- performs when splitting
+        multi-allelic records into biallelic ones. Keeps at least 1 base in both
+        REF and ALT (VCF requirement).
+
+        Returns:
+            Tuple of (adjusted_pos, trimmed_ref, trimmed_alt).
+        """
+        # right-trim common suffix
+        while len(ref) > 1 and len(alt) > 1 and ref[-1] == alt[-1]:
+            ref = ref[:-1]
+            alt = alt[:-1]
+        # left-trim common prefix
+        while len(ref) > 1 and len(alt) > 1 and ref[0] == alt[0]:
+            ref = ref[1:]
+            alt = alt[1:]
+            pos += 1
+        return pos, ref, alt
+
+    @staticmethod
     def _extract_genotypes_vcf(
         data_path: str,
         chromosome_number: int,
@@ -559,7 +581,10 @@ class Cohort:
 
         # find the exact variant at this position
         print(f"Fetching region {locus_str}...")
+
+        # Pass 1: exact match (fast path — handles biallelic & users who provide raw VCF alleles)
         target_record = None
+        target_alt_allele = alt_allele
         try:
             for record in vcf.fetch(contig, genomic_position - 1, genomic_position):
                 if record.pos != genomic_position:
@@ -575,6 +600,28 @@ class Cohort:
             vcf.close()
             return None
 
+        # Pass 2: decomposed match (for multi-allelic sites where user provides
+        #          the normalized/simplified alleles, e.g. C/T instead of CCTT/TCTT)
+        if target_record is None:
+            try:
+                for record in vcf.fetch(contig, genomic_position - 1, genomic_position):
+                    if record.pos != genomic_position or not record.alts:
+                        continue
+                    for raw_alt in record.alts:
+                        norm_pos, norm_ref, norm_alt = Cohort._normalize_alleles(
+                            record.pos, record.ref, raw_alt,
+                        )
+                        if (norm_pos == genomic_position
+                                and norm_ref == ref_allele
+                                and norm_alt == alt_allele):
+                            target_record = record
+                            target_alt_allele = raw_alt  # the raw VCF ALT for index lookup
+                            break
+                    if target_record is not None:
+                        break
+            except ValueError:
+                pass  # already handled above
+
         if target_record is None:
             print()
             print(f"\033[1mVariant {locus_str}:{ref_allele}:{alt_allele} not found in {call_set} call set!\033[0m")
@@ -582,12 +629,16 @@ class Cohort:
             return None
 
         print()
-        print(f"\033[1mVariant {locus_str}:{ref_allele}:{alt_allele} found!\033[0m")
+        if target_alt_allele != alt_allele:
+            print(f"\033[1mVariant {locus_str}:{ref_allele}:{alt_allele} found "
+                  f"(VCF representation: {target_record.ref}>{target_alt_allele})!\033[0m")
+        else:
+            print(f"\033[1mVariant {locus_str}:{ref_allele}:{alt_allele} found!\033[0m")
 
         is_multiallelic = len(target_record.alts) > 1
         if is_multiallelic:
             print("\033[1mMulti-allelic detected!\033[0m")
-            target_alt_idx = list(target_record.alts).index(alt_allele)
+            target_alt_idx = list(target_record.alts).index(target_alt_allele)
             target_allele_code = target_alt_idx + 1  # 0 = REF
 
         # extract genotypes for all samples
