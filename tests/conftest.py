@@ -117,3 +117,6 @@ def aou_env(monkeypatch):
     monkeypatch.setenv("WORKSPACE_BUCKET", "gs://test-bucket")
     monkeypatch.setenv("OWNER_EMAIL", "test.user@test.com")
     monkeypatch.setenv("ARTIFACT_REGISTRY_DOCKER_REPO", "us-docker.pkg.dev/test-project/test-repo")
+    # Prevent setup_verily_env from popping the test-injected WORKSPACE_BUCKET
+    # and probing the wb CLI (which may not exist or may open a browser).
+    monkeypatch.setattr("phetk._utils.setup_verily_env", lambda: None)

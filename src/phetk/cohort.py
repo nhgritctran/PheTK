@@ -5,6 +5,7 @@ from tqdm import tqdm
 import os
 import pandas as pd
 import polars as pl
+import tempfile
 from google.cloud import storage
 import sys
 import warnings
@@ -258,7 +259,7 @@ class Cohort:
     @staticmethod
     def _write_cohort_output(cohort: pl.DataFrame, output_file_path: str) -> None:
         """Write cohort TSV and print summary."""
-        cohort.write_csv(output_file_path, separator="\t")
+        _utils.write_tsv(cohort, output_file_path)
         print()
         cohort_gt = cohort["genotype"].unique().to_list()
         print(f"Cohort size: {len(cohort)} participants")
@@ -865,7 +866,16 @@ class Cohort:
             covariates = pl.concat([covariates, result_list[i]])
 
         covariates = covariates.unique()
-        covariates.write_csv("covariates.tsv", separator="\t")
+        if output_file_path:
+            abs_out = os.path.abspath(str(output_file_path))
+            if not str(output_file_path).startswith("gs://"):
+                intermediate_dir = os.path.dirname(abs_out) or "."
+            else:
+                intermediate_dir = tempfile.gettempdir()
+        else:
+            intermediate_dir = tempfile.gettempdir()
+        intermediate_path = os.path.join(intermediate_dir, "covariates.tsv")
+        _utils.write_tsv(covariates, intermediate_path)
 
         # merge covariates to cohort
         final_cohort = cohort.join(covariates, how="left", on="person_id")
@@ -874,7 +884,7 @@ class Cohort:
 
         if output_file_path is None:
             output_file_path = "cohort.tsv"
-        final_cohort.write_csv(f"{output_file_path}", separator="\t")
+        _utils.write_tsv(final_cohort, str(output_file_path))
 
         print()
         print(f"Cohort size: {len(final_cohort)} participants")

@@ -1344,7 +1344,7 @@ class PheWAS:
             self.above_bonferroni_count = len(self.phecodes_above_bonferroni)
 
             # Save results
-            self.results.write_csv(self.output_file_path, separator="\t")
+            _utils.write_tsv(self.results, self.output_file_path)
 
             print("Number of participants in cohort:", self.cohort_size)
             print("Number of phecodes in cohort:", len(self.phecode_list))

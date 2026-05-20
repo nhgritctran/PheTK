@@ -285,7 +285,7 @@ class Phecode:
             print(f"Mapping done. Writing output to {file_path}...", flush=True)
             # polars handles local paths and cloud paths (gs://, s3://, ...)
             # via its built-in object-store backend.
-            phecode_counts.write_csv(file_path, separator="\t")
+            _utils.write_tsv(phecode_counts, file_path)
             print(f"Successfully generated phecode{phecode_version} counts for cohort participants!")
             print()
             print(f"Saved to\033[1m {file_path}\033[0m")
@@ -351,7 +351,7 @@ class Phecode:
 
         if output_file_path is None:
             output_file_path = phecode_count_file_path.replace(".tsv", "_with_age_at_first_event.tsv")
-        phecode_counts.write_csv(output_file_path, separator="\t")
+        _utils.write_tsv(phecode_counts, output_file_path)
         print("Done!")
         print()
         print(f"Saved to\033[1m {output_file_path}\033[0m. "
@@ -418,7 +418,7 @@ class Phecode:
 
         if output_file_path is None:
             output_file_path = phecode_count_file_path.replace(".tsv", "_with_phecode_time_to_event.tsv")
-        phecode_counts.write_csv(output_file_path, separator="\t")
+        _utils.write_tsv(phecode_counts, output_file_path)
         print("Done!")
         print()
         print(f"Saved to\033[1m {output_file_path}\033[0m. "

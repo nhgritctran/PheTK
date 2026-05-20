@@ -11,8 +11,10 @@ import polars as pl
 import psutil
 import pyarrow as pa
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 
@@ -68,6 +70,12 @@ def setup_verily_env() -> None:
     Silently returns on non-Verily platforms (e.g., AoU/Terra) where the `wb`
     CLI is not installed.
     """
+    # On Verily Workbench, always re-detect WORKSPACE_BUCKET. Kernel init
+    # scripts can overwrite it with a stale or incorrect value (e.g. a
+    # cloned-* bucket) on kernel restart.
+    if is_verily_workbench():
+        os.environ.pop("WORKSPACE_BUCKET", None)
+
     env_vars = [
         "GOOGLE_PROJECT",
         "GOOGLE_CLOUD_PROJECT",
@@ -241,7 +249,7 @@ def _classify_wb_buckets(gcs_buckets: list, resources: list) -> None:
     """
     Classify GCS buckets from ``wb resource list`` and set env vars.
 
-    Skips ``dataproc-*`` and ``vwb-aou-*`` buckets. Remaining buckets are
+    Skips ``dataproc-*``, ``cloned-*``, and ``vwb-aou-*`` buckets. Remaining buckets are
     split by stewardship type:
 
     - CONTROLLED → ``WORKSPACE_BUCKET`` (or ``WORKSPACE_BUCKET1``, ``2``, ...)
@@ -251,7 +259,7 @@ def _classify_wb_buckets(gcs_buckets: list, resources: list) -> None:
         gcs_buckets: List of (resource_id, bucket_name, stewardship) tuples.
         resources: Full resource list (used for diagnostics if no buckets found).
     """
-    skip_prefixes = ("dataproc-", "vwb-aou-")
+    skip_prefixes = ("dataproc-", "cloned-", "vwb-aou-")
     controlled = [
         (rid, bn) for rid, bn, stew in gcs_buckets
         if stew == "CONTROLLED"
@@ -453,6 +461,87 @@ def _print_env_summary(env_vars: list, already_set: set) -> None:
         print("Already set (skipped):")
         for line in skipped:
             print(line)
+
+
+def write_tsv(df: pl.DataFrame, path: str, separator: str = "\t") -> None:
+    """Write a polars DataFrame as TSV, robust across Verily / All of Us / Terra.
+
+    Strategy: always stages to a local temp file via polars (reliable on local
+    disk regardless of frame size), then transfers to the user's destination.
+
+    Local paths use ``shutil.move``. Bucket paths — both ``gs://`` URIs and
+    FUSE-mounted bucket paths under ``/home/jupyter/workspace/<bucket>/...`` —
+    use ``gcloud storage cp``, which uses the JSON resumable upload API that
+    Verily/AoU pet service accounts have permission for. Writing to bucket
+    paths via the FUSE mount itself is unreliable for medium-to-large files
+    (gcsfuse EIO on writes through its filesystem layer), so we bypass it.
+    """
+    path = str(path)
+
+    # If the destination is a FUSE-mounted bucket path, convert to its gs://
+    # equivalent so we go through gcloud instead of through the unreliable
+    # FUSE write path.
+    bucket_dest = _to_gs_uri_if_bucket_mount(path)
+
+    with tempfile.NamedTemporaryFile(suffix=".tsv", delete=False, dir="/tmp") as tmp:
+        staged = tmp.name
+
+    try:
+        df.write_csv(staged, separator=separator)
+
+        if bucket_dest is not None:
+            if shutil.which("gcloud") is None:
+                raise RuntimeError(
+                    f"Writing to {path} requires the 'gcloud' CLI on PATH "
+                    f"(standard on Verily / All of Us / Terra)."
+                )
+            result = subprocess.run(
+                ["gcloud", "storage", "cp", staged, bucket_dest],
+                capture_output=True, text=True,
+            )
+            if result.returncode != 0:
+                raise RuntimeError(
+                    f"gcloud storage cp failed for {bucket_dest}:\n"
+                    f"{result.stderr.strip()}"
+                )
+        else:
+            parent = os.path.dirname(os.path.abspath(path))
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+            shutil.move(staged, path)
+            staged = None
+
+    finally:
+        if staged is not None:
+            try:
+                os.unlink(staged)
+            except FileNotFoundError:
+                pass
+
+
+def _to_gs_uri_if_bucket_mount(path: str) -> str | None:
+    """If ``path`` is a gs:// URI or a FUSE-mounted bucket path, return the
+    canonical ``gs://bucket/key`` form. Otherwise return None.
+
+    Verily/AoU/Terra mount workspace buckets under
+    ``/home/jupyter/workspace/<bucket-name>/...``. The bucket name is the
+    first path segment after ``workspace/``.
+    """
+    if path.startswith("gs://"):
+        return path
+
+    # Identify FUSE-mounted bucket paths by checking against the standard
+    # mount prefix used on Verily/AoU/Terra.
+    mount_prefix = "/home/jupyter/workspace/"
+    abs_path = os.path.abspath(path)
+    if not abs_path.startswith(mount_prefix):
+        return None
+
+    rest = abs_path[len(mount_prefix):]   # "<bucket>/<key>"
+    if "/" not in rest:
+        return None
+    bucket, key = rest.split("/", 1)
+    return f"gs://{bucket}/{key}"
 
 
 def str_to_bool(v) -> bool:
@@ -993,6 +1082,6 @@ def sample_tsv_file(file_path: str, sample_ratio: float = 0.1) -> None:
     sampled_df = df.sample(n=sample_size, seed=42)
     
     # Write the sampled data
-    sampled_df.write_csv(sample_file_path, separator=delimiter)
+    write_tsv(sampled_df, sample_file_path, separator=delimiter)
     
     print(f"Sample file created: {sample_file_path}")
