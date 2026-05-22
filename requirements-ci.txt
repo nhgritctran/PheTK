@@ -19,5 +19,7 @@ pyarrow>=10.0.1
 statsmodels
 tqdm
 
+firthmodels
+
 # test dependencies
 pytest
