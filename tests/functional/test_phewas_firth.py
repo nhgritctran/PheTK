@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 import polars as pl
 
-from phetk.demo import generate_examples
+from phetk._utils import generate_mock_phewas_data
 from phetk.phewas import PheWAS
 
 
@@ -26,7 +26,7 @@ def demo_files(tmp_path_factory):
     orig = os.getcwd()
     os.chdir(str(tmp))
     try:
-        generate_examples(cohort_size=300, phecode="GE_979.2")
+        generate_mock_phewas_data(cohort_size=300, phecode="GE_979.2")
     finally:
         os.chdir(orig)
     return {
