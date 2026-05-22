@@ -20,8 +20,11 @@ Performs logistic or Cox regression analysis across all phecodes, testing associ
 - `min_cases`: Minimum cases required to test phecode (int, default: 50)
 - `min_phecode_count`: Minimum count to qualify as case (int, default: 2)
 - `use_exclusion`: Whether to use phecode exclusion ranges (bool, default: False)
-- `method`: "logit" for logistic or "cox" for Cox regression (str, default: "logit")
-- `batch_size`: Number of phecodes per processing batch (int, optional, default: 1 for logit, 10 for cox)
+- `method`: Regression method — "logit", "cox", "firth_logit", or "firth_cox" (str, default: "logit")
+- `firth_penalty_weight`: Penalty weight for Firth methods (float, default: 0.5)
+- `firth_max_iter`: Maximum iterations for Firth methods (int, optional)
+- `firth_use_lrt`: Whether to use likelihood ratio test p-values for Firth methods (bool, default: True)
+- `batch_size`: Number of phecodes per processing batch (int, optional, default: 1 for logit/firth_logit, 10 for cox/firth_cox)
 - `fall_back_to_serial`: Fall back to serial processing if parallel fails (bool, default: False)
 - `output_file_path`: Output file path (str, optional)
 - `verbose`: Print progress for each phecode (bool, default: False)
@@ -103,6 +106,74 @@ phetk phewas \
   --cox_control_observed_time_col "follow_up_time" \
   --cox_phecode_observed_time_col "time_to_event" \
   --output_file_path "cox_results.tsv"
+```
+
+## Firth Penalized Regression
+
+Firth penalized regression reduces bias in maximum likelihood estimates, particularly for rare phenotypes with small case counts or near-separation. Two Firth methods are available: `firth_logit` (penalized logistic) and `firth_cox` (penalized Cox). Both use the [firthmodels](https://pypi.org/project/firthmodels/) library.
+
+Compared to standard methods, Firth regression:
+- Produces less biased effect estimates for rare phenotypes
+- Improves convergence when standard methods fail due to separation
+- Uses likelihood ratio test (LRT) p-values by default, which are more reliable than Wald p-values for small samples
+- Applies a slight penalty that results in moderately wider confidence intervals
+
+### Firth Parameters
+- `firth_penalty_weight`: Controls the strength of the Firth penalty (float, default: 0.5). Lower values reduce the penalization.
+- `firth_max_iter`: Maximum number of iterations for the Firth optimizer (int, optional). Uses backend defaults if not specified.
+- `firth_use_lrt`: Whether to use likelihood ratio test p-values instead of Wald p-values (bool, default: True). LRT p-values are recommended for Firth regression.
+
+### Notebook Example (Firth Logistic)
+```python
+from phetk.phewas import PheWAS
+
+phewas = PheWAS(
+    phecode_version="X",
+    phecode_count_file_path="phecode_counts.tsv",
+    cohort_file_path="cohort.tsv",
+    covariate_cols=["age", "sex", "pc1", "pc2", "pc3"],
+    independent_variable_of_interest="genotype",
+    sex_at_birth_col="sex",
+    min_cases=50,
+    min_phecode_count=2,
+    method="firth_logit",
+    output_file_path="phewas_results_firth_logit.tsv"
+)
+phewas.run()
+```
+
+### Notebook Example (Firth Cox)
+```python
+phewas = PheWAS(
+    phecode_version="X",
+    phecode_count_file_path="phecode_counts.tsv",
+    cohort_file_path="cohort.tsv",
+    covariate_cols=["age", "sex", "pc1"],
+    independent_variable_of_interest="exposure",
+    sex_at_birth_col="sex",
+    method="firth_cox",
+    cox_control_observed_time_col="follow_up_time",
+    cox_phecode_observed_time_col="time_to_event",
+    output_file_path="phewas_results_firth_cox.tsv"
+)
+phewas.run()
+```
+
+### CLI Example
+```bash
+phetk phewas \
+  --phecode_version "X" \
+  --cohort_file_path "cohort.tsv" \
+  --phecode_count_file_path "phecode_counts.tsv" \
+  --sex_at_birth_col "sex" \
+  --covariate_cols age sex pc1 pc2 pc3 \
+  --independent_variable_of_interest "genotype" \
+  --min_cases 50 \
+  --min_phecode_count 2 \
+  --method "firth_logit" \
+  --firth_penalty_weight 0.5 \
+  --firth_use_lrt True \
+  --output_file_path "firth_logit_results.tsv"
 ```
 
 ## Running PheWAS with dsub
@@ -198,16 +269,42 @@ Returns dataframe with original cohort data plus `is_phecode_case` column indica
 
 ## Output Format
 
-Results file contains:
+Results file columns vary by method.
+
+### Logistic methods (`logit`, `firth_logit`)
 - `phecode`: Phecode tested
-- `phecode_string`: Phecode description
-- `beta`/`hazard_ratio`: Effect estimate
-- `SE`: Standard error
+- `cases`: Number of cases
+- `controls`: Number of controls
 - `p_value`: P-value from regression
-- `n_cases`: Number of cases
-- `n_controls`: Number of controls
+- `neg_log_p_value`: -log10(p_value)
+- `standard_error`: Standard error of beta
+- `beta`: Log-odds coefficient
+- `conf_int_1`: Lower bound of 95% CI for beta
+- `conf_int_2`: Upper bound of 95% CI for beta
+- `odds_ratio`: Exponentiated beta
+- `log10_odds_ratio`: log10(odds_ratio)
 - `converged`: Whether regression converged
-- `phecode_sex`: Sex restriction if applicable
+- `phecode_sex_restriction`: Sex restriction if applicable
+- `phecode_string`: Phecode description
+- `phecode_category`: Phecode category
+
+### Cox methods (`cox`, `firth_cox`)
+- `phecode`: Phecode tested
+- `cases`: Number of cases
+- `controls`: Number of controls
+- `p_value`: P-value from regression
+- `neg_log_p_value`: -log10(p_value)
+- `standard_error`: Standard error of log hazard ratio
+- `hazard_ratio`: Hazard ratio
+- `hazard_ratio_low`: Lower bound of 95% CI for hazard ratio
+- `hazard_ratio_high`: Upper bound of 95% CI for hazard ratio
+- `log_hazard_ratio`: Log hazard ratio coefficient
+- `concordance_index`: Concordance index (C-statistic)
+- `stratified_by`: Stratification variable if used
+- `convergence`: Whether regression converged
+- `phecode_sex_restriction`: Sex restriction if applicable
+- `phecode_string`: Phecode description
+- `phecode_category`: Phecode category
 
 ## Important Notes
 
