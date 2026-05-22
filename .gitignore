@@ -145,5 +145,8 @@ docker
 .claude
 CLAUDE.md
 
+# benchmark generated files
+benchmark/*.tsv
+
 # temporary
 .devcontainer
