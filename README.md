@@ -14,7 +14,20 @@ __Contact__: [PheTK@mail.nih.gov](mailto:PheTK@mail.nih.gov)
 
 __Releases__: check [GitHub Releases](https://github.com/nhgritctran/PheTK/releases) for the latest versions and changelogs.
 
-## 🆕 WHAT'S NEW IN v0.2
+## 🆕 WHAT'S NEW — Firth Penalized Regressions
+
+Firth penalized regressions are here! This is a [pre-release version](https://github.com/nhgritctran/PheTK/releases) for public testing and evaluation. The source code and documentation for this version are in the [firth branch](https://github.com/nhgritctran/PheTK/tree/firth).
+
+```
+pip install phetk==0.3.1rc1
+```
+
+Or to always get the latest pre-release version:
+```
+pip install --pre phetk --upgrade
+```
+
+## WHAT'S NEW IN v0.2
 Major updates in this release:
 - **Cox regression support** - Added survival analysis capabilities alongside logistic regression
 - **dsub integration** - Built-in support for distributed computing on Google Cloud Platform
