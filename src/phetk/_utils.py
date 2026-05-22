@@ -6,10 +6,12 @@ from tqdm import tqdm
 import argparse
 import csv
 import json
+import numpy as np
 import os
 import polars as pl
 import psutil
 import pyarrow as pa
+import random
 import re
 import shutil
 import subprocess
@@ -1087,3 +1089,104 @@ def sample_tsv_file(file_path: str, sample_ratio: float = 0.1) -> None:
     write_tsv(sampled_df, sample_file_path, separator=delimiter)
     
     print(f"Sample file created: {sample_file_path}")
+
+
+def generate_mock_phewas_data(phecode="GE_979.2", cohort_size=500, var_type="binary",
+                              data_has_both_sexes=True, seed: int | None = None):
+    """
+    Generate mock cohort and phecode count data for PheWAS demonstration.
+
+    Creates synthetic datasets with specified characteristics including target
+    phecode enrichment in cases, realistic phecode distributions, and customizable
+    variable types for testing PheWAS functionality.
+
+    Args:
+        phecode: Target phecode to enrich in cases for demonstration.
+        cohort_size: Number of participants in generated cohort.
+        var_type: Type of independent variable ("binary" or "continuous").
+        data_has_both_sexes: Whether to include both sexes in generated data.
+        seed: Random seed for reproducible data generation. None means fully random.
+
+    Returns:
+        Saves example_cohort.tsv and example_phecode_counts.tsv files.
+    """
+    if seed is not None:
+        np.random.seed(seed)
+        random.seed(seed)
+
+    # load the phecode mapping file to get all phecodes
+    phetk_dir = os.path.dirname(__file__)
+    phecode_mapping_file_path = os.path.join(phetk_dir, "phecode")
+    phecode_mapping_file_path = os.path.join(phecode_mapping_file_path, "phecodeX.csv")
+    # noinspection PyTypeChecker
+    phecode_df = pl.read_csv(phecode_mapping_file_path,
+                             schema_overrides={"phecode": str,
+                                     "ICD": str,
+                                     "flag": pl.Int8,
+                                     "code_val": float})
+    phecodes = phecode_df["phecode"].unique().to_list()
+    phecodes.remove(phecode)  # exclude target phecode for background data
+
+    # mock cohort
+    if data_has_both_sexes:
+        n_sex = 2
+    else:
+        n_sex = 1
+    cols = {"person_id": np.array(range(1, cohort_size + 1)),
+            "age": np.random.randint(18, 80, cohort_size),
+            "sex": np.random.randint(0, n_sex, cohort_size),
+            "pc1": np.random.uniform(-1, 1, cohort_size),
+            "pc2": np.random.uniform(-1, 1, cohort_size),
+            "pc3": np.random.uniform(-1, 1, cohort_size),
+            "observed_time": np.random.uniform(0.5, 10.0, cohort_size)}
+    if var_type == "binary":
+        cols["independent_variable_of_interest"] = np.random.randint(0, 2, cohort_size)
+    elif var_type == "continuous":
+        cols["independent_variable_of_interest"] = np.random.uniform(0.1, 10, cohort_size)
+
+    cohort = pl.from_dict(cols)
+    if var_type == "binary":
+        case_ids = cohort.filter(pl.col("independent_variable_of_interest") == 1)["person_id"].unique().to_list()
+        ctrl_ids = cohort.filter(pl.col("independent_variable_of_interest") == 0)["person_id"].unique().to_list()
+    elif var_type == "continuous":
+        var_mean = np.mean(cols.get("independent_variable_of_interest"))
+        case_ids = cohort.filter(pl.col("independent_variable_of_interest") >= var_mean)["person_id"].unique().to_list()
+        ctrl_ids = cohort.filter(pl.col("independent_variable_of_interest") < var_mean)["person_id"].unique().to_list()
+    else:
+        print("Error: var_type can only be \"binary\" or \"continuous\".")
+        return
+
+    # mock phecode_counts
+    phecode_counts = None
+    for i in tqdm(range(cohort_size)):
+        if i == 0:
+            cols = {}
+            # noinspection PyTypeChecker
+            ids = random.sample(
+                case_ids, np.random.randint(round(len(case_ids) * 0.5), len(case_ids) * 0.8)
+            ) + ctrl_ids[:round(len(ctrl_ids) / 10)]
+            cols["person_id"] = np.array(ids)
+            cols["phecode"] = np.array([phecode] * len(ids))
+            cols["count"] = np.random.randint(1, 3, len(ids))
+            cols["phecode_observed_time"] = np.random.uniform(0.1, 8.0, len(ids))
+        else:
+            cols = {}
+            ids = random.sample(cohort["person_id"].to_list(),
+                                np.random.randint(round(cohort_size * 0.5), round(cohort_size * 0.9)))
+            cols["person_id"] = np.array(ids)
+            cols["phecode"] = np.array([phecodes[np.random.randint(1, len(phecodes))]] * len(ids))
+            cols["count"] = np.random.randint(1, 10, len(ids))
+            cols["phecode_observed_time"] = np.random.uniform(0.1, 8.0, len(ids))
+        df = pl.from_dict(cols)
+        if phecode_counts is None:
+            phecode_counts = df
+        else:
+            phecode_counts = pl.concat([phecode_counts, df])
+    phecode_counts = phecode_counts.unique(["person_id", "phecode"]).sort(by="person_id")
+
+    # save data
+    cohort.write_csv("example_cohort.tsv", separator="\t")
+    phecode_counts.write_csv("example_phecode_counts.tsv", separator="\t")
+    print("Generated data saved to:")
+    print("  - \033[1mexample_cohort.tsv\033[0m")
+    print("  - \033[1mexample_phecode_counts.tsv\033[0m")
