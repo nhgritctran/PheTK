@@ -145,5 +145,8 @@ docker
 .claude
 CLAUDE.md
 
+# benchmark (lives on firth branch)
+benchmark/
+
 # temporary
 .devcontainer
