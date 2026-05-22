@@ -7,7 +7,7 @@ import pytest
 import matplotlib
 matplotlib.use("Agg")  # must be before any other matplotlib import
 
-from phetk.demo import generate_examples
+from phetk._utils import generate_mock_phewas_data
 from phetk.phewas import PheWAS
 from phetk.plot import Plot
 
@@ -19,7 +19,7 @@ def phewas_result(tmp_path_factory):
     orig = os.getcwd()
     os.chdir(str(tmp))
     try:
-        generate_examples(cohort_size=400, phecode="GE_979.2")
+        generate_mock_phewas_data(cohort_size=400, phecode="GE_979.2")
     finally:
         os.chdir(orig)
 
