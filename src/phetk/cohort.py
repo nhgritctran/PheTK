@@ -15,7 +15,7 @@ class Cohort:
 
     def __init__(self,
                  platform: str = "aou",
-                 aou_db_version: int = 8,
+                 aou_db_version: int = 9,
                  gbq_dataset_id: str | None = None):
         """
         Initialize Cohort object for generating genotype-based cohorts and adding covariates.
@@ -26,17 +26,17 @@ class Cohort:
 
         Args:
             platform: Database platform, currently supports "aou" (All of Us) or "custom".
-            aou_db_version: Version of All of Us database (6-8), e.g., 7 for CDR v7.
+            aou_db_version: Version of All of Us database (7-9), e.g., 7 for CDR v7.
             gbq_dataset_id: BigQuery dataset ID. Overrides WORKSPACE_CDR on AoU. Required for custom platform.
         """
-        self.aou_max_version = 8
+        self.aou_max_version = 9
 
         if platform.lower() != "aou" and platform.lower() != "custom":
             print("Unsupported database. Currently supports \"aou\" (All of Us) or \"custom\".")
             sys.exit(1)
-        if platform.lower() == "aou" and (aou_db_version not in range(6, self.aou_max_version+1)):
+        if platform.lower() == "aou" and (aou_db_version not in range(7, self.aou_max_version+1)):
             print(f"Unsupported database. Current All of Us (AoU) CDR version is {self.aou_max_version}. "
-                  f"aou_db_version takes an integer value from 6 to {self.aou_max_version}. "
+                  f"aou_db_version takes an integer value from 7 to {self.aou_max_version}. "
                   f"For other AoU database versions, "
                   f"please provide the CDR string using gbq_dataset_id parameter instead.")
             sys.exit(1)
@@ -82,7 +82,7 @@ class Cohort:
                     gt_dict: dict[int, str | list[str]] | None = None,
                     reference_genome: str = "GRCh38",
                     data_format: str = "vcf",
-                    call_set: str = "acaf_threshold",
+                    call_set: str = "acaf",
                     data_path: str | None = None,
                     mt_path: str | None = None,
                     output_file_path: str | None = None) -> None:
@@ -101,7 +101,7 @@ class Cohort:
             gt_dict: Genotype mapping dictionary, e.g., {0: "0/0", 1: ["0/1", "1/1"]}.
             reference_genome: Reference genome version, accepts "GRCh37" or "GRCh38".
             data_format: Genotype data format: "vcf" (default) or "hail".
-            call_set: AoU callset name for path construction: "acaf_threshold" (default) or "exome".
+            call_set: AoU callset name for path construction: "acaf" (default) or "exome".
             data_path: Override path to genotype data. For vcf, path to a VCF file
                 (.vcf.gz, .vcf.bgz, .bcf) or AoU shard directory. For hail, the .mt directory path.
             mt_path: Deprecated. Use data_path instead. Kept for backward compatibility.
@@ -213,6 +213,22 @@ class Cohort:
 
         return gt_list, gt_lookup, locus, variant_string, output_file_path
 
+    @staticmethod
+    def _resolve_call_set(call_set: str, db_version: int) -> str:
+        """Resolve the ACAF call set name for the given CDR version.
+
+        CDR v7/v8 used ``acaf_threshold``; v9+ uses ``acaf``.  When the
+        caller passes the default ``"acaf"`` and the instance targets
+        v7 or v8, this method transparently remaps it to
+        ``"acaf_threshold"`` so that old paths continue to work.
+        Non-ACAF call sets (e.g. ``"exome"``) are returned unchanged.
+        """
+        if call_set == "acaf" and db_version in (7, 8):
+            return "acaf_threshold"
+        if call_set == "acaf_threshold" and db_version >= 9:
+            return "acaf"
+        return call_set
+
     def _resolve_data_path(
         self,
         data_format: str,
@@ -225,6 +241,7 @@ class Cohort:
             return data_path
 
         if self.platform == "aou":
+            call_set = self._resolve_call_set(call_set, self.db_version)
             if data_format == "vcf":
                 return (
                     f"gs://{_paths.controlled_bucket()}/v{self.db_version}"
@@ -280,7 +297,7 @@ class Cohort:
         variant_string: str,
         reference_genome: str,
         user_project: str | None = None,
-        call_set: str = "acaf_threshold",
+        call_set: str = "acaf",
     ) -> pl.DataFrame | None:
         """Extract genotypes from a Hail split matrix table.
 
@@ -540,7 +557,7 @@ class Cohort:
         alt_allele: str,
         reference_genome: str,
         user_project: str | None = None,
-        call_set: str = "acaf_threshold",
+        call_set: str = "acaf",
     ) -> pl.DataFrame | None:
         """Extract genotypes from a VCF file using pysam.
 
@@ -971,8 +988,8 @@ def main_by_genotype():
     # Optional arguments
     parser.add_argument("--platform", type=str, default="aou",
                         help="Database platform: 'aou' or 'custom' (default: aou)")
-    parser.add_argument("--aou_db_version", type=int, default=8,
-                        help="Version of All of Us database (6-8) (default: 8)")
+    parser.add_argument("--aou_db_version", type=int, default=9,
+                        help="Version of All of Us database (7-9) (default: 9)")
     parser.add_argument("--gbq_dataset_id", type=str, default=None,
                         help="BigQuery dataset ID. Overrides WORKSPACE_CDR on AoU. Required for custom platform.")
     parser.add_argument("--reference_genome", type=str, default="GRCh38",
@@ -980,8 +997,8 @@ def main_by_genotype():
     parser.add_argument("--data_format", type=str, default="vcf",
                         choices=["hail", "vcf"],
                         help="Genotype data format (default: vcf)")
-    parser.add_argument("--call_set", type=str, default="acaf_threshold",
-                        help="AoU callset name for path construction (default: acaf_threshold)")
+    parser.add_argument("--call_set", type=str, default="acaf",
+                        help="AoU callset name for path construction (default: acaf)")
     parser.add_argument("--data_path", type=str, default=None,
                         help="Override path to genotype data")
     parser.add_argument("--mt_path", type=str, default=None,
@@ -1040,8 +1057,8 @@ def main_add_covariates():
     # Optional platform arguments
     parser.add_argument("--platform", type=str, default="aou",
                         help="Database platform: 'aou' or 'custom' (default: aou)")
-    parser.add_argument("--aou_db_version", type=int, default=8,
-                        help="Version of All of Us database (6-8) (default: 8)")
+    parser.add_argument("--aou_db_version", type=int, default=9,
+                        help="Version of All of Us database (7-9) (default: 9)")
     parser.add_argument("--gbq_dataset_id", type=str, default=None,
                         help="BigQuery dataset ID. Overrides WORKSPACE_CDR on AoU. Required for custom platform.")
 

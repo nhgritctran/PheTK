@@ -32,13 +32,19 @@ class TestCohortInit:
         assert c.platform == "aou"
 
     def test_valid_aou_db_versions(self, aou_env):
-        for v in [6, 7, 8]:
+        for v in [7, 8, 9]:
             c = Cohort(platform="aou", aou_db_version=v)
             assert c.db_version == v
 
     def test_invalid_aou_db_version_exits(self, aou_env):
         with pytest.raises(SystemExit):
             Cohort(platform="aou", aou_db_version=5)
+        with pytest.raises(SystemExit):
+            Cohort(platform="aou", aou_db_version=6)
+
+    def test_default_aou_db_version_is_9(self, aou_env):
+        c = Cohort(platform="aou")
+        assert c.db_version == 9
 
     def test_custom_platform_sets_cdr_from_gbq_dataset(self):
         c = Cohort(platform="custom", gbq_dataset_id="my_project.my_dataset")
@@ -276,11 +282,11 @@ class TestValidateByGenotypeInputs:
 class TestResolveDataPath:
     def test_data_path_override_returned_as_is(self, aou_env):
         c = Cohort(platform="aou")
-        result = c._resolve_data_path("vcf", "acaf_threshold", "/my/path", 1)
+        result = c._resolve_data_path("vcf", "acaf", "/my/path", 1)
         assert result == "/my/path"
 
     @pytest.mark.aou
-    def test_aou_vcf_constructs_dir_path(self, aou_env):
+    def test_aou_vcf_v8_constructs_dir_path(self, aou_env):
         c = Cohort(platform="aou", aou_db_version=8)
         result = c._resolve_data_path("vcf", "acaf_threshold", None, 1)
         expected = (
@@ -288,6 +294,22 @@ class TestResolveDataPath:
             "/wgs/short_read/snpindel/acaf_threshold/vcf/"
         )
         assert result == expected
+
+    @pytest.mark.aou
+    def test_aou_vcf_v9_uses_acaf(self, aou_env):
+        c = Cohort(platform="aou", aou_db_version=9)
+        result = c._resolve_data_path("vcf", "acaf", None, 1)
+        expected = (
+            "gs://fc-aou-datasets-controlled/v9"
+            "/wgs/short_read/snpindel/acaf/vcf/"
+        )
+        assert result == expected
+
+    @pytest.mark.aou
+    def test_aou_vcf_v8_acaf_remaps_to_acaf_threshold(self, aou_env):
+        c = Cohort(platform="aou", aou_db_version=8)
+        result = c._resolve_data_path("vcf", "acaf", None, 1)
+        assert "/acaf_threshold/vcf/" in result
 
     @pytest.mark.aou
     def test_aou_vcf_verily_bucket(self, aou_env, monkeypatch):
@@ -304,7 +326,7 @@ class TestResolveDataPath:
         assert "vcf" in result
 
     @pytest.mark.aou
-    def test_aou_hail_constructs_path(self, aou_env):
+    def test_aou_hail_v8_constructs_path(self, aou_env):
         c = Cohort(platform="aou", aou_db_version=8)
         result = c._resolve_data_path("hail", "acaf_threshold", None, 1)
         expected = (
@@ -312,6 +334,22 @@ class TestResolveDataPath:
             "/wgs/short_read/snpindel/acaf_threshold/splitMT/hail.mt"
         )
         assert result == expected
+
+    @pytest.mark.aou
+    def test_aou_hail_v9_uses_acaf(self, aou_env):
+        c = Cohort(platform="aou", aou_db_version=9)
+        result = c._resolve_data_path("hail", "acaf", None, 1)
+        expected = (
+            "gs://fc-aou-datasets-controlled/v9"
+            "/wgs/short_read/snpindel/acaf/splitMT/hail.mt"
+        )
+        assert result == expected
+
+    @pytest.mark.aou
+    def test_aou_hail_v8_acaf_remaps(self, aou_env):
+        c = Cohort(platform="aou", aou_db_version=8)
+        result = c._resolve_data_path("hail", "acaf", None, 1)
+        assert "/acaf_threshold/splitMT/hail.mt" in result
 
     @pytest.mark.aou
     def test_aou_hail_exome_call_set(self, aou_env):
@@ -331,12 +369,39 @@ class TestResolveDataPath:
     def test_custom_platform_requires_data_path(self):
         c = Cohort(platform="custom", gbq_dataset_id="proj.ds")
         with pytest.raises(SystemExit):
-            c._resolve_data_path("vcf", "acaf_threshold", None, 1)
+            c._resolve_data_path("vcf", "acaf", None, 1)
 
     def test_custom_platform_data_path_returned(self):
         c = Cohort(platform="custom", gbq_dataset_id="proj.ds")
-        result = c._resolve_data_path("vcf", "acaf_threshold", "/custom/data", 1)
+        result = c._resolve_data_path("vcf", "acaf", "/custom/data", 1)
         assert result == "/custom/data"
+
+
+# ---------------------------------------------------------------------------
+# Cohort._resolve_call_set
+# ---------------------------------------------------------------------------
+
+class TestResolveCallSet:
+    def test_acaf_v7_remaps_to_acaf_threshold(self):
+        assert Cohort._resolve_call_set("acaf", 7) == "acaf_threshold"
+
+    def test_acaf_v8_remaps_to_acaf_threshold(self):
+        assert Cohort._resolve_call_set("acaf", 8) == "acaf_threshold"
+
+    def test_acaf_v9_unchanged(self):
+        assert Cohort._resolve_call_set("acaf", 9) == "acaf"
+
+    def test_acaf_threshold_v9_remaps_to_acaf(self):
+        assert Cohort._resolve_call_set("acaf_threshold", 9) == "acaf"
+
+    def test_acaf_threshold_v8_unchanged(self):
+        assert Cohort._resolve_call_set("acaf_threshold", 8) == "acaf_threshold"
+
+    def test_exome_passthrough_v8(self):
+        assert Cohort._resolve_call_set("exome", 8) == "exome"
+
+    def test_exome_passthrough_v9(self):
+        assert Cohort._resolve_call_set("exome", 9) == "exome"
 
 
 # ---------------------------------------------------------------------------

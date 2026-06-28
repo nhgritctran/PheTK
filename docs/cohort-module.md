@@ -14,7 +14,7 @@ Generate cohort based on genotype of variant of interest. Extracts genotype data
 - `gt_dict`: Genotype mapping, e.g., `{0: "0/0", 1: ["0/1", "1/1"]}` (dict)
 - `reference_genome`: "GRCh37" or "GRCh38" (str, default: "GRCh38")
 - `data_format`: Genotype data source — `"vcf"` (default) or `"hail"` (str)
-- `call_set`: AoU callset name — `"acaf_threshold"` (default) or `"exome"` (str)
+- `call_set`: AoU callset name — `"acaf"` (default) or `"exome"` (str)
 - `data_path`: Override path to genotype data (str, optional). For VCF: path to a `.vcf.gz`/`.vcf.bgz`/`.bcf` file or AoU shard directory. For Hail: path to `.mt` directory. Auto-resolved on AoU if not provided.
 - `output_file_path`: Output TSV file path (str, optional)
 
@@ -39,7 +39,7 @@ Uses Hail to read matrix tables. Requires `pip install phetk[hail]`.
 ```python
 from phetk.cohort import Cohort
 
-cohort = Cohort(platform="aou", aou_db_version=8)
+cohort = Cohort(platform="aou", aou_db_version=9)
 
 # Using VCF (default)
 cohort.by_genotype(
@@ -122,7 +122,7 @@ Add demographic, clinical, and genetic covariates to existing cohort. Merges cov
 from phetk.cohort import Cohort
 
 # Create cohort instance
-cohort = Cohort(platform="aou", aou_db_version=8)
+cohort = Cohort(platform="aou", aou_db_version=9)
 
 # Add covariates to cohort
 cohort.add_covariates(
@@ -150,10 +150,10 @@ phetk cohort add-covariates \
 
 ### All of Us
 ```python
-cohort = Cohort(platform="aou", aou_db_version=8)
+cohort = Cohort(platform="aou", aou_db_version=9)
 ```
 - `platform`: "aou" for All of Us
-- `aou_db_version`: CDR version (6-8, default: 8)
+- `aou_db_version`: CDR version (7-9, default: 9)
 - `gbq_dataset_id`: Optional BigQuery dataset ID (overrides WORKSPACE_CDR)
 
 ### Custom Platform
