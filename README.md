@@ -14,35 +14,16 @@ __Contact__: [PheTK@mail.nih.gov](mailto:PheTK@mail.nih.gov)
 
 __Releases__: check [GitHub Releases](https://github.com/nhgritctran/PheTK/releases) for the latest versions and changelogs.
 
-## 🆕 WHAT'S NEW — Firth Penalized Regressions
+## CURRENT MAJOR FUNCTIONALITIES (v0.3 — June 2026)
 
-Firth penalized regressions are here! This is a [pre-release version](https://github.com/nhgritctran/PheTK/releases) for public testing and evaluation. The source code and documentation for this version are in the [firth branch](https://github.com/nhgritctran/PheTK/tree/firth).
-
-```
-pip install phetk==0.3.1rc1
-```
-
-Or to always get the latest pre-release version:
-```
-pip install --pre phetk --upgrade
-```
-
-## WHAT'S NEW IN v0.2
-Major updates in this release:
-- **Cox regression support** - Added survival analysis capabilities alongside logistic regression
-- **dsub integration** - Built-in support for distributed computing on Google Cloud Platform
-- **Forest plot visualization** - New main visualization option alongside Manhattan plots
-- **PEP-compliant naming** - Changed to lowercase package/module names (affects import syntax)
-- **Expanded CLI support** - Added command-line interfaces for cohort and phecode modules
-- **Simplified CLI commands** - Added entry points for easier CLI usage (e.g., `phetk phewas` instead of `python3 -m phetk.phewas`)
-- **Enhanced user experience** - Various improvements for clarity and usability
-
-**NOTE**: If you are using PheTK v0.2+, please upgrade to the latest version using `pip install phetk --upgrade` to fix a bug in the controls selection in Cox regression.
+- **[Cohort generation](docs/cohort-module.md)** - Build genotype-based cohorts from VCF or Hail data, add demographic and genetic covariates. Cohort generation and covariate retrieval require the _All of Us_ Researcher Workbench (CDR v7-v9); custom platforms are supported with user-provided data paths and BigQuery datasets.
+- **[Phecode mapping](docs/phecode-module.md)** - Map ICD codes to phecodes (phecode 1.2, phecodeX 1.0), compute counts, age-at-first-event, and time-to-event. ICD extraction from OMOP requires _All of Us_ or a compatible BigQuery dataset; phecode mapping and time-to-event computation work cross-platform with local files.
+- **[PheWAS analysis](docs/phewas-module.md)** - Run phenome-wide association studies with logistic, Cox, Firth logistic, and Firth Cox regression. Works cross-platform on any pre-built dataset.
+- **[Visualization](docs/plot-module.md)** - Generate Manhattan plots and Forest plots. Works cross-platform.
+- **CLI support** - Full command-line interface for all modules (`phetk phewas`, `phetk cohort`, `phetk phecode`)
+- **Distributed computing** - Built-in dsub integration for large-scale analyses on Google Cloud on the _All of Us_ Researcher Workbench.
 
 [**📋 View full changelog**](https://github.com/nhgritctran/PheTK/releases)
-
-Version 0.1.47 is the last stable version of version 0.1. 
-Users can still continue to use this version, and the previous README file can be found [here](legacy/README_legacy.md)  
 
 ***
 
@@ -70,7 +51,7 @@ Legacy changelogs were archived in [CHANGELOG.md](legacy/CHANGELOG.md).
 
 ### Using pip
 
-The latest version (v0.2+) of PheTK can be installed using the pip install command in the terminal
+The latest version (v0.3+) of PheTK can be installed using the pip install command in the terminal
 (note that the lowercase package name "phetk" starts from version 0.2+):
 
 ```
@@ -140,11 +121,11 @@ It was tested on different platforms from laptops to different cloud environment
 
 ### General Requirements
 PheTK's resource requirements vary by usage context. The information in this section is tailored towards cloud computing platforms where large biobanks are often hosted.
-- All PheTK functions run on standard machines, except `by_genotype()` in the Cohort module which requires a Spark cluster (dataproc VM)
+- All PheTK functions run on standard machines. The `by_genotype()` Cohort function supports VCF (default, no Spark needed) and Hail (requires a Spark cluster) data formats.
 - Both logistic regression and Cox regression scale with CPU counts for faster processing. See figure S2 below from PheTK publication for more information.
 In our experience, 4 CPU machines are the most cost-efficient, especially for large-scale analyses.
 - For an end-to-end pipeline, the system requirements should be based on the most demanding steps. 
-For example, for the _All of Us_ data v8, a VM with 16CPU 104GB RAM and 2 dataproc workers at default settings should work;
+For example, for the _All of Us_ data v8/v9, a VM with 16CPU 104GB RAM should work;
 if users only need to run PheWAS analysis, it can be run at a much lower configuration as shown in figure S2.
 
 ![PheTK Performance Benchmarks](img/readme/FigureS2.png)
