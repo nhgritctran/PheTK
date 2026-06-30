@@ -93,11 +93,10 @@ Display effect estimates with confidence intervals for selected phecodes.
 top_phecodes = phewas_results.sort("p_value").head(10)["phecode"].to_list()
 
 p.forest(
-    phecodes=top_phecodes,
+    phecode_list=top_phecodes,
     show_count=True,
-    show_p_value=True,
+    show_p_value_asterisks=True,
     highlight_significance=True,
-    sort_by="p_value",
     save_plot=True
 )
 ```
