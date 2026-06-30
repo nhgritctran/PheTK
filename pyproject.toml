@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "phetk"
-version = "0.3.2"
+version = "0.3.3"
 requires-python = ">=3.10"
 license = {text = "GPL-3.0"}
 authors = [
