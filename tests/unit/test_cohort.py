@@ -296,12 +296,12 @@ class TestResolveDataPath:
         assert result == expected
 
     @pytest.mark.aou
-    def test_aou_vcf_v9_uses_acaf(self, aou_env):
+    def test_aou_vcf_v9_uses_acaf_threshold(self, aou_env):
         c = Cohort(platform="aou", aou_db_version=9)
-        result = c._resolve_data_path("vcf", "acaf", None, 1)
+        result = c._resolve_data_path("vcf", "acaf_threshold", None, 1)
         expected = (
             "gs://fc-aou-datasets-controlled/v9"
-            "/wgs/short_read/snpindel/acaf/vcf/"
+            "/wgs/short_read/snpindel/acaf_threshold/vcf/"
         )
         assert result == expected
 
@@ -336,12 +336,12 @@ class TestResolveDataPath:
         assert result == expected
 
     @pytest.mark.aou
-    def test_aou_hail_v9_uses_acaf(self, aou_env):
+    def test_aou_hail_v9_uses_acaf_threshold(self, aou_env):
         c = Cohort(platform="aou", aou_db_version=9)
-        result = c._resolve_data_path("hail", "acaf", None, 1)
+        result = c._resolve_data_path("hail", "acaf_threshold", None, 1)
         expected = (
             "gs://fc-aou-datasets-controlled/v9"
-            "/wgs/short_read/snpindel/acaf/splitMT/hail.mt"
+            "/wgs/short_read/snpindel/acaf_threshold/splitMT/hail.mt"
         )
         assert result == expected
 
@@ -388,11 +388,11 @@ class TestResolveCallSet:
     def test_acaf_v8_remaps_to_acaf_threshold(self):
         assert Cohort._resolve_call_set("acaf", 8) == "acaf_threshold"
 
-    def test_acaf_v9_unchanged(self):
-        assert Cohort._resolve_call_set("acaf", 9) == "acaf"
+    def test_acaf_v9_remaps_to_acaf_threshold(self):
+        assert Cohort._resolve_call_set("acaf", 9) == "acaf_threshold"
 
-    def test_acaf_threshold_v9_remaps_to_acaf(self):
-        assert Cohort._resolve_call_set("acaf_threshold", 9) == "acaf"
+    def test_acaf_threshold_v9_unchanged(self):
+        assert Cohort._resolve_call_set("acaf_threshold", 9) == "acaf_threshold"
 
     def test_acaf_threshold_v8_unchanged(self):
         assert Cohort._resolve_call_set("acaf_threshold", 8) == "acaf_threshold"

@@ -82,7 +82,7 @@ class Cohort:
                     gt_dict: dict[int, str | list[str]] | None = None,
                     reference_genome: str = "GRCh38",
                     data_format: str = "vcf",
-                    call_set: str = "acaf",
+                    call_set: str = "acaf_threshold",
                     data_path: str | None = None,
                     mt_path: str | None = None,
                     output_file_path: str | None = None) -> None:
@@ -217,16 +217,13 @@ class Cohort:
     def _resolve_call_set(call_set: str, db_version: int) -> str:
         """Resolve the ACAF call set name for the given CDR version.
 
-        CDR v7/v8 used ``acaf_threshold``; v9+ uses ``acaf``.  When the
-        caller passes the default ``"acaf"`` and the instance targets
-        v7 or v8, this method transparently remaps it to
-        ``"acaf_threshold"`` so that old paths continue to work.
-        Non-ACAF call sets (e.g. ``"exome"``) are returned unchanged.
+        All CDR versions use ``acaf_threshold``.  When the caller passes
+        ``"acaf"``, this method transparently remaps it to
+        ``"acaf_threshold"``.  Non-ACAF call sets (e.g. ``"exome"``)
+        are returned unchanged.
         """
-        if call_set == "acaf" and db_version in (7, 8):
+        if call_set == "acaf":
             return "acaf_threshold"
-        if call_set == "acaf_threshold" and db_version >= 9:
-            return "acaf"
         return call_set
 
     def _resolve_data_path(
@@ -997,8 +994,8 @@ def main_by_genotype():
     parser.add_argument("--data_format", type=str, default="vcf",
                         choices=["hail", "vcf"],
                         help="Genotype data format (default: vcf)")
-    parser.add_argument("--call_set", type=str, default="acaf",
-                        help="AoU callset name for path construction (default: acaf)")
+    parser.add_argument("--call_set", type=str, default="acaf_threshold",
+                        help="AoU callset name for path construction (default: acaf_threshold)")
     parser.add_argument("--data_path", type=str, default=None,
                         help="Override path to genotype data")
     parser.add_argument("--mt_path", type=str, default=None,

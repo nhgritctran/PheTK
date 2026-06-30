@@ -41,7 +41,7 @@ def cdr9_ancestry_pred_dir():
 
 
 def cdr9_mt_path():
-    return f"gs://{controlled_bucket()}/v9/wgs/short_read/snpindel/acaf/splitMT/hail.mt"
+    return f"gs://{controlled_bucket()}/v9/wgs/short_read/snpindel/acaf_threshold/splitMT/hail.mt"
 
 # obsolete paths
 # cdr7_mt_path = "gs://fc-aou-datasets-controlled/v7/wgs/short_read/snpindel/acaf_threshold_v7.1/multiMT/hail.mt"
