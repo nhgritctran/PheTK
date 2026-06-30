@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from google.cloud import bigquery
 from itertools import combinations
+from pathlib import PurePosixPath
 from tqdm import tqdm
 
 import argparse
@@ -467,60 +468,115 @@ def _print_env_summary(env_vars: list, already_set: set) -> None:
             print(line)
 
 
+def gcsfs_write(df: pl.DataFrame, output_path: str, file_format: str | None = None) -> None:
+    """Write a Polars DataFrame to GCS, picking the writer from the file extension.
+
+    Args:
+        df: DataFrame to write.
+        output_path: GCS path (gs://...) to write to.
+        file_format: Override format detection from extension.
+    """
+    ext = PurePosixPath(output_path).suffix.lower().lstrip(".")
+    fmt = (file_format or ext)
+
+    writers = {
+        "parquet": lambda df, f: df.write_parquet(f),
+        "tsv":     lambda df, f: df.write_csv(f, separator="\t"),
+        "csv":     lambda df, f: df.write_csv(f),
+        "json":    lambda df, f: df.write_json(f),
+        "ndjson":  lambda df, f: df.write_ndjson(f),
+        "jsonl":   lambda df, f: df.write_ndjson(f),
+    }
+
+    if fmt not in writers:
+        raise ValueError(
+            f"Unsupported format {fmt!r} (from {output_path!r}). "
+            f"Supported: {', '.join(writers)}"
+        )
+
+    import gcsfs
+
+    fs = gcsfs.GCSFileSystem()
+    with fs.open(output_path, "wb") as f:
+        writers[fmt](df, f)
+
+
 def write_tsv(df: pl.DataFrame, path: str, separator: str = "\t") -> None:
     """Write a polars DataFrame as TSV, robust across Verily / All of Us / Terra.
 
-    Strategy: always stages to a local temp file via polars (reliable on local
-    disk regardless of frame size), then transfers to the user's destination.
+    Fallback strategy for GCS destinations:
+    1. Native Polars write directly to GCS path.
+    2. gcsfs streaming write (avoids local staging).
+    3. Stage to local temp file, then ``gcloud storage cp`` (slowest but
+       most reliable).
 
-    Local paths use ``shutil.move``. Bucket paths — both ``gs://`` URIs and
-    FUSE-mounted bucket paths under ``/home/jupyter/workspace/<bucket>/...`` —
-    use ``gcloud storage cp``, which uses the JSON resumable upload API that
-    Verily/AoU pet service accounts have permission for. Writing to bucket
-    paths via the FUSE mount itself is unreliable for medium-to-large files
-    (gcsfuse EIO on writes through its filesystem layer), so we bypass it.
+    Local paths use a direct ``df.write_csv()`` call with ``shutil.move``
+    from a temp file for atomicity.
     """
     path = str(path)
-
-    # If the destination is a FUSE-mounted bucket path, convert to its gs://
-    # equivalent so we go through gcloud instead of through the unreliable
-    # FUSE write path.
     bucket_dest = _to_gs_uri_if_bucket_mount(path)
 
-    with tempfile.NamedTemporaryFile(suffix=".tsv", delete=False, dir="/tmp") as tmp:
-        staged = tmp.name
-
-    try:
-        df.write_csv(staged, separator=separator)
-
-        if bucket_dest is not None:
-            if shutil.which("gcloud") is None:
-                raise RuntimeError(
-                    f"Writing to {path} requires the 'gcloud' CLI on PATH "
-                    f"(standard on Verily / All of Us / Terra)."
-                )
-            result = subprocess.run(
-                ["gcloud", "storage", "cp", staged, bucket_dest],
-                capture_output=True, text=True,
-            )
-            if result.returncode != 0:
-                raise RuntimeError(
-                    f"gcloud storage cp failed for {bucket_dest}:\n"
-                    f"{result.stderr.strip()}"
-                )
-        else:
-            parent = os.path.dirname(os.path.abspath(path))
-            if parent:
-                os.makedirs(parent, exist_ok=True)
+    # -- local destination --------------------------------------------------
+    if bucket_dest is None:
+        parent = os.path.dirname(os.path.abspath(path))
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            suffix=".tsv", delete=False, dir=os.path.dirname(os.path.abspath(path))
+        ) as tmp:
+            staged = tmp.name
+        try:
+            df.write_csv(staged, separator=separator)
             shutil.move(staged, path)
             staged = None
+        finally:
+            if staged is not None:
+                try:
+                    os.unlink(staged)
+                except FileNotFoundError:
+                    pass
+        return
 
+    # -- GCS destination: 3-tier fallback -----------------------------------
+    # Tier 1: native Polars write
+    try:
+        df.write_csv(bucket_dest, separator=separator)
+        return
+    except Exception as e:
+        print(f"[write_tsv] Tier 1 (native Polars write) failed: {e}")
+
+    # Tier 2: gcsfs streaming write
+    try:
+        fmt = "tsv" if separator == "\t" else "csv"
+        gcsfs_write(df, bucket_dest, file_format=fmt)
+        return
+    except Exception as e:
+        print(f"[write_tsv] Tier 2 (gcsfs streaming write) failed: {e}")
+
+    # Tier 3: local staging + gcloud cp
+    with tempfile.NamedTemporaryFile(suffix=".tsv", delete=False, dir="/tmp") as tmp:
+        staged = tmp.name
+    try:
+        df.write_csv(staged, separator=separator)
+        if shutil.which("gcloud") is None:
+            raise RuntimeError(
+                f"Writing to {path} requires the 'gcloud' CLI on PATH "
+                f"(standard on Verily / All of Us / Terra)."
+            )
+        result = subprocess.run(
+            ["gcloud", "storage", "cp", staged, bucket_dest],
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"gcloud storage cp failed for {bucket_dest}:\n"
+                f"{result.stderr.strip()}"
+            )
     finally:
-        if staged is not None:
-            try:
-                os.unlink(staged)
-            except FileNotFoundError:
-                pass
+        try:
+            os.unlink(staged)
+        except FileNotFoundError:
+            pass
 
 
 def _to_gs_uri_if_bucket_mount(path: str) -> str | None:

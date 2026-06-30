@@ -3,9 +3,11 @@ Unit tests for _utils.py — pure utility functions with no cloud dependencies.
 """
 import argparse
 import os
+import subprocess
 import pytest
 import polars as pl
 import pandas as pd
+from unittest.mock import patch, MagicMock, call
 
 from phetk import _utils
 
@@ -213,3 +215,138 @@ class TestSampleTsvFile:
         path.write_text("col1\n1\n")
         with pytest.raises(ValueError):
             _utils.sample_tsv_file(str(path), sample_ratio=0.0)
+
+
+class TestGcsfsWrite:
+    """Tests for the gcsfs_write() helper."""
+
+    def _make_df(self):
+        return pl.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+
+    def _mock_gcsfs(self):
+        """Create a mock gcsfs module and return (module_mock, file_mock)."""
+        mock_mod = MagicMock()
+        mock_fs = MagicMock()
+        mock_mod.GCSFileSystem.return_value = mock_fs
+        mock_file = MagicMock()
+        mock_fs.open.return_value.__enter__ = MagicMock(return_value=mock_file)
+        mock_fs.open.return_value.__exit__ = MagicMock(return_value=False)
+        return mock_mod, mock_file
+
+    def test_tsv_calls_write_csv_with_tab(self):
+        mock_mod, mock_file = self._mock_gcsfs()
+        df = self._make_df()
+        with patch.dict("sys.modules", {"gcsfs": mock_mod}):
+            with patch.object(df, "write_csv") as mock_write:
+                _utils.gcsfs_write(df, "gs://bucket/output.tsv")
+                mock_write.assert_called_once_with(mock_file, separator="\t")
+
+    def test_csv_calls_write_csv(self):
+        mock_mod, mock_file = self._mock_gcsfs()
+        df = self._make_df()
+        with patch.dict("sys.modules", {"gcsfs": mock_mod}):
+            with patch.object(df, "write_csv") as mock_write:
+                _utils.gcsfs_write(df, "gs://bucket/output.csv")
+                mock_write.assert_called_once_with(mock_file)
+
+    def test_parquet_calls_write_parquet(self):
+        mock_mod, mock_file = self._mock_gcsfs()
+        df = self._make_df()
+        with patch.dict("sys.modules", {"gcsfs": mock_mod}):
+            with patch.object(df, "write_parquet") as mock_write:
+                _utils.gcsfs_write(df, "gs://bucket/output.parquet")
+                mock_write.assert_called_once_with(mock_file)
+
+    def test_unsupported_extension_raises(self):
+        df = self._make_df()
+        with pytest.raises(ValueError, match="Unsupported format"):
+            _utils.gcsfs_write(df, "gs://bucket/output.xlsx")
+
+    def test_file_format_override(self):
+        mock_mod, mock_file = self._mock_gcsfs()
+        df = self._make_df()
+        with patch.dict("sys.modules", {"gcsfs": mock_mod}):
+            with patch.object(df, "write_csv") as mock_write:
+                # Extension is .dat (unsupported), but override says tsv
+                _utils.gcsfs_write(df, "gs://bucket/output.dat", file_format="tsv")
+                mock_write.assert_called_once_with(mock_file, separator="\t")
+
+
+class TestWriteTsvFallback:
+    """Tests for write_tsv() local writes and GCS 3-tier fallback."""
+
+    def _make_df(self):
+        return pl.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
+
+    def test_local_write(self, tmp_path):
+        df = self._make_df()
+        out = str(tmp_path / "out.tsv")
+        _utils.write_tsv(df, out)
+        result = pl.read_csv(out, separator="\t")
+        assert result.shape == (3, 2)
+        assert result["col1"].to_list() == [1, 2, 3]
+
+    @patch("phetk._utils._to_gs_uri_if_bucket_mount", return_value="gs://b/k.tsv")
+    def test_tier1_success(self, mock_mount):
+        df = self._make_df()
+        with patch.object(df, "write_csv") as mock_write:
+            _utils.write_tsv(df, "gs://b/k.tsv")
+            mock_write.assert_called_once_with("gs://b/k.tsv", separator="\t")
+
+    @patch("phetk._utils._to_gs_uri_if_bucket_mount", return_value="gs://b/k.tsv")
+    @patch("phetk._utils.gcsfs_write")
+    def test_tier1_fails_tier2_succeeds(self, mock_gcsfs_write, mock_mount):
+        df = self._make_df()
+        original_write_csv = df.write_csv
+
+        def side_effect(path, **kwargs):
+            if isinstance(path, str) and path.startswith("gs://"):
+                raise OSError("no object-store backend")
+            return original_write_csv(path, **kwargs)
+
+        with patch.object(df, "write_csv", side_effect=side_effect):
+            _utils.write_tsv(df, "gs://b/k.tsv")
+        mock_gcsfs_write.assert_called_once_with(df, "gs://b/k.tsv", file_format="tsv")
+
+    @patch("phetk._utils._to_gs_uri_if_bucket_mount", return_value="gs://b/k.tsv")
+    @patch("phetk._utils.gcsfs_write", side_effect=Exception("gcsfs fail"))
+    @patch("shutil.which", return_value="/usr/bin/gcloud")
+    @patch("subprocess.run")
+    def test_tier1_tier2_fail_tier3_succeeds(
+        self, mock_run, mock_which, mock_gcsfs_write, mock_mount
+    ):
+        mock_run.return_value = MagicMock(returncode=0)
+        df = self._make_df()
+        original_write_csv = df.write_csv
+
+        def side_effect(path, **kwargs):
+            if isinstance(path, str) and path.startswith("gs://"):
+                raise OSError("no object-store backend")
+            return original_write_csv(path, **kwargs)
+
+        with patch.object(df, "write_csv", side_effect=side_effect):
+            _utils.write_tsv(df, "gs://b/k.tsv")
+        mock_run.assert_called_once()
+        args = mock_run.call_args[0][0]
+        assert args[:3] == ["gcloud", "storage", "cp"]
+        assert args[4] == "gs://b/k.tsv"
+
+    @patch("phetk._utils._to_gs_uri_if_bucket_mount", return_value="gs://b/k.tsv")
+    @patch("phetk._utils.gcsfs_write", side_effect=Exception("gcsfs fail"))
+    @patch("shutil.which", return_value="/usr/bin/gcloud")
+    @patch("subprocess.run")
+    def test_all_tiers_fail(
+        self, mock_run, mock_which, mock_gcsfs_write, mock_mount
+    ):
+        mock_run.return_value = MagicMock(returncode=1, stderr="upload error")
+        df = self._make_df()
+        original_write_csv = df.write_csv
+
+        def side_effect(path, **kwargs):
+            if isinstance(path, str) and path.startswith("gs://"):
+                raise OSError("no object-store backend")
+            return original_write_csv(path, **kwargs)
+
+        with patch.object(df, "write_csv", side_effect=side_effect):
+            with pytest.raises(RuntimeError, match="gcloud storage cp failed"):
+                _utils.write_tsv(df, "gs://b/k.tsv")
