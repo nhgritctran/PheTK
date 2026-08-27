@@ -148,5 +148,9 @@ CLAUDE.md
 # benchmark (lives on firth branch)
 benchmark/
 
+# test fixtures (only commit the generator script)
+tests/fixtures/*.png
+tests/fixtures/*.tsv
+
 # temporary
 .devcontainer
