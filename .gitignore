@@ -131,6 +131,9 @@ dmypy.json
 # JetBrains IDE
 .idea
 
+# macOS
+.DS_Store
+
 # local data
 local
 old_version
