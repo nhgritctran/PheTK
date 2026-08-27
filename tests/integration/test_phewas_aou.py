@@ -13,11 +13,6 @@ import polars as pl
 from phetk.phewas import PheWAS
 from phetk.plot import Plot
 
-aou = pytest.mark.skipif(
-    not os.getenv("WORKSPACE_CDR"),
-    reason="Requires AoU Workbench environment (WORKSPACE_CDR not set)"
-)
-
 # ---------------------------------------------------------------------------
 # Adjust these paths to point at real cohort / phecode count files
 # that were generated inside the AoU workbench.

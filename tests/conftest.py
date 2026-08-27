@@ -8,6 +8,16 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "aou: mark test as requiring AoU Workbench environment")
 
 
+def pytest_collection_modifyitems(config, items):
+    import os
+    if os.getenv("WORKSPACE_CDR"):
+        return
+    skip_aou = pytest.mark.skip(reason="Requires AoU Workbench environment (WORKSPACE_CDR not set)")
+    for item in items:
+        if "aou" in item.keywords:
+            item.add_marker(skip_aou)
+
+
 # ---------------------------------------------------------------------------
 # Synthetic ICD data (mirrors OMOP query output)
 # ---------------------------------------------------------------------------

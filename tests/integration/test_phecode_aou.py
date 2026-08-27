@@ -9,11 +9,6 @@ import polars as pl
 
 from phetk.phecode import Phecode
 
-aou = pytest.mark.skipif(
-    not os.getenv("WORKSPACE_CDR"),
-    reason="Requires AoU Workbench environment (WORKSPACE_CDR not set)"
-)
-
 
 @pytest.fixture(scope="module")
 def aou_phecode():

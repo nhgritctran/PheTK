@@ -140,3 +140,57 @@ class TestForestPlot:
             save_plot=True, output_file_path=out
         )
         assert os.path.exists(out)
+
+
+# ---------------------------------------------------------------------------
+# Miami plot
+# ---------------------------------------------------------------------------
+
+class TestMiamiPlot:
+    def test_saves_png(self, phewas_result, tmp_path):
+        path, _ = phewas_result
+        out = str(tmp_path / "miami.png")
+        Plot(phewas_result_file_path=path, phecode_version="X").miami(
+            save_plot=True, output_file_path=out
+        )
+        assert os.path.exists(out)
+
+    def test_saves_pdf(self, phewas_result, tmp_path):
+        path, _ = phewas_result
+        out = str(tmp_path / "miami.pdf")
+        Plot(phewas_result_file_path=path, phecode_version="X").miami(
+            save_plot=True, output_file_path=out
+        )
+        assert os.path.exists(out)
+
+    def test_auto_filename_generated(self, phewas_result, tmp_path, monkeypatch):
+        path, _ = phewas_result
+        monkeypatch.chdir(tmp_path)
+        Plot(phewas_result_file_path=path, phecode_version="X").miami(save_plot=True)
+        files = list(tmp_path.iterdir())
+        assert any("miami" in f.name for f in files)
+
+    def test_hide_non_significant(self, phewas_result, tmp_path):
+        path, _ = phewas_result
+        out = str(tmp_path / "miami_sig.png")
+        Plot(phewas_result_file_path=path, phecode_version="X").miami(
+            hide_non_significant=True, save_plot=True, output_file_path=out
+        )
+        assert os.path.exists(out)
+
+    def test_diamond_capped_marker_style(self, phewas_result, tmp_path):
+        path, _ = phewas_result
+        out = str(tmp_path / "miami_diamond.png")
+        Plot(phewas_result_file_path=path, phecode_version="X").miami(
+            capped_marker_style="diamond", save_plot=True, output_file_path=out
+        )
+        assert os.path.exists(out)
+
+    def test_custom_marker_alpha(self, phewas_result, tmp_path):
+        path, _ = phewas_result
+        out = str(tmp_path / "miami_alpha.png")
+        Plot(phewas_result_file_path=path, phecode_version="X").miami(
+            positive_marker_alpha=0.5, negative_marker_alpha=0.3,
+            save_plot=True, output_file_path=out
+        )
+        assert os.path.exists(out)

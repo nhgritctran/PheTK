@@ -9,11 +9,6 @@ import polars as pl
 
 from phetk.cohort import Cohort
 
-aou = pytest.mark.skipif(
-    not os.getenv("WORKSPACE_CDR"),
-    reason="Requires AoU Workbench environment (WORKSPACE_CDR not set)"
-)
-
 # Small set of known participant IDs to limit query cost
 TEST_PARTICIPANT_IDS = [100, 101, 102, 103, 104]
 
