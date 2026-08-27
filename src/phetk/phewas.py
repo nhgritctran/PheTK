@@ -216,9 +216,10 @@ class PheWAS:
         # - phecode 1.2: user can choose to use exclusion or not
         # - phecode X: exclusion is removed, therefore, this parameter will be False for Phecode X regardless of input
         # to prevent user error
-        if phecode_version == "1.2":
+        phecode_family = _utils.phecode_version_family(phecode_version)
+        if phecode_family == "1.2":
             self.use_exclusion = use_exclusion
-        elif phecode_version == "X":
+        else:
             self.use_exclusion = False
 
         # Check if variable_of_interest is included in covariate_cols
@@ -1244,8 +1245,9 @@ def main() -> None:
                         type=str, required=True,
                         help="Path to cohort csv/tsv file.")
     parser.add_argument("--phecode_version",
-                        type=str, required=True, choices=["1.2", "X"],
-                        help="Phecode version.")
+                        type=str, required=True, choices=_utils.accepted_phecode_versions(),
+                        help="Phecode version. Use 'X' for the latest phecodeX release, "
+                             "or pin a release such as 'X1.0' for reproducibility.")
     parser.add_argument("--method",
                         type=str, required=False, default="logit", choices=["logit", "cox", "firth_logit", "firth_cox"],
                         help="Phecode regression method. Can be 'logit', 'cox', 'firth_logit', or 'firth_cox'.")

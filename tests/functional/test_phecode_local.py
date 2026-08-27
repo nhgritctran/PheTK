@@ -101,6 +101,27 @@ class TestCountPhecodeLocal:
         expected = tmp_path / "custom_US_phecodeX_counts.tsv"
         assert expected.exists()
 
+    def test_pinned_version_matches_alias(self, custom_phecode, tmp_path, engine):
+        alias_out = str(tmp_path / "counts_alias.tsv")
+        pinned_out = str(tmp_path / "counts_pinned.tsv")
+        custom_phecode.count_phecode(
+            phecode_version="X", icd_version="US", output_file_path=alias_out, engine=engine
+        )
+        custom_phecode.count_phecode(
+            phecode_version="X1.0", icd_version="US", output_file_path=pinned_out, engine=engine
+        )
+        alias = pl.read_csv(alias_out, separator="\t", schema_overrides={"phecode": str})
+        pinned = pl.read_csv(pinned_out, separator="\t", schema_overrides={"phecode": str})
+        assert len(pinned) > 0
+        sort_cols = ["person_id", "phecode"]
+        assert alias.sort(sort_cols).equals(pinned.sort(sort_cols))
+
+    def test_pinned_version_default_output_filename(self, custom_phecode, tmp_path, monkeypatch, engine):
+        monkeypatch.chdir(tmp_path)
+        custom_phecode.count_phecode(phecode_version="X1.0", icd_version="US", engine=engine)
+        expected = tmp_path / "custom_US_phecodeX10_counts.tsv"
+        assert expected.exists()
+
     def test_no_duplicate_person_phecode_pairs(self, custom_phecode, tmp_path, engine):
         out = str(tmp_path / "counts.tsv")
         custom_phecode.count_phecode(

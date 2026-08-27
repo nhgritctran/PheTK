@@ -37,7 +37,12 @@ If dsub runtime is abnormally longer than normal (job status is `RUNNING`), e.g.
 - Ensure the image is accessible from your Google Cloud project
 - Custom images must include all PheWAS dependencies
 
-**`machine_type`** 
+**`phecode_version`**
+- The value is forwarded verbatim into the container, so the PheTK version *inside* `docker_image` must recognize it.
+- A notebook running a newer PheTK that submits a newly added version (e.g. `"X1.1"`) to a container pinned at an older PheTK fails with an argparse `choices` error.
+- Keep `docker_image` in step with the notebook's PheTK version when pinning a phecode release.
+
+**`machine_type`**
 For any GCP machine generation, there are 3 main types `highcpu`, `standard` (2x `highcpu` RAM), and `highmem` (2x `standard` RAM)
 - **Logistic regression**: any machine type should work, e.g., `"c2d-highcpu-4"`
 - **Cox regression**: use `standard` or `highmem` machine, e.g., `"c2d-standard-4"` or `"c2d-highmem-4"`

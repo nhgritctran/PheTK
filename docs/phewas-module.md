@@ -7,7 +7,7 @@ Run phenome-wide association studies to test associations between a variable of 
 Performs logistic or Cox regression analysis across all phecodes, testing association with an independent variable while adjusting for covariates.
 
 ### Key Parameters
-- `phecode_version`: Phecode version to use, "1.2" or "X" (str, required)
+- `phecode_version`: Phecode version to use — `"1.2"`, the alias `"X"` for the latest phecodeX release, or a pinned release such as `"X1.0"` (str, required). The CLI accepts the same values (`--phecode_version 1.2|X|X1.0`). **Pin a release such as `"X1.0"` for reproducibility**, since `"X"` changes meaning when a new phecodeX release ships. Exclusion is only available for phecode 1.2; `use_exclusion` is forced to `False` for any phecodeX version.
 - `phecode_count_file_path`: Path to phecode counts file (str, required)
 - `cohort_file_path`: Path to cohort file with covariates (str, required)
 - `covariate_cols`: List of covariate column names (list[str], required)

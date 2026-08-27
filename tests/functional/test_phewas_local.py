@@ -66,6 +66,18 @@ class TestPheWASInit:
         p = make_phewas(demo_files, "out.tsv", method="logit")
         assert p.method == "logit"
 
+    def test_pinned_phecode_version_disables_exclusion(self, demo_files):
+        p = make_phewas(demo_files, str(demo_files["tmp"] / "pinned_init.tsv"),
+                        phecode_version="X1.0")
+        assert p.use_exclusion is False
+
+    def test_pinned_phecode_version_runs(self, demo_files):
+        out = str(demo_files["tmp"] / "pinned_results.tsv")
+        make_phewas(demo_files, out, phecode_version="X1.0").run()
+        assert os.path.exists(out)
+        result = pl.read_csv(out, separator="\t", schema_overrides={"phecode": str})
+        assert len(result) > 0
+
 
 # ---------------------------------------------------------------------------
 # Logistic regression (method="logit")

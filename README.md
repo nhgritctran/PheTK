@@ -17,7 +17,7 @@ __Releases__: check [GitHub Releases](https://github.com/nhgritctran/PheTK/relea
 ## CURRENT MAJOR FUNCTIONALITIES (v0.3 — June 2026)
 
 - **[Cohort generation](docs/cohort-module.md)** - Build genotype-based cohorts from VCF or Hail data, add demographic and genetic covariates. Cohort generation and covariate retrieval require the _All of Us_ Researcher Workbench (CDR v7-v9); custom platforms are supported with user-provided data paths and BigQuery datasets.
-- **[Phecode mapping](docs/phecode-module.md)** - Map ICD codes to phecodes (phecode 1.2, phecodeX 1.0), compute counts, age-at-first-event, and time-to-event. ICD extraction from OMOP requires _All of Us_ or a compatible BigQuery dataset; phecode mapping and time-to-event computation work cross-platform with local files.
+- **[Phecode mapping](docs/phecode-module.md)** - Map ICD codes to phecodes (phecode 1.2, phecodeX 1.0), compute counts, age-at-first-event, and time-to-event. ICD extraction from OMOP requires _All of Us_ or a compatible BigQuery dataset; phecode mapping and time-to-event computation work cross-platform with local files. The bundled mapping tables are also directly loadable via `from phetk.phecode import get_phecode_map`.
 - **[PheWAS analysis](docs/phewas-module.md)** - Run phenome-wide association studies with logistic, Cox, Firth logistic, and Firth Cox regression. Works cross-platform on any pre-built dataset.
 - **[Visualization](docs/plot-module.md)** - Generate Manhattan plots and Forest plots. Works cross-platform.
 - **CLI support** - Full command-line interface for all modules (`phetk phewas`, `phetk cohort`, `phetk phecode`)

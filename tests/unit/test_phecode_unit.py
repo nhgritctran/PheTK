@@ -6,7 +6,90 @@ import pytest
 import polars as pl
 from unittest.mock import patch
 
-from phetk.phecode import Phecode
+from phetk.phecode import Phecode, available_phecode_versions, get_phecode_map
+
+
+class TestGetPhecodeMap:
+    def test_defaults_return_phecodeX_us(self):
+        df = get_phecode_map()
+        assert isinstance(df, pl.DataFrame)
+        assert len(df) > 0
+        for col in ["phecode", "ICD", "flag", "code_val"]:
+            assert col in df.columns
+
+    def test_alias_matches_pinned_version(self):
+        assert get_phecode_map("X").equals(get_phecode_map("X1.0"))
+
+    @pytest.mark.parametrize("value", ["x", "x1.0", " X "])
+    def test_lowercase_and_whitespace_accepted(self, value):
+        assert get_phecode_map(value).equals(get_phecode_map("X1.0"))
+
+    def test_phecode12_has_exclusion_columns(self):
+        df = get_phecode_map("1.2")
+        assert "exclude_range" in df.columns
+        assert "phecode_unrolled" in df.columns
+
+    def test_who_mapping_loads(self):
+        df = get_phecode_map("X", icd_version="WHO")
+        assert len(df) > 0
+        assert "phecode" in df.columns
+
+    def test_core_columns_phecodeX(self):
+        df = get_phecode_map("X", keep_all_columns=False)
+        assert df.columns == ["phecode", "ICD", "flag"]
+
+    def test_core_columns_phecode12(self):
+        df = get_phecode_map("1.2", keep_all_columns=False)
+        assert df.columns == ["phecode_unrolled", "ICD", "flag"]
+
+    def test_flag_is_int8(self):
+        assert get_phecode_map("X")["flag"].dtype == pl.Int8
+
+    def test_custom_mapping_file(self, tmp_path):
+        path = tmp_path / "custom_map.csv"
+        path.write_text("phecode,ICD,flag,code_val\n001.1,E11,10,1.0\n002.2,I10,10,2.0\n")
+        df = get_phecode_map("X", icd_version="custom", phecode_map_file_path=str(path))
+        assert len(df) == 2
+        assert df["phecode"].dtype == pl.Utf8
+
+    def test_unsupported_version_raises(self):
+        with pytest.raises(ValueError):
+            get_phecode_map("2.0")
+
+    def test_unsupported_version_icd_pair_raises(self):
+        with pytest.raises(ValueError):
+            get_phecode_map("1.2", icd_version="WHO")
+
+    def test_icd_version_stays_strict(self):
+        with pytest.raises(ValueError):
+            get_phecode_map("X", icd_version="us")
+
+    def test_custom_icd_without_path_raises(self):
+        with pytest.raises(ValueError):
+            get_phecode_map("X", icd_version="custom")
+
+    def test_raises_rather_than_exits(self):
+        with pytest.raises(ValueError):
+            get_phecode_map("2.0")
+        # SystemExit is not a subclass of ValueError, so confirm explicitly
+        try:
+            get_phecode_map("2.0")
+        except SystemExit:
+            pytest.fail("get_phecode_map must raise ValueError, not SystemExit")
+        except ValueError:
+            pass
+
+
+class TestAvailablePhecodeVersions:
+    def test_returns_canonical_versions(self):
+        assert available_phecode_versions() == ["1.2", "X1.0"]
+
+    def test_alias_not_included(self):
+        assert "X" not in available_phecode_versions()
+
+    def test_every_version_loads(self):
+        for version in available_phecode_versions():
+            assert len(get_phecode_map(version)) > 0
 
 
 @pytest.fixture

@@ -674,17 +674,215 @@ def polars_gbq(query: str) -> pl.DataFrame:
     return df
 
 
-def get_phecode_mapping_table(
-    phecode_version: str, 
-    icd_version: str, 
-    phecode_map_file_path: str | None, 
+# ---------------------------------------------------------------------------
+# Phecode mapping table registry
+# ---------------------------------------------------------------------------
+# Adding a new phecodeX release (e.g. X1.1):
+#   1. Drop the CSV into src/phetk/phecode/ (packaged by the existing
+#      `phetk = ["phecode/*"]` glob in pyproject.toml).
+#   2. Add the (version, icd_version) -> filename entries below.
+#   3. Add a PHECODE_MAP_SCHEMAS entry (copy X1.0's if the schema is unchanged).
+#   4. Bump LATEST_PHECODE_X_VERSION so the "X" alias points at the new release.
+# No other PheTK code needs to change.
+
+LATEST_PHECODE_X_VERSION = "X1.0"
+
+PHECODE_MAP_FILES: dict[tuple[str, str], str] = {
+    ("1.2", "US"): "phecode12.csv",
+    ("X1.0", "US"): "phecodeX.csv",
+    ("X1.0", "WHO"): "phecodeX_WHO.csv",
+}
+
+# Keyed by version (not family) so a future X1.1 with a changed schema declares
+# its own entry without touching the loader.
+PHECODE_MAP_SCHEMAS: dict[str, dict] = {
+    "1.2": {
+        "family": "1.2",
+        "schema_overrides": {"phecode": str, "ICD": str, "flag": pl.Int8,
+                             "exclude_range": str, "phecode_unrolled": str},
+        "core_columns": ["phecode_unrolled", "ICD", "flag"],
+    },
+    "X1.0": {
+        "family": "X",
+        "schema_overrides": {"phecode": str, "ICD": str, "flag": pl.Int8,
+                             "code_val": float},
+        "core_columns": ["phecode", "ICD", "flag"],
+    },
+}
+
+PHECODE_VERSION_ALIASES: dict[str, str] = {"X": LATEST_PHECODE_X_VERSION}
+
+VALID_ICD_VERSIONS = ("US", "WHO", "custom")
+
+
+def available_phecode_versions() -> list[str]:
+    """
+    List canonical phecode versions that have a bundled mapping table.
+
+    Aliases such as "X" are pointers rather than tables and are therefore not
+    included; see `accepted_phecode_versions` for the full set of accepted
+    input strings.
+
+    Returns:
+        Sorted list of canonical phecode version strings, e.g. ["1.2", "X1.0"].
+    """
+    return sorted(PHECODE_MAP_SCHEMAS)
+
+
+def accepted_phecode_versions() -> list[str]:
+    """
+    List every phecode version string accepted as input, aliases included.
+
+    Suitable for use as argparse `choices`.
+
+    Returns:
+        Sorted list of accepted phecode version strings, e.g. ["1.2", "X", "X1.0"].
+    """
+    return sorted(set(PHECODE_MAP_SCHEMAS) | set(PHECODE_VERSION_ALIASES))
+
+
+def resolve_phecode_version(phecode_version: str) -> str:
+    """
+    Normalize a user supplied phecode version to a canonical registry key.
+
+    Surrounding whitespace is ignored and the uppercase form is tried as a
+    fallback, so "x1.0", " X " and "X1.0" all resolve. Aliases such as "X" are
+    resolved to the release they point at.
+
+    Args:
+        phecode_version: Phecode version string, e.g. "1.2", "X" or "X1.0".
+
+    Returns:
+        Canonical phecode version key, e.g. "1.2" or "X1.0".
+
+    Raises:
+        ValueError: If the version is not a string or is not supported.
+    """
+    if isinstance(phecode_version, str):
+        candidates = [phecode_version.strip(), phecode_version.strip().upper()]
+        for candidate in candidates:
+            if candidate in PHECODE_VERSION_ALIASES:
+                candidate = PHECODE_VERSION_ALIASES[candidate]
+            if candidate in PHECODE_MAP_SCHEMAS:
+                return candidate
+
+    alias_text = ", ".join(
+        f'"{alias}" -> "{target}"' for alias, target in sorted(PHECODE_VERSION_ALIASES.items())
+    )
+    raise ValueError(
+        f'Unsupported phecode version "{phecode_version}". '
+        f"Available versions: {', '.join(available_phecode_versions())}. "
+        f"Aliases: {alias_text}."
+    )
+
+
+def phecode_version_family(phecode_version: str) -> str:
+    """
+    Return the phecode family a version belongs to.
+
+    Internal branch points use the family so that pinned releases behave like
+    their family, e.g. "X1.0" behaves like "X".
+
+    Args:
+        phecode_version: Phecode version string, e.g. "1.2", "X" or "X1.0".
+
+    Returns:
+        Phecode family, either "1.2" or "X".
+
+    Raises:
+        ValueError: If the version is not supported.
+    """
+    return PHECODE_MAP_SCHEMAS[resolve_phecode_version(phecode_version)]["family"]
+
+
+def available_icd_versions(phecode_version: str) -> list[str]:
+    """
+    List ICD versions with a bundled mapping table for a phecode version.
+
+    Args:
+        phecode_version: Phecode version string, e.g. "1.2", "X" or "X1.0".
+
+    Returns:
+        Sorted list of ICD version strings, e.g. ["US", "WHO"].
+
+    Raises:
+        ValueError: If the phecode version is not supported.
+    """
+    version = resolve_phecode_version(phecode_version)
+    return sorted(icd for (v, icd) in PHECODE_MAP_FILES if v == version)
+
+
+def load_phecode_map(
+    phecode_version: str,
+    icd_version: str,
+    phecode_map_file_path: str | None = None,
     keep_all_columns: bool = True
 ) -> pl.DataFrame:
     """
-    Load phecode mapping table based on version specifications.
+    Load a phecode mapping table from the bundled registry or a custom file.
 
     Args:
-        phecode_version: Phecode version to use ("X" or "1.2").
+        phecode_version: Phecode version to use, e.g. "1.2", "X" or "X1.0".
+        icd_version: ICD version ("US", "WHO", or "custom").
+        phecode_map_file_path: Path to a custom phecode mapping file. Required
+            when icd_version="custom"; otherwise it overrides the bundled file.
+        keep_all_columns: Whether to keep all columns in the mapping table.
+
+    Returns:
+        Phecode mapping table as Polars DataFrame.
+
+    Raises:
+        ValueError: If the phecode version, the ICD version, or their
+            combination is unsupported, or if a custom ICD version is requested
+            without a mapping file path.
+    """
+    version = resolve_phecode_version(phecode_version)
+    spec = PHECODE_MAP_SCHEMAS[version]
+
+    if icd_version not in VALID_ICD_VERSIONS:
+        raise ValueError("Invalid icd_version. Available icd_version values are US, WHO and custom.")
+
+    if icd_version == "custom":
+        if phecode_map_file_path is None:
+            raise ValueError("Please provide phecode_map_path for custom icd_version")
+        final_file_path = phecode_map_file_path
+    else:
+        if (version, icd_version) not in PHECODE_MAP_FILES:
+            raise ValueError(
+                "PheTK does not support mapping ICD-10 (WHO version) to phecode 1.2. "
+                f"Available icd_version values for phecode {version}: "
+                f"{', '.join(available_icd_versions(version))}."
+            )
+        if phecode_map_file_path is None:
+            phetk_dir = os.path.dirname(__file__)
+            final_file_path = os.path.join(
+                phetk_dir, "phecode", PHECODE_MAP_FILES[(version, icd_version)]
+            )
+        else:
+            final_file_path = phecode_map_file_path
+
+    # noinspection PyTypeChecker
+    phecode_df = pl.read_csv(final_file_path, schema_overrides=spec["schema_overrides"])
+    if not keep_all_columns:
+        phecode_df = phecode_df[spec["core_columns"]]
+
+    return phecode_df
+
+
+def get_phecode_mapping_table(
+    phecode_version: str,
+    icd_version: str,
+    phecode_map_file_path: str | None,
+    keep_all_columns: bool = True
+) -> pl.DataFrame:
+    """
+    Load phecode mapping table based on version specifications, exiting on error.
+
+    CLI oriented wrapper around `load_phecode_map` that prints the error message
+    and exits with status 1 instead of raising.
+
+    Args:
+        phecode_version: Phecode version to use, e.g. "1.2", "X" or "X1.0".
         icd_version: ICD version ("US", "WHO", or "custom").
         phecode_map_file_path: Path to custom phecode mapping file (required if icd_version="custom").
         keep_all_columns: Whether to keep all columns in the mapping table.
@@ -692,65 +890,16 @@ def get_phecode_mapping_table(
     Returns:
         Phecode mapping table as Polars DataFrame.
     """
-    # load a phecode mapping file by version or by custom path
-    phetk_dir = os.path.dirname(__file__)
-    final_file_path = os.path.join(phetk_dir, "phecode")
-    path_suffix = ""
-    if phecode_version == "X":
-        if icd_version == "US":
-            path_suffix = "phecodeX.csv"
-        elif icd_version == "WHO":
-            path_suffix = "phecodeX_WHO.csv"
-        elif icd_version == "custom":
-            if phecode_map_file_path is None:
-                print("Please provide phecode_map_path for custom icd_version")
-                sys.exit(1)
-        else:
-            print("Invalid icd_version. Available icd_version values are US, WHO and custom.")
-            sys.exit(1)
-        if phecode_map_file_path is None:
-            final_file_path = os.path.join(final_file_path, path_suffix)
-        else:
-            final_file_path = phecode_map_file_path
-        # noinspection PyTypeChecker
-        phecode_df = pl.read_csv(final_file_path,
-                                 dtypes={"phecode": str,
-                                         "ICD": str,
-                                         "flag": pl.Int8,
-                                         "code_val": float})
-        if not keep_all_columns:
-            phecode_df = phecode_df[["phecode", "ICD", "flag"]]
-    elif phecode_version == "1.2":
-        if icd_version == "US":
-            path_suffix = "phecode12.csv"
-        elif icd_version == "WHO":
-            print("PheTK does not support mapping ICD-10 (WHO version) to phecode 1.2")
-            sys.exit(1)
-        elif icd_version == "custom":
-            if phecode_map_file_path is None:
-                print("Please provide phecode_map_path for custom icd_version")
-                sys.exit(1)
-        else:
-            print("Invalid icd_version. Available icd_version values are US, WHO and custom.")
-            sys.exit(1)
-        if phecode_map_file_path is None:
-            final_file_path = os.path.join(final_file_path, path_suffix)
-        else:
-            final_file_path = phecode_map_file_path
-        # noinspection PyTypeChecker
-        phecode_df = pl.read_csv(final_file_path,
-                                 dtypes={"phecode": str,
-                                         "ICD": str,
-                                         "flag": pl.Int8,
-                                         "exclude_range": str,
-                                         "phecode_unrolled": str})
-        if not keep_all_columns:
-            phecode_df = phecode_df[["phecode_unrolled", "ICD", "flag"]]
-    else:
-        print("Unsupported phecode version. Supports phecode \"1.2\" and \"X\".")
+    try:
+        return load_phecode_map(
+            phecode_version=phecode_version,
+            icd_version=icd_version,
+            phecode_map_file_path=phecode_map_file_path,
+            keep_all_columns=keep_all_columns
+        )
+    except ValueError as e:
+        print(str(e))
         sys.exit(1)
-
-    return phecode_df
 
 
 def generate_chunk_queries(query_function, ds: str, id_list: list, chunk_size: int = 1000) -> list[str]:
@@ -1171,15 +1320,11 @@ def generate_mock_phewas_data(phecode="GE_979.2", cohort_size=500, var_type="bin
         random.seed(seed)
 
     # load the phecode mapping file to get all phecodes
-    phetk_dir = os.path.dirname(__file__)
-    phecode_mapping_file_path = os.path.join(phetk_dir, "phecode")
-    phecode_mapping_file_path = os.path.join(phecode_mapping_file_path, "phecodeX.csv")
-    # noinspection PyTypeChecker
-    phecode_df = pl.read_csv(phecode_mapping_file_path,
-                             schema_overrides={"phecode": str,
-                                     "ICD": str,
-                                     "flag": pl.Int8,
-                                     "code_val": float})
+    phecode_df = load_phecode_map(
+        phecode_version="X",
+        icd_version="US",
+        phecode_map_file_path=None
+    )
     phecodes = phecode_df["phecode"].unique().to_list()
     phecodes.remove(phecode)  # exclude target phecode for background data
 

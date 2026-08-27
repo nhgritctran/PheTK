@@ -149,6 +149,107 @@ class TestGetPhecodeMapping:
         assert len(df) > 0
 
 
+class TestPhecodeMapRegistry:
+    def test_every_registered_file_exists(self):
+        phecode_dir = os.path.join(os.path.dirname(_utils.__file__), "phecode")
+        for key, filename in _utils.PHECODE_MAP_FILES.items():
+            assert os.path.exists(os.path.join(phecode_dir, filename)), key
+
+    def test_every_registered_version_has_schema(self):
+        for version, _ in _utils.PHECODE_MAP_FILES:
+            assert version in _utils.PHECODE_MAP_SCHEMAS
+
+    def test_every_schema_version_has_a_file(self):
+        versions_with_files = {version for version, _ in _utils.PHECODE_MAP_FILES}
+        assert set(_utils.PHECODE_MAP_SCHEMAS) == versions_with_files
+
+    def test_alias_targets_are_canonical(self):
+        for target in _utils.PHECODE_VERSION_ALIASES.values():
+            assert target in _utils.PHECODE_MAP_SCHEMAS
+
+    def test_x_alias_points_at_latest(self):
+        assert _utils.resolve_phecode_version("X") == _utils.LATEST_PHECODE_X_VERSION
+
+    @pytest.mark.parametrize("value", ["X", "x", " X ", "X1.0", "x1.0", " x1.0 "])
+    def test_phecodeX_spellings_resolve(self, value):
+        assert _utils.resolve_phecode_version(value) == "X1.0"
+
+    @pytest.mark.parametrize("value", ["1.2", " 1.2 "])
+    def test_phecode12_spellings_resolve(self, value):
+        assert _utils.resolve_phecode_version(value) == "1.2"
+
+    def test_unsupported_version_raises_listing_versions(self):
+        with pytest.raises(ValueError) as excinfo:
+            _utils.resolve_phecode_version("2.0")
+        message = str(excinfo.value)
+        assert "2.0" in message
+        assert "1.2" in message
+        assert "X1.0" in message
+
+    def test_non_string_version_raises_value_error(self):
+        with pytest.raises(ValueError):
+            _utils.resolve_phecode_version(1.2)
+
+    @pytest.mark.parametrize("value,family", [("X", "X"), ("X1.0", "X"), ("1.2", "1.2")])
+    def test_phecode_version_family(self, value, family):
+        assert _utils.phecode_version_family(value) == family
+
+    def test_phecode_version_family_invalid_raises(self):
+        with pytest.raises(ValueError):
+            _utils.phecode_version_family("2.0")
+
+    def test_available_phecode_versions_sorted(self):
+        versions = _utils.available_phecode_versions()
+        assert versions == ["1.2", "X1.0"]
+        assert versions == sorted(versions)
+
+    def test_accepted_phecode_versions_includes_aliases(self):
+        accepted = _utils.accepted_phecode_versions()
+        assert accepted == ["1.2", "X", "X1.0"]
+        assert accepted == sorted(accepted)
+
+    @pytest.mark.parametrize("value,icds", [("X", ["US", "WHO"]), ("1.2", ["US"])])
+    def test_available_icd_versions(self, value, icds):
+        assert _utils.available_icd_versions(value) == icds
+
+
+class TestLoadPhecodeMap:
+    def test_alias_and_pin_return_identical_frames(self):
+        assert _utils.load_phecode_map("X", "US").equals(_utils.load_phecode_map("X1.0", "US"))
+
+    def test_unsupported_version_raises_value_error(self):
+        with pytest.raises(ValueError):
+            _utils.load_phecode_map("2.0", "US")
+
+    def test_unsupported_version_icd_pair_raises_value_error(self):
+        with pytest.raises(ValueError):
+            _utils.load_phecode_map("1.2", "WHO")
+
+    def test_invalid_icd_version_raises_value_error(self):
+        with pytest.raises(ValueError):
+            _utils.load_phecode_map("X", "unknown_version")
+
+    def test_custom_icd_without_path_raises_value_error(self):
+        with pytest.raises(ValueError):
+            _utils.load_phecode_map("X", "custom")
+
+    @pytest.mark.parametrize("args", [
+        ("2.0", "US"), ("1.2", "WHO"), ("X", "unknown_version"), ("X", "custom"),
+    ])
+    def test_errors_are_not_system_exit(self, args):
+        with pytest.raises(ValueError):
+            _utils.load_phecode_map(*args)
+
+    def test_legacy_wrapper_accepts_pinned_version(self):
+        df = _utils.get_phecode_mapping_table("X1.0", "US", None, keep_all_columns=False)
+        assert df.columns == ["phecode", "ICD", "flag"]
+
+    def test_no_deprecation_warning(self, recwarn):
+        _utils.load_phecode_map("X", "US")
+        _utils.load_phecode_map("1.2", "US")
+        assert [w for w in recwarn if issubclass(w.category, DeprecationWarning)] == []
+
+
 class TestSaveLoadPickle:
     def test_roundtrip_dict(self, tmp_path):
         path = str(tmp_path / "test.pkl")

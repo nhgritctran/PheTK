@@ -39,6 +39,66 @@ def _auto_memory_limit_gb(fraction: float = 0.9, minimum_gb: int = 4) -> int:
     return max(minimum_gb, int(available_gb * fraction))
 
 
+__all__ = ["Phecode", "get_phecode_map", "available_phecode_versions"]
+
+
+def get_phecode_map(
+        phecode_version: str = "X",
+        icd_version: str = "US",
+        phecode_map_file_path: str | None = None,
+        keep_all_columns: bool = True
+) -> pl.DataFrame:
+    """
+    Load an ICD to phecode mapping table.
+
+    Args:
+        phecode_version: Phecode version to load. Use "1.2", a pinned phecodeX
+            release such as "X1.0", or the alias "X" for the latest phecodeX
+            release. Case and surrounding whitespace are ignored.
+        icd_version: ICD version to load, "US", "WHO", or "custom". This value
+            is matched exactly.
+        phecode_map_file_path: Path to a custom mapping file. Required when
+            icd_version="custom"; otherwise it overrides the bundled file. The
+            file is parsed with the schema of `phecode_version`.
+        keep_all_columns: If False, return only the core mapping columns:
+            ("phecode", "ICD", "flag") for phecodeX and
+            ("phecode_unrolled", "ICD", "flag") for phecode 1.2.
+
+    Returns:
+        Phecode mapping table as a polars DataFrame.
+
+    Raises:
+        ValueError: If the phecode version, the ICD version, or their
+            combination is unsupported, or if a custom ICD version is requested
+            without a mapping file path.
+
+    Examples:
+        >>> from phetk.phecode import get_phecode_map
+        >>> get_phecode_map()                      # latest phecodeX, US ICD  # doctest: +SKIP
+        >>> get_phecode_map("X1.0")                # pinned release  # doctest: +SKIP
+        >>> get_phecode_map("1.2")                 # phecode 1.2  # doctest: +SKIP
+    """
+    return _utils.load_phecode_map(
+        phecode_version=phecode_version,
+        icd_version=icd_version,
+        phecode_map_file_path=phecode_map_file_path,
+        keep_all_columns=keep_all_columns
+    )
+
+
+def available_phecode_versions() -> list[str]:
+    """
+    List canonical phecode versions that have a bundled mapping table.
+
+    The "X" alias is a pointer to the latest phecodeX release rather than a
+    table of its own, so it is not included here.
+
+    Returns:
+        Sorted list of canonical phecode version strings, e.g. ["1.2", "X1.0"].
+    """
+    return _utils.available_phecode_versions()
+
+
 class Phecode:
     """
     Extract ICD codes and map them to phecodes for phenome-wide association studies.
@@ -138,7 +198,9 @@ class Phecode:
         event dates. Creates output file with person-level phecode statistics.
 
         Args:
-            phecode_version: Phecode version to use, "X" or "1.2".
+            phecode_version: Phecode version to use: "1.2", a pinned phecodeX
+                release such as "X1.0", or the alias "X" for the latest
+                phecodeX release.
             icd_version: ICD mapping version, "US", "WHO", or "custom".
             phecode_map_file_path: Path to custom phecode mapping table.
             output_file_path: Path for output TSV file.
@@ -165,8 +227,13 @@ class Phecode:
             keep_all_columns=False
         )
 
+        # normalize to a family ("1.2" or "X") so pinned releases like "X1.0"
+        # take the same branches as their family; safe here because
+        # get_phecode_mapping_table above already exited on an invalid version
+        phecode_family = _utils.phecode_version_family(phecode_version)
+
         phecode_version_string = phecode_version
-        if phecode_version == "1.2":
+        if phecode_family == "1.2":
             phecode_version_string = " " + phecode_version
 
         # resolve output path once (shared across engines)
@@ -186,11 +253,11 @@ class Phecode:
 
         if engine == "polars":
             # ---------- polars path (existing logic minus redundant clone) ----------
-            if phecode_version == "X":
+            if phecode_family == "X":
                 phecode_counts = icd_events.join(phecode_df,
                                                  how="inner",
                                                  on=["ICD", "flag"])
-            elif phecode_version == "1.2":
+            elif phecode_family == "1.2":
                 phecode_counts = icd_events.join(phecode_df,
                                                  how="inner",
                                                  on=["ICD", "flag"])
@@ -239,7 +306,7 @@ class Phecode:
                 con.register("events_view", icd_events)
                 con.register("mapping_view", phecode_df)
 
-                if phecode_version == "X":
+                if phecode_family == "X":
                     # phecode mapping already has a "phecode" column for version X
                     sql = """
                         SELECT
@@ -251,7 +318,7 @@ class Phecode:
                         INNER JOIN mapping_view AS m USING (ICD, flag)
                         GROUP BY e.person_id, m.phecode
                     """
-                elif phecode_version == "1.2":
+                elif phecode_family == "1.2":
                     # phecode 1.2 mapping uses "phecode_unrolled" -- rename via SQL alias.
                     # GROUP BY references the raw column because SELECT aliases
                     # aren't visible in GROUP BY in standard SQL.
@@ -446,7 +513,8 @@ def main_count_phecode():
 
     # Phecode mapping arguments
     parser.add_argument("--phecode_version", type=str, default="X",
-                        help="Phecode version to use: 'X' or '1.2' (default: X)")
+                        help="Phecode version to use: 'X' (latest phecodeX), '1.2', "
+                             "or a pinned release such as 'X1.0' (default: X)")
     parser.add_argument("--icd_version", type=str, default="US",
                         help="ICD mapping version: 'US', 'WHO', or 'custom' (default: US)")
     parser.add_argument("--phecode_map_file_path", type=str, default=None,
