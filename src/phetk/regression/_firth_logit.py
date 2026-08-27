@@ -77,7 +77,7 @@ class FirthLogitBackend(RegressionBackend):
 
         return {
             "p_value": p_value,
-            "neg_log_p_value": -np.log10(p_value) if p_value > 0 else np.inf,
+            "neg_log_p_value": np.nan if np.isnan(p_value) else (-np.log10(p_value) if p_value > 0 else np.inf),
             "standard_error": standard_error,
             "beta": beta,
             "conf_int_1": conf_int_1,

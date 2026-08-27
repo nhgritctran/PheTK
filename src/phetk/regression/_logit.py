@@ -51,7 +51,12 @@ class LogitBackend(RegressionBackend):
         res = pd.read_html(StringIO(results_as_html), header=0, index_col=0)[0]
 
         p_value = result.pvalues[var_of_interest_index]
-        neg_log_p_value = -np.log10(p_value)
+        if np.isnan(p_value):
+            neg_log_p_value = np.nan
+        elif p_value > 0:
+            neg_log_p_value = -np.log10(p_value)
+        else:
+            neg_log_p_value = np.inf
         standard_error = res.iloc[var_of_interest_index]['std err']
         beta = result.params[var_of_interest_index]
         conf_int_1 = res.iloc[var_of_interest_index]['[0.025']

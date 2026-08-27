@@ -78,7 +78,12 @@ class CoxBackend(RegressionBackend):
         result_df = result.summary
 
         p_value = result_df.loc[independent_variable_of_interest]["p"]
-        neg_log_p_value = -np.log10(p_value)
+        if np.isnan(p_value):
+            neg_log_p_value = np.nan
+        elif p_value > 0:
+            neg_log_p_value = -np.log10(p_value)
+        else:
+            neg_log_p_value = np.inf
         standard_error = result_df.loc[independent_variable_of_interest]["se(coef)"]
         hazard_ratio = result_df.loc[independent_variable_of_interest]["exp(coef)"]
         hazard_ratio_low = result_df.loc[independent_variable_of_interest]["exp(coef) lower 95%"]
