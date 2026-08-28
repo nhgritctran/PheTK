@@ -91,6 +91,48 @@ Exactly one of `gene` or `region` is required; passing both or neither raises `V
 
 ---
 
+## CLI reference
+
+```
+phetk clinvar search [options]
+```
+
+| Flag | Short | Maps to |
+|---|---|---|
+| `--gene` | `-g` | `gene` |
+| `--region` | `-r` | `region` |
+| `--assembly` | | `ClinVar(assembly=...)` |
+| `--vcf_path` | | `ClinVar(vcf_path=...)` |
+| `--clinical_significance` | `-s` | `clinical_significance` (accepts multiple values) |
+| `--review_status` | | `review_status` (accepts multiple values) |
+| `--min_review_star` | | `min_review_star` |
+| `--variant_type` | `-t` | `variant_type` (accepts multiple values) |
+| `--max_allele_frequency` | | `max_allele_frequency` |
+| `--output_file_path` | `-o` | `output_file_path` |
+
+Multi-value flags take space-separated values; quote any value containing a space.
+
+```bash
+# rare, well-reviewed pathogenic SNVs in CFTR
+phetk clinvar search --gene CFTR \
+  -s Pathogenic "Likely pathogenic" \
+  --min_review_star 2 \
+  -t SNV \
+  --max_allele_frequency 0.001 \
+  -o cftr_pathogenic.tsv
+
+# region query on GRCh37 against a locally staged VCF
+phetk clinvar search --region 7:117120079-117308719 \
+  --assembly GRCh37 \
+  --vcf_path /data/clinvar/clinvar.vcf.gz \
+  -s "Uncertain significance" \
+  -o cftr_vus_grch37.tsv
+```
+
+Invalid input prints the error message and exits with status 1.
+
+---
+
 ## Output columns
 
 | Column | Source | Notes |

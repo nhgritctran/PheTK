@@ -16,11 +16,12 @@ __Releases__: check [GitHub Releases](https://github.com/nhgritctran/PheTK/relea
 
 ## CURRENT MAJOR FUNCTIONALITIES (v0.3 — June 2026)
 
-- **[Cohort generation](docs/cohort-module.md)** - Build genotype-based cohorts from VCF or Hail data, add demographic and genetic covariates. Cohort generation and covariate retrieval require the _All of Us_ Researcher Workbench (CDR v7-v9); custom platforms are supported with user-provided data paths and BigQuery datasets.
-- **[Phecode mapping](docs/phecode-module.md)** - Map ICD codes to phecodes (phecode 1.2, phecodeX 1.0), compute counts, age-at-first-event, and time-to-event. ICD extraction from OMOP requires _All of Us_ or a compatible BigQuery dataset; phecode mapping and time-to-event computation work cross-platform with local files. The bundled mapping tables are also directly loadable via `from phetk.phecode import get_phecode_map`.
-- **[PheWAS analysis](docs/phewas-module.md)** - Run phenome-wide association studies with logistic, Cox, Firth logistic, and Firth Cox regression. Works cross-platform on any pre-built dataset.
-- **[Visualization](docs/plot-module.md)** - Generate Manhattan plots and Forest plots. Works cross-platform.
-- **CLI support** - Full command-line interface for all modules (`phetk phewas`, `phetk cohort`, `phetk phecode`)
+- **[Variant selection](docs/clinvar-module.md)** - Retrieve ClinVar variants for a gene symbol or genomic region with [`ClinVar.search()`](docs/clinvar-module.md#clinvarsearch), filtering by clinical significance, review star rating, variant type, and allele frequency. Output columns feed directly into [`by_genotype()`](docs/cohort-module.md#by_genotype). Works cross-platform.
+- **[Cohort generation](docs/cohort-module.md)** - Build genotype-based cohorts from VCF or Hail data with [`by_genotype()`](docs/cohort-module.md#by_genotype), add demographic and genetic covariates with [`add_covariates()`](docs/cohort-module.md#add_covariates). Cohort generation and covariate retrieval require the _All of Us_ Researcher Workbench (CDR v7-v9); custom platforms are supported with user-provided data paths and BigQuery datasets.
+- **[Phecode mapping](docs/phecode-module.md)** - Map ICD codes to phecodes (phecode 1.2, phecodeX 1.0) with [`count_phecode()`](docs/phecode-module.md#count_phecode), and compute [age-at-first-event](docs/phecode-module.md#add_age_at_first_event) and [time-to-event](docs/phecode-module.md#add_phecode_time_to_event). ICD extraction from OMOP requires _All of Us_ or a compatible BigQuery dataset; phecode mapping and time-to-event computation work cross-platform with local files. The bundled mapping tables are also directly loadable via [`get_phecode_map()`](docs/phecode-module.md#get_phecode_map).
+- **[PheWAS analysis](docs/phewas-module.md)** - Run phenome-wide association studies with [logistic](docs/phewas-module.md#running-phewas), [Cox](docs/phewas-module.md#cox-regression-parameters), [Firth logistic, and Firth Cox](docs/phewas-module.md#firth-penalized-regression) regression. Works cross-platform on any pre-built dataset.
+- **[Visualization](docs/plot-module.md)** - Generate [Manhattan](docs/plot-module.md#manhattan-plot), [Miami](docs/plot-module.md#miami-plot), and [forest](docs/plot-module.md#forest-plot) plots. Works cross-platform.
+- **CLI support** - Full command-line interface for all modules (`phetk clinvar`, `phetk phewas`, `phetk cohort`, `phetk phecode`)
 - **Distributed computing** - Built-in dsub integration for large-scale analyses on Google Cloud on the _All of Us_ Researcher Workbench.
 
 [**📋 View full changelog**](https://github.com/nhgritctran/PheTK/releases)
@@ -37,7 +38,7 @@ __Releases__: check [GitHub Releases](https://github.com/nhgritctran/PheTK/relea
   - [Phecode module](docs/phecode-module.md)
   - [PheWAS module](docs/phewas-module.md)
   - [Plot module](docs/plot-module.md)
-- [System requirements & computing resources](#5-system-requirements--computing-resources)
+- [System requirements & computing resources](#5-system-requirements)
 - Platform specific tutorial(s):
   - ___All of Us___: [Tutorial notebooks](docs/tutorials/README_FIRST.md) - Interactive Jupyter notebooks demonstrating PheTK usage on the _All of Us_ Researcher Workbench with various analysis examples.
 Please note that all examples require _All of Us_ registered user access.
@@ -114,7 +115,7 @@ For detailed usage examples and documentation for each module, please refer to t
 - **[Cohort module](docs/cohort-module.md)** - Generate genetic cohorts and add covariates
 - **[Phecode module](docs/phecode-module.md)** - Map ICD codes to phecodes and generate counts
 - **[PheWAS module](docs/phewas-module.md)** - Run PheWAS analysis with logistic or Cox regression
-- **[Plot module](docs/plot-module.md)** - Generate Manhattan plots and other visualizations
+- **[Plot module](docs/plot-module.md)** - Generate Manhattan, Miami, and forest plots
 
 ## 5. SYSTEM REQUIREMENTS
 
@@ -126,9 +127,10 @@ PheTK's resource requirements vary by usage context. The information in this sec
 - All PheTK functions run on standard machines. The `by_genotype()` Cohort function supports VCF (default, no Spark needed) and Hail (requires a Spark cluster) data formats.
 - Both logistic regression and Cox regression scale with CPU counts for faster processing. See figure S2 below from PheTK publication for more information.
 In our experience, 4 CPU machines are the most cost-efficient, especially for large-scale analyses.
-- For an end-to-end pipeline, the system requirements should be based on the most demanding steps. 
-For example, for the _All of Us_ data v8/v9, a VM with 16CPU 104GB RAM should work;
-if users only need to run PheWAS analysis, it can be run at a much lower configuration as shown in figure S2.
+- For an end-to-end pipeline, the system requirements should be based on the most demanding steps,
+which is usually phecode mapping. Since v0.2.7, the phecode module uses DuckDB by default, which brought the memory requirement
+for the full _All of Us_ v8 cohort down substantially: a **4 vCPU / 26GB RAM** VM is sufficient for the entire pipeline.
+If users only need to run PheWAS analysis, it can be run at a much lower configuration as shown in figure S2.
 
 ![PheTK Performance Benchmarks](img/readme/FigureS2.png)
 **Figure S2**: Logistic regression performance benchmarks from PheTK publication showing scalability with different CPU configurations and cohort sizes.
@@ -144,6 +146,8 @@ if users only need to run PheWAS analysis, it can be run at a much lower configu
 - The additional memory accommodates the multiprocessing overhead for survival analysis
 
 #### Phecode Module (ICD Code Mapping)
-- **Memory requirements scale with cohort size** - Large cohorts require higher memory configurations
-- **Recommended**: For _All of Us_ database v8 with over 500k participants, phecode mapping could be done with a 16 vCPU 104GB RAM machine.
+- **Memory requirements scale with cohort size**, but the default `engine="duckdb"` keeps memory bounded via a streaming, spill-capable pipeline
+- **Recommended**: For _All of Us_ database v8 with over 500k participants, `count_phecode()` has been tested and runs successfully on a **4 vCPU / 26GB RAM** machine with the default DuckDB engine
+- `engine="polars"` runs fully in memory and is somewhat faster, but needs considerably more RAM — roughly **16 vCPU / 104GB RAM** for the full v8 cohort
+- `memory_limit` sets the DuckDB memory ceiling explicitly; it defaults to ~90% of currently available RAM. See the [phecode module docs](docs/phecode-module.md#count_phecode)
 

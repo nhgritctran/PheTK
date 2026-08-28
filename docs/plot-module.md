@@ -1,6 +1,7 @@
 # Plot Module
 
-Create publication-ready visualizations of PheWAS results including Manhattan, and forest plots.
+Create publication-ready visualizations of PheWAS results including [Manhattan](#manhattan-plot),
+[Miami](#miami-plot), and [forest](#forest-plot) plots.
 
 ## Manhattan Plot
 
@@ -60,6 +61,82 @@ p.manhattan(
     negative_marker_alpha=0.4,  # More transparent negative effects
     label_box_alpha=0.3,        # More transparent label background boxes
     save_plot=True
+)
+```
+
+## Miami Plot
+
+A mirrored Manhattan plot. Phecodes with a positive effect plot upward, phecodes with a
+negative effect plot downward, and markers are sized by effect magnitude. The y-value is
+`-log10(p) × sign(effect)`, so significance and direction are readable at once.
+
+The effect column is chosen from the results file: `beta` for logistic regression,
+`log_hazard_ratio` for Cox. Marker size is driven by the odds ratio or hazard ratio.
+
+### Key Parameters
+- `label_values`: What to label - "p_value", "positive_beta", "negative_beta", or specific phecodes (str/list, default: "p_value")
+- `label_count`: Number of points to label (int, default: 10)
+- `label_size`: Font size for labels (int, default: 8)
+- `label_box_alpha`: Alpha (transparency) value for label background boxes (float, default: 0.5)
+- `marker_alpha`: Alpha for markers in both halves (float, default: 0.7)
+- `positive_marker_alpha`: Alpha override for the upper (positive) half only (float, optional)
+- `negative_marker_alpha`: Alpha override for the lower (negative) half only (float, optional)
+- `hide_non_significant`: Omit points with p > 0.05 (bool, default: False)
+- `marker_min_size` / `marker_max_size`: Marker size range for effect scaling (float, defaults: 13 / 267)
+- `effect_cap`: OR/HR at which markers reach maximum size (float, default: 10)
+- `capped_marker_style`: How to render capped points - "circle" or "diamond" (str, default: "circle")
+- `show_size_legend`: Show the effect-magnitude size legend (bool, default: True)
+- `size_legend_count`: Number of entries in the size legend (int, default: 4)
+- `phecode_categories`: Specific categories to plot (list[str], optional)
+- `sort_by_significance`: Sort by p-value within categories (bool, default: False)
+- `y_limit`: Maximum absolute -log10(p-value); applied symmetrically (float, optional)
+- `dpi`: Resolution for saved plots (int, default: 150)
+- `save_plot`: Save plot to file (bool, default: True)
+- `output_file_path`: Output path with extension (str, optional)
+
+### Example
+```python
+from phetk.plot import Plot
+
+p = Plot("phewas_results.tsv", converged_only=True)
+
+p.miami(
+    label_values="p_value",
+    label_count=10,
+    save_plot=True,
+    output_file_path="miami_plot.png"
+)
+```
+
+### Effect Magnitude and Capping
+
+Effect sizes have a long tail, so marker area is capped at `effect_cap`. Anything at or above
+that value gets the maximum marker size. `capped_marker_style` controls how capped points are
+distinguished:
+
+```python
+# All points drawn as circles; the largest size legend entry gets a "+" suffix
+p.miami(effect_cap=5, capped_marker_style="circle")
+
+# Capped points drawn as diamonds with their own legend entry
+p.miami(effect_cap=5, capped_marker_style="diamond")
+```
+
+### Advanced Customization
+```python
+# Emphasize the positive half, de-emphasize the negative half
+p.miami(
+    positive_marker_alpha=0.9,
+    negative_marker_alpha=0.3,
+    hide_non_significant=True,
+    y_limit=15
+)
+
+# Restrict to a few categories and drop the size legend
+p.miami(
+    phecode_categories=["circulatory system", "endocrine/metabolic"],
+    show_size_legend=False,
+    title="CFTR Variant PheWAS"
 )
 ```
 
