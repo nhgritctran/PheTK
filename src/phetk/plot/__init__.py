@@ -40,12 +40,15 @@ class Plot:
         """
 
         # load PheWAS results
+        # "converged" is read as text and normalized below rather than parsed as Boolean, so
+        # that result files written by any PheTK version load; see _normalize_converged
         sep = _utils.detect_delimiter(phewas_result_file_path)
         self.phewas_result = pl.read_csv(
             phewas_result_file_path,
             separator=sep,
-            schema_overrides={"phecode": str, "converged": bool}
+            schema_overrides={"phecode": str, "converged": pl.Utf8}
         )
+        self.phewas_result = self._normalize_converged(self.phewas_result)
 
         # bonferroni
         if bonferroni is None:
@@ -55,7 +58,7 @@ class Plot:
 
         # remove non-converged phecodes - doing this after bonferroni to avoid bonferroni value shifting
         if ("converged" in self.phewas_result.columns) and converged_only:
-            self.phewas_result = self.phewas_result.filter(pl.col("converged") == "true")
+            self.phewas_result = self.phewas_result.filter(pl.col("converged"))
 
         # drop rows with NaN p_value (unreliable inference)
         nan_p_count = self.phewas_result.filter(pl.col("p_value").is_nan()).height
@@ -178,6 +181,34 @@ class Plot:
             color_palette=self.color_palette,
             inf_proxy=self.inf_proxy,
             direction_col=self.direction_col,
+        )
+
+    @staticmethod
+    def _normalize_converged(df: pl.DataFrame) -> pl.DataFrame:
+        """
+        Normalize the "converged" column to Boolean, accepting all historical spellings.
+
+        PheTK has written this column three ways: real booleans since v0.3.5, "True"/"False"
+        from statsmodels, and "Converged"/"Not converged" from the Firth backends up to
+        v0.3.4. The column is read as text so that every one of these loads, then mapped
+        here. Values outside the known vocabulary become null and are treated as
+        non-converged by converged_only.
+
+        Args:
+            df: PheWAS results as read from file.
+
+        Returns:
+            The frame with "converged" cast to Boolean, or unchanged if the column is absent.
+        """
+        if "converged" not in df.columns:
+            return df
+
+        normalized = pl.col("converged").str.strip_chars().str.to_lowercase()
+        return df.with_columns(
+            pl.when(normalized.is_in(["true", "converged"])).then(True)
+            .when(normalized.is_in(["false", "not converged"])).then(False)
+            .otherwise(None)
+            .alias("converged")
         )
 
     @staticmethod

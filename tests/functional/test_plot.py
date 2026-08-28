@@ -3,6 +3,7 @@ Functional tests for plot.py — runs PheWAS first, then tests all plot types.
 No mocking, no AoU required. Uses non-interactive matplotlib backend.
 """
 import os
+import polars as pl
 import pytest
 import matplotlib
 matplotlib.use("Agg")  # must be before any other matplotlib import
@@ -194,3 +195,83 @@ class TestMiamiPlot:
             save_plot=True, output_file_path=out
         )
         assert os.path.exists(out)
+
+
+# ---------------------------------------------------------------------------
+# "converged" column backward compatibility
+# ---------------------------------------------------------------------------
+
+class TestConvergedBackwardCompatibility:
+    """
+    Plot must read the "converged" column as written by any PheTK version.
+
+    Firth backends wrote "Converged"/"Not converged" up to v0.3.4, statsmodels logit
+    wrote "True"/"False", and both write real booleans from v0.3.5 on.
+    """
+
+    # (true_token, false_token, description)
+    FORMATS = [
+        ("true", "false", "v0.3.5+ boolean"),
+        ("True", "False", "statsmodels logit <= v0.3.4"),
+        ("Converged", "Not converged", "Firth backends <= v0.3.4"),
+    ]
+
+    @staticmethod
+    def _rewrite_converged(src_path, dst_path, true_token, false_token, n_non_converged=0):
+        """Rewrite the converged column of a real result file using the given tokens."""
+        df = pl.read_csv(src_path, separator="\t", schema_overrides={"phecode": str})
+        tokens = [false_token] * n_non_converged + [true_token] * (len(df) - n_non_converged)
+        df.with_columns(pl.Series("converged", tokens)).write_csv(dst_path, separator="\t")
+
+    @pytest.mark.parametrize("true_token,false_token,description", FORMATS)
+    def test_all_historical_formats_load(self, phewas_result, tmp_path,
+                                         true_token, false_token, description):
+        src, _ = phewas_result
+        dst = str(tmp_path / "results.tsv")
+        self._rewrite_converged(src, dst, true_token, false_token)
+
+        plot = Plot(phewas_result_file_path=dst, phecode_version="X")
+
+        assert plot.phewas_result.schema["converged"] == pl.Boolean, description
+        assert plot.phewas_result["converged"].all(), description
+        assert len(plot.phewas_result) > 0, description
+
+    @pytest.mark.parametrize("true_token,false_token,description", FORMATS)
+    def test_non_converged_rows_filtered(self, phewas_result, tmp_path,
+                                         true_token, false_token, description):
+        src, _ = phewas_result
+        dst = str(tmp_path / "results_mixed.tsv")
+        self._rewrite_converged(src, dst, true_token, false_token, n_non_converged=2)
+
+        kept_all = Plot(phewas_result_file_path=dst, phecode_version="X",
+                        converged_only=False).phewas_result
+        kept_converged = Plot(phewas_result_file_path=dst, phecode_version="X",
+                              converged_only=True).phewas_result
+
+        assert len(kept_converged) < len(kept_all), description
+        assert kept_converged["converged"].all(), description
+        assert not kept_all["converged"].all(), description
+
+    def test_unrecognized_value_becomes_null_and_is_filtered(self, phewas_result, tmp_path):
+        src, _ = phewas_result
+        dst = str(tmp_path / "results_unknown.tsv")
+        self._rewrite_converged(src, dst, "true", "something unexpected", n_non_converged=2)
+
+        kept_all = Plot(phewas_result_file_path=dst, phecode_version="X",
+                        converged_only=False).phewas_result
+        kept_converged = Plot(phewas_result_file_path=dst, phecode_version="X",
+                              converged_only=True).phewas_result
+
+        assert kept_all["converged"].null_count() == 2
+        assert len(kept_converged) == len(kept_all) - 2
+
+    def test_missing_converged_column_is_tolerated(self, phewas_result, tmp_path):
+        src, _ = phewas_result
+        dst = str(tmp_path / "results_no_converged.tsv")
+        pl.read_csv(src, separator="\t", schema_overrides={"phecode": str}) \
+            .drop("converged").write_csv(dst, separator="\t")
+
+        plot = Plot(phewas_result_file_path=dst, phecode_version="X", converged_only=True)
+
+        assert "converged" not in plot.phewas_result.columns
+        assert len(plot.phewas_result) > 0
