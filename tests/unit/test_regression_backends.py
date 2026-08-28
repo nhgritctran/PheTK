@@ -259,3 +259,77 @@ class TestFirthCoxBackend:
         )
         assert result is not None
         assert 0 < result["p_value"] <= 1
+
+
+# ---------------------------------------------------------------------------
+# "converged" column dtype contract
+#
+# Plot.__init__ reads PheWAS results with a hardcoded
+# schema_overrides={"phecode": str, "converged": bool} (plot/__init__.py:44-48),
+# so every logit-family backend must emit a real bool. A backend that emitted
+# a descriptive string such as "Converged" made pl.read_csv raise ComputeError
+# and Plot() unusable on those results.
+# ---------------------------------------------------------------------------
+
+LOGIT_FAMILY = ["logit", "firth_logit"]
+COX_FAMILY = ["cox", "firth_cox"]
+
+
+class TestConvergedDtype:
+    @pytest.mark.parametrize("method", LOGIT_FAMILY)
+    def test_converged_is_python_bool(self, method):
+        """Not a str, and not np.bool_ - polars must infer a Boolean column."""
+        regressors, y, cols = _make_logistic_data()
+        result = get_backend(method).fit(
+            regressors=regressors, y=y,
+            analysis_var_cols=cols,
+            independent_variable_of_interest="x_interest",
+        )
+        assert result is not None
+        assert isinstance(result["converged"], bool), (
+            f"{method} emitted {result['converged']!r} "
+            f"({type(result['converged']).__name__}), expected bool"
+        )
+
+    @pytest.mark.parametrize("method", LOGIT_FAMILY)
+    def test_converged_infers_as_boolean_column(self, method):
+        regressors, y, cols = _make_logistic_data()
+        result = get_backend(method).fit(
+            regressors=regressors, y=y,
+            analysis_var_cols=cols,
+            independent_variable_of_interest="x_interest",
+        )
+        assert pl.DataFrame([result]).schema["converged"] == pl.Boolean
+
+    @pytest.mark.parametrize("method", LOGIT_FAMILY)
+    def test_converged_survives_tsv_round_trip_as_bool(self, method, tmp_path):
+        """The exact read Plot.__init__ performs must not raise and must stay Boolean."""
+        regressors, y, cols = _make_logistic_data()
+        result = get_backend(method).fit(
+            regressors=regressors, y=y,
+            analysis_var_cols=cols,
+            independent_variable_of_interest="x_interest",
+        )
+        path = tmp_path / f"{method}_result.tsv"
+        pl.DataFrame([{**result, "phecode": "GE_979.2"}]).write_csv(path, separator="\t")
+
+        reloaded = pl.read_csv(
+            path, separator="\t",
+            schema_overrides={"phecode": str, "converged": bool},
+        )
+        assert reloaded.schema["converged"] == pl.Boolean
+        # Plot filters non-converged rows with this comparison (plot/__init__.py:58)
+        assert reloaded.filter(pl.col("converged") == "true").height == int(result["converged"])
+
+    @pytest.mark.parametrize("method", COX_FAMILY)
+    def test_cox_family_convergence_stays_a_string(self, method):
+        """cox reports free-text warning messages here, so it is deliberately not a bool."""
+        regressors, y, cols = _make_survival_data()
+        result = get_backend(method).fit(
+            regressors=regressors, y=y,
+            analysis_var_cols=cols,
+            independent_variable_of_interest="x_interest",
+        )
+        assert result is not None
+        assert "converged" not in result
+        assert isinstance(result["convergence"], str)

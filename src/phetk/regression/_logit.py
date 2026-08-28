@@ -21,7 +21,7 @@ class LogitBackend(RegressionBackend):
         analysis_var_cols: list[str],
         independent_variable_of_interest: str,
         **kwargs,
-    ) -> dict[str, float | str] | None:
+    ) -> dict[str, float | bool] | None:
         verbose = kwargs.get("verbose", False)
         suppress_warnings = kwargs.get("suppress_warnings", True)
 
@@ -44,9 +44,11 @@ class LogitBackend(RegressionBackend):
         return self._extract_results(result, var_index)
 
     @staticmethod
-    def _extract_results(result, var_of_interest_index: int) -> dict[str, float | str]:
+    def _extract_results(result, var_of_interest_index: int) -> dict[str, float | bool]:
         results_as_html = result.summary().tables[0].as_html()
-        converged = pd.read_html(StringIO(results_as_html))[0].iloc[5, 1]
+        # statsmodels renders this cell as the text "True"/"False"; coerce to a real
+        # bool so the "converged" column is Boolean in every backend's output
+        converged = str(pd.read_html(StringIO(results_as_html))[0].iloc[5, 1]).strip().lower() == "true"
         results_as_html = result.summary().tables[1].as_html()
         res = pd.read_html(StringIO(results_as_html), header=0, index_col=0)[0]
 

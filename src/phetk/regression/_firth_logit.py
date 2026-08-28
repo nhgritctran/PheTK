@@ -16,7 +16,7 @@ class FirthLogitBackend(RegressionBackend):
         analysis_var_cols: list[str],
         independent_variable_of_interest: str,
         **kwargs,
-    ) -> dict[str, float | str] | None:
+    ) -> dict[str, float | bool] | None:
         from firthmodels import FirthLogisticRegression
 
         penalty_weight = kwargs.get("firth_penalty_weight", 0.5)
@@ -73,7 +73,7 @@ class FirthLogitBackend(RegressionBackend):
         conf_int_2 = float(ci[var_index, 1])
         odds_ratio = np.exp(beta)
         log10_odds_ratio = np.log10(odds_ratio) if odds_ratio > 0 else -np.inf
-        converged = "Converged" if model.converged_ else "Not converged"
+        converged = bool(model.converged_)
 
         return {
             "p_value": p_value,
