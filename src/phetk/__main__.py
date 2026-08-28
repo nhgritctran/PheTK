@@ -15,6 +15,8 @@ from phetk.demo import run as demo_run
 from phetk.cohort import main_by_genotype, main_add_covariates
 # noinspection PyUnresolvedReferences,PyProtectedMember
 from phetk.phecode import main_count_phecode, main_add_age_at_first_event, main_add_phecode_time_to_event
+# noinspection PyUnresolvedReferences,PyProtectedMember
+from phetk.clinvar import main_search
 
 
 def main():
@@ -100,6 +102,24 @@ def main():
         add_help=False  # Let the phecode module handle its own help
     )
     
+    # Add clinvar subcommand with nested subcommands
+    clinvar_parser = subparsers.add_parser(
+        'clinvar',
+        help='ClinVar variant retrieval by gene or genomic region'
+    )
+    clinvar_subparsers = clinvar_parser.add_subparsers(
+        dest='clinvar_command',
+        help='ClinVar subcommands',
+        required=True
+    )
+
+    # Add clinvar search subcommand
+    clinvar_search_parser = clinvar_subparsers.add_parser(
+        'search',
+        help='Query ClinVar variants by gene symbol or genomic region',
+        add_help=False  # Let the clinvar module handle its own help
+    )
+
     # Parse only the command, not the full arguments
     args, remaining_args = parser.parse_known_args()
     
@@ -137,6 +157,14 @@ def main():
             main_add_phecode_time_to_event()
         else:
             phecode_parser.print_help()
+            sys.exit(1)
+    elif args.command == 'clinvar':
+        if args.clinvar_command == 'search':
+            # Pass remaining arguments to clinvar search main
+            sys.argv = ['phetk-clinvar-search'] + remaining_args
+            main_search()
+        else:
+            clinvar_parser.print_help()
             sys.exit(1)
     else:
         parser.print_help()

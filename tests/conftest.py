@@ -6,16 +6,22 @@ import pytest
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "aou: mark test as requiring AoU Workbench environment")
+    config.addinivalue_line("markers", "network: mark test as requiring outbound network access")
 
 
 def pytest_collection_modifyitems(config, items):
     import os
-    if os.getenv("WORKSPACE_CDR"):
-        return
-    skip_aou = pytest.mark.skip(reason="Requires AoU Workbench environment (WORKSPACE_CDR not set)")
+    skip_aou = None
+    if not os.getenv("WORKSPACE_CDR"):
+        skip_aou = pytest.mark.skip(reason="Requires AoU Workbench environment (WORKSPACE_CDR not set)")
+    skip_network = None
+    if not os.getenv("PHETK_NETWORK_TESTS"):
+        skip_network = pytest.mark.skip(reason="Requires network access (PHETK_NETWORK_TESTS not set)")
     for item in items:
-        if "aou" in item.keywords:
+        if skip_aou is not None and "aou" in item.keywords:
             item.add_marker(skip_aou)
+        if skip_network is not None and "network" in item.keywords:
+            item.add_marker(skip_network)
 
 
 # ---------------------------------------------------------------------------

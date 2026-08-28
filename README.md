@@ -32,6 +32,7 @@ __Releases__: check [GitHub Releases](https://github.com/nhgritctran/PheTK/relea
 - [1-minute PheWAS demo](#2-1-minute-phewas-demo)
 - [PheTK description](#3-descriptions)
 - [Usage examples](#4-usage)
+  - [ClinVar module](docs/clinvar-module.md)
   - [Cohort module](docs/cohort-module.md)
   - [Phecode module](docs/phecode-module.md)
   - [PheWAS module](docs/phewas-module.md)
@@ -109,6 +110,7 @@ _All of Us_: the _All of Us_ Research Program (https://allofus.nih.gov/)
 
 For detailed usage examples and documentation for each module, please refer to the individual module documentation:
 
+- **[ClinVar module](docs/clinvar-module.md)** - Retrieve ClinVar variants by gene or genomic region
 - **[Cohort module](docs/cohort-module.md)** - Generate genetic cohorts and add covariates
 - **[Phecode module](docs/phecode-module.md)** - Map ICD codes to phecodes and generate counts
 - **[PheWAS module](docs/phewas-module.md)** - Run PheWAS analysis with logistic or Cox regression

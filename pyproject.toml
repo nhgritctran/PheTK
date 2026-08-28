@@ -58,6 +58,7 @@ phetk = ["phecode/*"]
 testpaths = ["tests"]
 markers = [
     "aou: mark test as requiring AoU Workbench environment",
+    "network: mark test as requiring outbound network access",
 ]
 
 [project.optional-dependencies]
