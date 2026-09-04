@@ -303,6 +303,12 @@ class Phecode:
             with duckdb.connect() as con:
                 con.execute(f"PRAGMA memory_limit='{resolved_memory_limit}'")
                 con.execute(f"PRAGMA threads={n_threads}")
+                # In a Jupyter kernel DuckDB renders its progress bar as an
+                # ipywidget. On AoU/Verily the widget model is often
+                # unavailable, so the cell shows "Error displaying widget:
+                # model not found" instead of progress. PheTK prints its own
+                # progress, so turn DuckDB's off.
+                con.execute("PRAGMA disable_progress_bar")
                 con.register("events_view", icd_events)
                 con.register("mapping_view", phecode_df)
 
