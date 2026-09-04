@@ -3,6 +3,7 @@ Unit tests for _utils.py — pure utility functions with no cloud dependencies.
 """
 import argparse
 import os
+import re
 import subprocess
 import pytest
 import polars as pl
@@ -450,4 +451,179 @@ class TestWriteTsvFallback:
 
         with patch.object(df, "write_csv", side_effect=side_effect):
             with pytest.raises(RuntimeError, match="gcloud storage cp failed"):
+                _utils.write_tsv(df, "gs://b/k.tsv")
+
+
+# Stand-in for the multi-line, XML-bearing message a cloud storage backend
+# returns on a permission error. Values are placeholders on purpose: the point
+# is that none of it reaches the user, so the specific text is irrelevant and
+# no real bucket, project or service account belongs in the repo.
+NOISY_CLOUD_ERROR = (
+    "object-store error: The operation lacked the necessary privileges to\n"
+    "complete for path some/output.tsv: Error performing POST\n"
+    "https://storage.googleapis.com/example%2Dbucket/some%2Foutput%2Etsv?uploads=\n"
+    "Server returned non-2xx status code: 403 Forbidden: <?xml version='1.0'?>\n"
+    "<Error><Code>AccessDenied</Code><Details>service-account@example.iam."
+    "gserviceaccount.com does not have storage.multipartUploads.create access"
+    "</Details></Error>"
+)
+
+
+class TestWriteTsvOutput:
+    """
+    Tests the reporting of the GCS fallback, not the writing itself (which is
+    covered by TestWriteTsvFallback).
+
+    A write that succeeds via a fallback must not read like a failure. On
+    AoU/Verily a service account can commonly stream but cannot do a native
+    multipart write, so the first method always fails and the second always
+    succeeds. The old output dumped the raw cloud exception between "Writing
+    output to ..." and "Successfully generated ...", which read as a hard
+    error even though the file was written.
+    """
+
+    def _make_df(self):
+        return pl.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
+
+    def _direct_write_fails(self, df, exc):
+        original = df.write_csv
+
+        def side_effect(path, **kwargs):
+            if isinstance(path, str) and path.startswith("gs://"):
+                raise exc
+            return original(path, **kwargs)
+
+        return side_effect
+
+    @patch("phetk._utils._to_gs_uri_if_bucket_mount", return_value="gs://b/k.tsv")
+    def test_silent_when_first_method_works(self, mock_mount, capsys):
+        df = self._make_df()
+        with patch.object(df, "write_csv"):
+            _utils.write_tsv(df, "gs://b/k.tsv")
+        assert capsys.readouterr().out == ""
+
+    @patch("phetk._utils._to_gs_uri_if_bucket_mount", return_value="gs://b/k.tsv")
+    @patch("phetk._utils.gcsfs_write")
+    def test_notice_reports_type_only(self, mock_gcsfs, mock_mount, capsys):
+        """
+        Two short lines, naming the exception type and nothing from its message.
+        """
+        df = self._make_df()
+        with patch.object(
+            df, "write_csv",
+            side_effect=self._direct_write_fails(df, OSError(NOISY_CLOUD_ERROR)),
+        ):
+            _utils.write_tsv(df, "gs://b/k.tsv")
+
+        out = capsys.readouterr().out
+        lines = [ln for ln in out.splitlines() if ln.strip()]
+        assert len(lines) == 2
+        assert lines[0].strip() == (
+            "Note: direct write unavailable (OSError); "
+            "falling back to streaming write (gcsfs)..."
+        )
+        assert lines[1].strip() == "Saved using streaming write (gcsfs)."
+
+    @patch("phetk._utils._to_gs_uri_if_bucket_mount", return_value="gs://b/k.tsv")
+    @patch("phetk._utils.gcsfs_write")
+    def test_no_part_of_the_message_is_printed(
+        self, mock_gcsfs, mock_mount, capsys
+    ):
+        """
+        Generic: every word of the exception message is withheld, whatever it
+        says. Guards against reintroducing truncation, which would still leak
+        paths, URLs and service account names into the notice.
+
+        Parenthesised spans are removed before scanning: they hold the
+        exception type and the method labels, which are PheTK's own text.
+        test_notice_reports_type_only pins their exact content.
+        """
+        df = self._make_df()
+        with patch.object(
+            df, "write_csv",
+            side_effect=self._direct_write_fails(df, OSError(NOISY_CLOUD_ERROR)),
+        ):
+            _utils.write_tsv(df, "gs://b/k.tsv")
+
+        prose = re.sub(r"\([^)]*\)", "", capsys.readouterr().out)
+        for token in set(re.findall(r"[A-Za-z0-9_.%/@-]{4,}", NOISY_CLOUD_ERROR)):
+            assert token not in prose, f"leaked {token!r} from the exception message"
+
+    @patch("phetk._utils._to_gs_uri_if_bucket_mount", return_value="gs://b/k.tsv")
+    @patch("phetk._utils.gcsfs_write")
+    def test_no_failure_wording_when_write_succeeds(
+        self, mock_gcsfs, mock_mount, capsys
+    ):
+        df = self._make_df()
+        with patch.object(
+            df, "write_csv",
+            side_effect=self._direct_write_fails(df, OSError(NOISY_CLOUD_ERROR)),
+        ):
+            _utils.write_tsv(df, "gs://b/k.tsv")
+
+        out = capsys.readouterr().out
+        for word in ("failed", "Error:", "Warning", "Traceback", "tier"):
+            assert word.lower() not in out.lower()
+        assert out.lstrip().startswith("Note:")
+
+    @patch("phetk._utils._to_gs_uri_if_bucket_mount", return_value="gs://b/k.tsv")
+    @patch("phetk._utils.gcsfs_write", side_effect=Exception("gcsfs fail"))
+    @patch("shutil.which", return_value="/usr/bin/gcloud")
+    @patch("subprocess.run")
+    def test_second_fallback_names_third_method(
+        self, mock_run, mock_which, mock_gcsfs, mock_mount, capsys
+    ):
+        mock_run.return_value = MagicMock(returncode=0)
+        df = self._make_df()
+        with patch.object(
+            df, "write_csv",
+            side_effect=self._direct_write_fails(df, OSError("nope")),
+        ):
+            _utils.write_tsv(df, "gs://b/k.tsv")
+
+        out = capsys.readouterr().out
+        assert "falling back to streaming write (gcsfs)" in out
+        assert "falling back to local staging + gcloud" in out
+        assert "Saved using local staging + gcloud." in out
+
+    @patch("phetk._utils._to_gs_uri_if_bucket_mount", return_value="gs://b/k.tsv")
+    @patch("phetk._utils.gcsfs_write", side_effect=Exception("gcsfs fail"))
+    @patch("shutil.which", return_value="/usr/bin/gcloud")
+    @patch("subprocess.run")
+    def test_all_fail_reports_every_method_in_full(
+        self, mock_run, mock_which, mock_gcsfs, mock_mount, capsys
+    ):
+        """Messages are withheld while retrying, but never lost."""
+        mock_run.return_value = MagicMock(returncode=1, stderr="upload error")
+        df = self._make_df()
+        with patch.object(
+            df, "write_csv",
+            side_effect=self._direct_write_fails(df, OSError(NOISY_CLOUD_ERROR)),
+        ):
+            with pytest.raises(RuntimeError) as excinfo:
+                _utils.write_tsv(df, "gs://b/k.tsv")
+
+        msg = str(excinfo.value)
+        assert "gs://b/k.tsv" in msg
+        assert "direct write" in msg
+        assert "streaming write (gcsfs): gcsfs fail" in msg
+        assert "gcloud storage cp failed" in msg and "upload error" in msg
+        # Full message, not just the type — this is the debugging path.
+        assert "AccessDenied" in msg
+        assert excinfo.value.__cause__ is not None
+        # No "Saved using ..." claim when nothing was saved.
+        assert "Saved using" not in capsys.readouterr().out
+
+    @patch("phetk._utils._to_gs_uri_if_bucket_mount", return_value="gs://b/k.tsv")
+    @patch("phetk._utils.gcsfs_write", side_effect=Exception("gcsfs fail"))
+    @patch("shutil.which", return_value=None)
+    def test_missing_gcloud_reported_in_summary(
+        self, mock_which, mock_gcsfs, mock_mount
+    ):
+        df = self._make_df()
+        with patch.object(
+            df, "write_csv",
+            side_effect=self._direct_write_fails(df, OSError("nope")),
+        ):
+            with pytest.raises(RuntimeError, match="requires the 'gcloud' CLI"):
                 _utils.write_tsv(df, "gs://b/k.tsv")
