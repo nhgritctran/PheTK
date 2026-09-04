@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "phetk"
-version = "0.3.5"
+version = "0.3.6"
 requires-python = ">=3.10"
 license = {text = "GPL-3.0"}
 authors = [
@@ -27,6 +27,9 @@ dependencies = [
     "gcsfs",
     "google-cloud-bigquery",
     "google-cloud-storage",
+    # Not imported by PheTK; floor required by google-auth for post-quantum TLS.
+    # google-auth warns below this and enforces it from October 2026.
+    "grpcio>=1.83.0",
     "lifelines>=0.28.0,<0.30.1",
     "lxml",
     "matplotlib",
