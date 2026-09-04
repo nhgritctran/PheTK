@@ -250,30 +250,59 @@ def setup_verily_env() -> None:
         return
 
 
+# All of Us data buckets registered on Verily Workbench. The resource id and the
+# bucket name do not always agree on the separator (e.g. resource id
+# ``vwb_aou_allxall_v8`` points at bucket ``vwb-aou-allxall``), so both spellings
+# are accepted.
+_AOU_BUCKET_RE = re.compile(r"^vwb[-_]aou[-_]", re.IGNORECASE)
+_INFRA_BUCKET_PREFIXES = ("dataproc-", "cloned-")
+
+
+def _is_user_bucket(resource_id: str, bucket_name: str) -> bool:
+    """
+    Check whether a bucket is user-created rather than AoU data or infrastructure.
+
+    ``bucket_name`` is checked first because it is authoritative: the resource id
+    is a label chosen at registration time and could be anything, while the
+    bucket name is fixed by AoU.
+
+    Args:
+        resource_id: Workbench resource id of the bucket.
+        bucket_name: GCS bucket name (without ``gs://``).
+
+    Returns:
+        True unless this is AoU data or workspace infrastructure.
+    """
+    for value in (bucket_name, resource_id):
+        if not value:
+            continue
+        lowered = value.lower()
+        if _AOU_BUCKET_RE.match(lowered) or lowered.startswith(_INFRA_BUCKET_PREFIXES):
+            return False
+    return True
+
+
 def _classify_wb_buckets(gcs_buckets: list, resources: list) -> None:
     """
     Classify GCS buckets from ``wb resource list`` and set env vars.
 
-    Skips ``dataproc-*``, ``cloned-*``, and ``vwb-aou-*`` buckets. Remaining buckets are
-    split by stewardship type:
+    Skips ``dataproc-*``, ``cloned-*``, and AoU (``vwb-aou-*`` / ``vwb_aou_*``)
+    buckets. Remaining buckets are split by stewardship type:
 
-    - CONTROLLED → ``WORKSPACE_BUCKET`` (or ``WORKSPACE_BUCKET1``, ``2``, ...)
+    - CONTROLLED → ``WORKSPACE_BUCKET`` (or ``WORKSPACE_BUCKET_1``, ``_2``, ...)
     - REFERENCED → ``WORKSPACE_REFERENCED_BUCKET`` (or numbered)
 
     Args:
         gcs_buckets: List of (resource_id, bucket_name, stewardship) tuples.
         resources: Full resource list (used for diagnostics if no buckets found).
     """
-    skip_prefixes = ("dataproc-", "cloned-", "vwb-aou-")
     controlled = [
         (rid, bn) for rid, bn, stew in gcs_buckets
-        if stew == "CONTROLLED"
-        and not any(rid.lower().startswith(p) for p in skip_prefixes)
+        if stew == "CONTROLLED" and _is_user_bucket(rid, bn)
     ]
     referenced = [
         (rid, bn) for rid, bn, stew in gcs_buckets
-        if stew == "REFERENCED"
-        and not any(rid.lower().startswith(p) for p in skip_prefixes)
+        if stew == "REFERENCED" and _is_user_bucket(rid, bn)
     ]
 
     # --- CONTROLLED → WORKSPACE_BUCKET ---
@@ -281,11 +310,11 @@ def _classify_wb_buckets(gcs_buckets: list, resources: list) -> None:
         os.environ["WORKSPACE_BUCKET"] = f"gs://{controlled[0][1]}"
     elif len(controlled) > 1:
         for i, (rid, bn) in enumerate(controlled, 1):
-            os.environ[f"WORKSPACE_BUCKET{i}"] = f"gs://{bn}"
+            os.environ[f"WORKSPACE_BUCKET_{i}"] = f"gs://{bn}"
         print(
             "  Multiple controlled buckets found. Set WORKSPACE_BUCKET to "
             "the one you want to use, e.g.:\n"
-            "    os.environ['WORKSPACE_BUCKET'] = os.environ['WORKSPACE_BUCKET1']"
+            "    os.environ['WORKSPACE_BUCKET'] = os.environ['WORKSPACE_BUCKET_1']"
         )
 
     # --- REFERENCED → WORKSPACE_REFERENCED_BUCKET ---
@@ -293,12 +322,12 @@ def _classify_wb_buckets(gcs_buckets: list, resources: list) -> None:
         os.environ["WORKSPACE_REFERENCED_BUCKET"] = f"gs://{referenced[0][1]}"
     elif len(referenced) > 1:
         for i, (rid, bn) in enumerate(referenced, 1):
-            os.environ[f"WORKSPACE_REFERENCED_BUCKET{i}"] = f"gs://{bn}"
+            os.environ[f"WORKSPACE_REFERENCED_BUCKET_{i}"] = f"gs://{bn}"
         print(
             "  Multiple referenced buckets found. Set "
             "WORKSPACE_REFERENCED_BUCKET to the one you want to use, e.g.:\n"
             "    os.environ['WORKSPACE_REFERENCED_BUCKET'] = "
-            "os.environ['WORKSPACE_REFERENCED_BUCKET1']"
+            "os.environ['WORKSPACE_REFERENCED_BUCKET_1']"
         )
 
     # --- No user buckets at all ---
@@ -326,29 +355,25 @@ def _classify_gcloud_buckets(bucket_names: list) -> None:
     Classify GCS buckets from ``gcloud storage ls`` and set WORKSPACE_BUCKET.
 
     ``gcloud storage ls`` only returns CONTROLLED buckets (not referenced).
-    Skips all ``dataproc-*``, ``cloned-*``, and ``vwb-aou-*`` buckets.
-    Remaining ones are user-created and become WORKSPACE_BUCKET. If multiple
-    exist, numbered variables are set instead.
+    Skips all ``dataproc-*``, ``cloned-*``, and AoU (``vwb-aou-*`` /
+    ``vwb_aou_*``) buckets. Remaining ones are user-created and become
+    WORKSPACE_BUCKET. If multiple exist, numbered variables are set instead.
 
     Args:
         bucket_names: List of bucket name strings (without ``gs://`` prefix).
     """
-    skip_prefixes = ("dataproc-", "cloned-", "vwb-aou-")
-    user_candidates = [
-        bn for bn in bucket_names
-        if not any(bn.lower().startswith(p) for p in skip_prefixes)
-    ]
+    user_candidates = [bn for bn in bucket_names if _is_user_bucket("", bn)]
 
     if len(user_candidates) == 1:
         os.environ["WORKSPACE_BUCKET"] = f"gs://{user_candidates[0]}"
     elif len(user_candidates) > 1:
         print("Multiple user-created GCS buckets found:")
         for i, bn in enumerate(user_candidates, 1):
-            os.environ[f"WORKSPACE_BUCKET{i}"] = f"gs://{bn}"
-            print(f"  WORKSPACE_BUCKET{i}=gs://{bn}")
+            os.environ[f"WORKSPACE_BUCKET_{i}"] = f"gs://{bn}"
+            print(f"  WORKSPACE_BUCKET_{i}=gs://{bn}")
         print(
             "  Set WORKSPACE_BUCKET to the one you want to use, e.g.:\n"
-            "    os.environ['WORKSPACE_BUCKET'] = os.environ['WORKSPACE_BUCKET1']"
+            "    os.environ['WORKSPACE_BUCKET'] = os.environ['WORKSPACE_BUCKET_1']"
         )
     else:
         print(
@@ -450,9 +475,9 @@ def _print_env_summary(env_vars: list, already_set: set) -> None:
             skipped.append(f"  {v}={os.environ[v]}")
         elif os.environ.get(v):
             newly_set.append(f"  {v}={os.environ[v]}")
-        # Check for numbered variants (e.g. WORKSPACE_BUCKET1, WORKSPACE_BUCKET2)
+        # Check for numbered variants (e.g. WORKSPACE_BUCKET_1, WORKSPACE_BUCKET_2)
         for i in range(1, 20):
-            numbered = f"{v}{i}"
+            numbered = f"{v}_{i}"
             val = os.environ.get(numbered)
             if val:
                 newly_set.append(f"  {numbered}={val}")
@@ -501,6 +526,47 @@ def gcsfs_write(df: pl.DataFrame, output_path: str, file_format: str | None = No
         writers[fmt](df, f)
 
 
+def _write_via_gcloud_cp(
+        df: pl.DataFrame, dest: str, separator: str, path: str
+) -> None:
+    """
+    Stage a DataFrame to a local temp file, then upload with ``gcloud storage cp``.
+
+    Slowest of the GCS write methods but the most permissive: it needs only
+    ``storage.objects.create``, whereas a native write also needs
+    ``storage.multipartUploads.create``.
+
+    Args:
+        df: DataFrame to write.
+        dest: Destination ``gs://`` URI.
+        separator: Field separator.
+        path: Original user-supplied path, used in error messages.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".tsv", delete=False, dir="/tmp") as tmp:
+        staged = tmp.name
+    try:
+        df.write_csv(staged, separator=separator)
+        if shutil.which("gcloud") is None:
+            raise RuntimeError(
+                f"Writing to {path} requires the 'gcloud' CLI on PATH "
+                f"(standard on Verily / All of Us / Terra)."
+            )
+        result = subprocess.run(
+            ["gcloud", "storage", "cp", staged, dest],
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"gcloud storage cp failed for {dest}:\n"
+                f"{result.stderr.strip()}"
+            )
+    finally:
+        try:
+            os.unlink(staged)
+        except FileNotFoundError:
+            pass
+
+
 def write_tsv(df: pl.DataFrame, path: str, separator: str = "\t") -> None:
     """Write a polars DataFrame as TSV, robust across Verily / All of Us / Terra.
 
@@ -509,6 +575,15 @@ def write_tsv(df: pl.DataFrame, path: str, separator: str = "\t") -> None:
     2. gcsfs streaming write (avoids local staging).
     3. Stage to local temp file, then ``gcloud storage cp`` (slowest but
        most reliable).
+
+    Falling back is routine, not an error: a service account may lack
+    ``storage.multipartUploads.create`` (needed by 1) yet be able to stream.
+    So a method that does not work prints a one-line notice naming the
+    exception type and the method being tried next. Exception messages are
+    withheld there because cloud storage errors embed XML, URL-encoded paths
+    and service account names, which read as a hard failure even though the
+    write goes on to succeed. They are reported in full, for every method, if
+    every method fails.
 
     Local paths use a direct ``df.write_csv()`` call with ``shutil.move``
     from a temp file for atomicity.
@@ -538,45 +613,37 @@ def write_tsv(df: pl.DataFrame, path: str, separator: str = "\t") -> None:
         return
 
     # -- GCS destination: 3-tier fallback -----------------------------------
-    # Tier 1: native Polars write
-    try:
-        df.write_csv(bucket_dest, separator=separator)
-        return
-    except Exception as e:
-        print(f"[write_tsv] Tier 1 (native Polars write) failed: {e}")
+    fmt = "tsv" if separator == "\t" else "csv"
+    methods = (
+        ("direct write",
+         lambda: df.write_csv(bucket_dest, separator=separator)),
+        ("streaming write (gcsfs)",
+         lambda: gcsfs_write(df, bucket_dest, file_format=fmt)),
+        ("local staging + gcloud",
+         lambda: _write_via_gcloud_cp(df, bucket_dest, separator, path)),
+    )
 
-    # Tier 2: gcsfs streaming write
-    try:
-        fmt = "tsv" if separator == "\t" else "csv"
-        gcsfs_write(df, bucket_dest, file_format=fmt)
-        return
-    except Exception as e:
-        print(f"[write_tsv] Tier 2 (gcsfs streaming write) failed: {e}")
-
-    # Tier 3: local staging + gcloud cp
-    with tempfile.NamedTemporaryFile(suffix=".tsv", delete=False, dir="/tmp") as tmp:
-        staged = tmp.name
-    try:
-        df.write_csv(staged, separator=separator)
-        if shutil.which("gcloud") is None:
-            raise RuntimeError(
-                f"Writing to {path} requires the 'gcloud' CLI on PATH "
-                f"(standard on Verily / All of Us / Terra)."
-            )
-        result = subprocess.run(
-            ["gcloud", "storage", "cp", staged, bucket_dest],
-            capture_output=True, text=True,
-        )
-        if result.returncode != 0:
-            raise RuntimeError(
-                f"gcloud storage cp failed for {bucket_dest}:\n"
-                f"{result.stderr.strip()}"
-            )
-    finally:
+    failures = []
+    for i, (label, attempt) in enumerate(methods):
         try:
-            os.unlink(staged)
-        except FileNotFoundError:
-            pass
+            attempt()
+        except Exception as exc:
+            failures.append((label, exc))
+            if i + 1 < len(methods):
+                print(
+                    f"  Note: {label} unavailable ({type(exc).__name__}); "
+                    f"falling back to {methods[i + 1][0]}...",
+                    flush=True,
+                )
+            continue
+        if failures:
+            print(f"  Saved using {label}.", flush=True)
+        return
+
+    detail = "\n".join(f"  - {label}: {exc}" for label, exc in failures)
+    raise RuntimeError(
+        f"Could not write to {path}. All write methods failed:\n{detail}"
+    ) from failures[-1][1]
 
 
 def _to_gs_uri_if_bucket_mount(path: str) -> str | None:
