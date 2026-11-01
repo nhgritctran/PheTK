@@ -146,7 +146,6 @@ docker
 
 # claude
 .claude
-CLAUDE.md
 
 # benchmark (lives on firth branch)
 benchmark/
