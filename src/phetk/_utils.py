@@ -567,6 +567,37 @@ def _write_via_gcloud_cp(
             pass
 
 
+def _write_local(df: pl.DataFrame, path: str, separator: str) -> None:
+    """
+    Write a DataFrame to a filesystem path, atomically.
+
+    Stages to a temp file in the destination directory — same filesystem, so
+    the final ``shutil.move`` is a rename — leaving no partial file behind if
+    the write fails. Used for ordinary local paths and, as a last resort, for
+    writes through a gcsfuse mount.
+
+    Args:
+        df: DataFrame to write.
+        path: Destination path.
+        separator: Field separator.
+    """
+    parent = os.path.dirname(os.path.abspath(path))
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    with tempfile.NamedTemporaryFile(suffix=".tsv", delete=False, dir=parent) as tmp:
+        staged = tmp.name
+    try:
+        df.write_csv(staged, separator=separator)
+        shutil.move(staged, path)
+        staged = None
+    finally:
+        if staged is not None:
+            try:
+                os.unlink(staged)
+            except FileNotFoundError:
+                pass
+
+
 def write_tsv(df: pl.DataFrame, path: str, separator: str = "\t") -> None:
     """Write a polars DataFrame as TSV, robust across Verily / All of Us / Terra.
 
@@ -575,6 +606,14 @@ def write_tsv(df: pl.DataFrame, path: str, separator: str = "\t") -> None:
     2. gcsfs streaming write (avoids local staging).
     3. Stage to local temp file, then ``gcloud storage cp`` (slowest but
        most reliable).
+    4. For a gcsfuse mount path only: write through the mount itself.
+
+    Method 4 exists because methods 1-3 all authenticate as the end-user
+    account, which on a migrated workspace may hold no ``storage.objects.create``
+    on the bucket, while the mount was made with a credential that can write.
+    It is last because gcsfuse writes are unreliable for medium-to-large files
+    (EIO through its filesystem layer), and because a permission error on the
+    GCS routes fails in milliseconds while a FUSE write fails slowly.
 
     Falling back is routine, not an error: a service account may lack
     ``storage.multipartUploads.create`` (needed by 1) yet be able to stream.
@@ -588,40 +627,32 @@ def write_tsv(df: pl.DataFrame, path: str, separator: str = "\t") -> None:
     Local paths use a direct ``df.write_csv()`` call with ``shutil.move``
     from a temp file for atomicity.
     """
-    path = str(path)
+    path = os.path.expanduser(str(path))
     bucket_dest = _to_gs_uri_if_bucket_mount(path)
 
     # -- local destination --------------------------------------------------
     if bucket_dest is None:
-        parent = os.path.dirname(os.path.abspath(path))
-        if parent:
-            os.makedirs(parent, exist_ok=True)
-        with tempfile.NamedTemporaryFile(
-            suffix=".tsv", delete=False, dir=os.path.dirname(os.path.abspath(path))
-        ) as tmp:
-            staged = tmp.name
-        try:
-            df.write_csv(staged, separator=separator)
-            shutil.move(staged, path)
-            staged = None
-        finally:
-            if staged is not None:
-                try:
-                    os.unlink(staged)
-                except FileNotFoundError:
-                    pass
+        _write_local(df, path, separator)
         return
 
-    # -- GCS destination: 3-tier fallback -----------------------------------
+    # -- GCS destination: tiered fallback -----------------------------------
     fmt = "tsv" if separator == "\t" else "csv"
-    methods = (
+    methods = [
         ("direct write",
          lambda: df.write_csv(bucket_dest, separator=separator)),
         ("streaming write (gcsfs)",
          lambda: gcsfs_write(df, bucket_dest, file_format=fmt)),
         ("local staging + gcloud",
          lambda: _write_via_gcloud_cp(df, bucket_dest, separator, path)),
-    )
+    ]
+
+    # A destination reached by rewriting a mount path can also be written
+    # through the mount. An explicit gs:// URI from the caller cannot.
+    via_mount = not path.startswith("gs://")
+    if via_mount:
+        methods.append(
+            ("direct mount write", lambda: _write_local(df, path, separator))
+        )
 
     failures = []
     for i, (label, attempt) in enumerate(methods):
@@ -641,33 +672,146 @@ def write_tsv(df: pl.DataFrame, path: str, separator: str = "\t") -> None:
         return
 
     detail = "\n".join(f"  - {label}: {exc}" for label, exc in failures)
+    resolved = f" (resolved to {bucket_dest})" if via_mount else ""
     raise RuntimeError(
-        f"Could not write to {path}. All write methods failed:\n{detail}"
+        f"Could not write to {path}{resolved}. All write methods failed:\n{detail}"
     ) from failures[-1][1]
 
 
-def _to_gs_uri_if_bucket_mount(path: str) -> str | None:
-    """If ``path`` is a gs:// URI or a FUSE-mounted bucket path, return the
-    canonical ``gs://bucket/key`` form. Otherwise return None.
+# Mount table fields are escaped with octal sequences, not backslashes.
+_MOUNT_FIELD_ESCAPES = (
+    ("\\040", " "), ("\\011", "\t"), ("\\012", "\n"), ("\\134", "\\"),
+)
 
-    Verily/AoU/Terra mount workspace buckets under
-    ``/home/jupyter/workspace/<bucket-name>/...``. The bucket name is the
-    first path segment after ``workspace/``.
+# gcsfuse reports itself as "fuse.gcsfuse" on current releases; older ones and
+# some launchers report plain "fuse" or "gcsfuse".
+_GCSFUSE_FSTYPES = frozenset({"fuse.gcsfuse", "gcsfuse", "fuse"})
+
+# Verily mounts the workspace bucket at /home/jupyter/workspace/<bucket-name>.
+_WORKSPACE_MOUNT_ROOT = "/home/jupyter/workspace"
+
+
+def _unescape_mount_field(field: str) -> str:
+    """Decode the octal escapes used for whitespace in mount table fields."""
+    for escape, char in _MOUNT_FIELD_ESCAPES:
+        field = field.replace(escape, char)
+    return field
+
+
+def _gcsfuse_mounts(mounts_file: str = "/proc/mounts") -> list[tuple[str, str, str]]:
+    """
+    Read the kernel mount table and return the gcsfuse mounts it lists.
+
+    Each entry is ``(mountpoint, bucket, prefix)``, where ``prefix`` is
+    non-empty only for a mount of a sub-directory of the bucket
+    (``gcsfuse --only-dir``, which appears in the source as ``bucket:subdir``).
+    Entries are sorted longest-mountpoint-first so that a nested mount wins
+    over the mount it sits inside.
+
+    A line qualifies only if its filesystem type is one gcsfuse uses *and* its
+    source field is a valid GCS bucket name. gcsfuse puts the bucket name
+    there, so a source that looks like a device or path belongs to some other
+    FUSE filesystem.
+
+    Args:
+        mounts_file: Mount table to read. Overridable for testing; absent or
+            unreadable (e.g. macOS) yields an empty list.
+
+    Returns:
+        List of (mountpoint, bucket, prefix) tuples.
+    """
+    try:
+        with open(mounts_file, "r") as f:
+            lines = f.readlines()
+    except OSError:
+        return []
+
+    mounts = []
+    for line in lines:
+        fields = line.split()
+        if len(fields) < 3:
+            continue
+        source, mountpoint, fstype = fields[0], fields[1], fields[2]
+        if fstype not in _GCSFUSE_FSTYPES:
+            continue
+        bucket, _, prefix = source.partition(":")
+        # GCS bucket naming rules: lowercase alphanumerics, dots, dashes and
+        # underscores, 3-222 characters, starting alphanumeric.
+        if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{1,221}", bucket):
+            continue
+        mounts.append((
+            _unescape_mount_field(mountpoint).rstrip("/"),
+            bucket,
+            prefix.strip("/"),
+        ))
+
+    mounts.sort(key=lambda mount: len(mount[0]), reverse=True)
+    return mounts
+
+
+def _relpath_under(abs_path: str, root: str) -> str | None:
+    """
+    Return the portion of ``abs_path`` below ``root``, or None if not below it.
+
+    Compares whole path segments, so ``/mnt/foo`` is not treated as the parent
+    of ``/mnt/foobar``. ``root`` itself returns None: a mountpoint is a
+    directory, never a write destination.
+
+    Args:
+        abs_path: Absolute path to test.
+        root: Absolute directory to test against.
+
+    Returns:
+        Relative path below root, or None.
+    """
+    root = root.rstrip("/")
+    if not root or not abs_path.startswith(root + "/"):
+        return None
+    return abs_path[len(root) + 1:]
+
+
+def _to_gs_uri_if_bucket_mount(path: str) -> str | None:
+    """If ``path`` is a gs:// URI or a path inside a gcsfuse-mounted bucket,
+    return the canonical ``gs://bucket/key`` form. Otherwise return None.
+
+    Two independent signals identify a mount, and both require a real one, so
+    an ordinary directory is never mistaken for a bucket:
+
+    1. The kernel mount table, which names the bucket directly and works
+       wherever the bucket happens to be mounted.
+    2. Verily's ``/home/jupyter/workspace/<bucket-name>`` convention,
+       confirmed with ``os.path.ismount``. This is a fallback for the case
+       where the mount is not visible in the kernel's table from inside this
+       process's namespace.
+
+    Relative paths and ``~`` are resolved first, so the answer depends only on
+    where the path points, never on how it was spelled. Note that All of Us
+    uses ``/home/jupyter/workspaces/`` (plural) for ordinary persistent-disk
+    directories, which the convention in signal 2 deliberately does not match.
+
+    Args:
+        path: Destination path or gs:// URI.
+
+    Returns:
+        A ``gs://bucket/key`` URI, or None for an ordinary local path.
     """
     if path.startswith("gs://"):
         return path
 
-    # Identify FUSE-mounted bucket paths by checking against the standard
-    # mount prefix used on Verily/AoU/Terra.
-    mount_prefix = "/home/jupyter/workspace/"
-    abs_path = os.path.abspath(path)
-    if not abs_path.startswith(mount_prefix):
-        return None
+    abs_path = os.path.abspath(os.path.expanduser(path))
 
-    rest = abs_path[len(mount_prefix):]   # "<bucket>/<key>"
-    if "/" not in rest:
+    for mountpoint, bucket, prefix in _gcsfuse_mounts():
+        rel = _relpath_under(abs_path, mountpoint)
+        if rel is not None:
+            key = "/".join(part for part in (prefix, rel) if part)
+            return f"gs://{bucket}/{key}"
+
+    rest = _relpath_under(abs_path, _WORKSPACE_MOUNT_ROOT)
+    if rest is None or "/" not in rest:
         return None
     bucket, key = rest.split("/", 1)
+    if not os.path.ismount(f"{_WORKSPACE_MOUNT_ROOT}/{bucket}"):
+        return None
     return f"gs://{bucket}/{key}"
 
 

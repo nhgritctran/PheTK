@@ -374,8 +374,217 @@ class TestGcsfsWrite:
                 mock_write.assert_called_once_with(mock_file, separator="\t")
 
 
+class TestGcsfuseMounts:
+    """
+    Tests for _gcsfuse_mounts() mount table parsing.
+
+    Reads a fixture file rather than /proc/mounts, so no real mount — and no
+    Linux — is needed.
+    """
+
+    def _mounts_file(self, tmp_path, *lines):
+        f = tmp_path / "mounts"
+        f.write_text("".join(f"{line}\n" for line in lines))
+        return str(f)
+
+    def test_fuse_gcsfuse_line(self, tmp_path):
+        mf = self._mounts_file(
+            tmp_path, "my-bucket /home/jupyter/workspace/my-bucket fuse.gcsfuse rw 0 0"
+        )
+        assert _utils._gcsfuse_mounts(mf) == [
+            ("/home/jupyter/workspace/my-bucket", "my-bucket", "")
+        ]
+
+    def test_bare_fuse_with_bucket_source(self, tmp_path):
+        mf = self._mounts_file(tmp_path, "my-bucket /mnt/b fuse rw,user_id=1000 0 0")
+        assert _utils._gcsfuse_mounts(mf) == [("/mnt/b", "my-bucket", "")]
+
+    def test_bare_fuse_with_device_source_ignored(self, tmp_path):
+        """A path in the source field means some other FUSE filesystem."""
+        mf = self._mounts_file(tmp_path, "/dev/fuse /mnt/other fuse rw 0 0")
+        assert _utils._gcsfuse_mounts(mf) == []
+
+    def test_non_fuse_lines_ignored(self, tmp_path):
+        mf = self._mounts_file(
+            tmp_path,
+            "/dev/sda1 / ext4 rw 0 0",
+            "overlay /var/lib/docker overlay rw 0 0",
+            "tmpfs /dev/shm tmpfs rw 0 0",
+            "my-bucket /mnt/b fuse.gcsfuse rw 0 0",
+        )
+        assert _utils._gcsfuse_mounts(mf) == [("/mnt/b", "my-bucket", "")]
+
+    def test_nested_mounts_longest_first(self, tmp_path):
+        mf = self._mounts_file(
+            tmp_path,
+            "outer /mnt/b fuse.gcsfuse rw 0 0",
+            "inner /mnt/b/nested/deep fuse.gcsfuse rw 0 0",
+            "middle /mnt/b/nested fuse.gcsfuse rw 0 0",
+        )
+        assert [m[0] for m in _utils._gcsfuse_mounts(mf)] == [
+            "/mnt/b/nested/deep", "/mnt/b/nested", "/mnt/b"
+        ]
+
+    def test_only_dir_mount_carries_prefix(self, tmp_path):
+        mf = self._mounts_file(tmp_path, "my-bucket:sub/dir /mnt/b fuse.gcsfuse rw 0 0")
+        assert _utils._gcsfuse_mounts(mf) == [("/mnt/b", "my-bucket", "sub/dir")]
+
+    def test_octal_escape_in_mountpoint(self, tmp_path):
+        mf = self._mounts_file(tmp_path, "my-bucket /mnt/my\\040bucket fuse.gcsfuse rw 0 0")
+        assert _utils._gcsfuse_mounts(mf) == [("/mnt/my bucket", "my-bucket", "")]
+
+    def test_trailing_slash_stripped(self, tmp_path):
+        mf = self._mounts_file(tmp_path, "my-bucket /mnt/b/ fuse.gcsfuse rw 0 0")
+        assert _utils._gcsfuse_mounts(mf) == [("/mnt/b", "my-bucket", "")]
+
+    def test_invalid_bucket_name_ignored(self, tmp_path):
+        """Uppercase is not legal in a bucket name."""
+        mf = self._mounts_file(tmp_path, "NotABucket /mnt/b fuse.gcsfuse rw 0 0")
+        assert _utils._gcsfuse_mounts(mf) == []
+
+    def test_short_lines_ignored(self, tmp_path):
+        mf = self._mounts_file(tmp_path, "garbage", "", "my-bucket /mnt/b fuse.gcsfuse rw 0 0")
+        assert _utils._gcsfuse_mounts(mf) == [("/mnt/b", "my-bucket", "")]
+
+    def test_missing_file_returns_empty(self, tmp_path):
+        assert _utils._gcsfuse_mounts(str(tmp_path / "nope")) == []
+
+    def test_default_argument_does_not_raise(self):
+        """Reads the real /proc/mounts: must be harmless on any platform."""
+        assert isinstance(_utils._gcsfuse_mounts(), list)
+
+
+class TestRelpathUnder:
+    """Tests for _relpath_under() segment-wise containment."""
+
+    def test_path_below_root(self):
+        assert _utils._relpath_under("/mnt/b/data/x.tsv", "/mnt/b") == "data/x.tsv"
+
+    def test_root_itself_is_not_below(self):
+        assert _utils._relpath_under("/mnt/b", "/mnt/b") is None
+
+    def test_sibling_with_shared_prefix(self):
+        """/mnt/foo must not swallow /mnt/foobar."""
+        assert _utils._relpath_under("/mnt/foobar/x.tsv", "/mnt/foo") is None
+
+    def test_unrelated_path(self):
+        assert _utils._relpath_under("/tmp/x.tsv", "/mnt/b") is None
+
+    def test_trailing_slash_on_root(self):
+        assert _utils._relpath_under("/mnt/b/x.tsv", "/mnt/b/") == "x.tsv"
+
+
+class TestToGsUriIfBucketMount:
+    """
+    Tests for _to_gs_uri_if_bucket_mount() destination classification.
+
+    This is the function that decides whether a write goes to the filesystem
+    or to GCS. It previously treated the first path segment under
+    /home/jupyter/workspace/ as a bucket name with no check that a mount
+    existed, so an ordinary directory there was redirected to a bucket the
+    caller had no access to.
+    """
+
+    def test_gs_uri_passthrough(self):
+        assert _utils._to_gs_uri_if_bucket_mount("gs://b/k.tsv") == "gs://b/k.tsv"
+
+    @patch("phetk._utils._gcsfuse_mounts")
+    def test_path_inside_mount(self, mock_mounts):
+        mock_mounts.return_value = [("/mnt/b", "my-bucket", "")]
+        assert (_utils._to_gs_uri_if_bucket_mount("/mnt/b/data/x.tsv")
+                == "gs://my-bucket/data/x.tsv")
+
+    @patch("phetk._utils._gcsfuse_mounts")
+    def test_mountpoint_name_differs_from_bucket(self, mock_mounts):
+        mock_mounts.return_value = [("/home/jupyter/data", "some-bucket", "")]
+        assert (_utils._to_gs_uri_if_bucket_mount("/home/jupyter/data/x.tsv")
+                == "gs://some-bucket/x.tsv")
+
+    @patch("phetk._utils._gcsfuse_mounts")
+    def test_only_dir_prefix_joined_into_key(self, mock_mounts):
+        mock_mounts.return_value = [("/mnt/b", "my-bucket", "sub")]
+        assert (_utils._to_gs_uri_if_bucket_mount("/mnt/b/data/x.tsv")
+                == "gs://my-bucket/sub/data/x.tsv")
+
+    @patch("phetk._utils._gcsfuse_mounts")
+    def test_nested_mount_wins(self, mock_mounts):
+        mock_mounts.return_value = [
+            ("/mnt/b/nested", "inner-bucket", ""),
+            ("/mnt/b", "outer-bucket", ""),
+        ]
+        assert (_utils._to_gs_uri_if_bucket_mount("/mnt/b/nested/x.tsv")
+                == "gs://inner-bucket/x.tsv")
+
+    @patch("phetk._utils.os.path.ismount", return_value=False)
+    @patch("phetk._utils._gcsfuse_mounts", return_value=[])
+    def test_workspace_dir_that_is_not_a_mount(self, mock_mounts, mock_ismount):
+        """The reported regression: a persistent-disk directory stays local."""
+        assert _utils._to_gs_uri_if_bucket_mount(
+            "/home/jupyter/workspace/rw-bucket/data/x.tsv"
+        ) is None
+
+    @patch("phetk._utils.os.path.ismount")
+    @patch("phetk._utils._gcsfuse_mounts", return_value=[])
+    def test_workspace_dir_that_is_a_mount(self, mock_mounts, mock_ismount):
+        mock_ismount.side_effect = lambda p: p == "/home/jupyter/workspace/rw-bucket"
+        assert _utils._to_gs_uri_if_bucket_mount(
+            "/home/jupyter/workspace/rw-bucket/data/x.tsv"
+        ) == "gs://rw-bucket/data/x.tsv"
+        mock_ismount.assert_called_with("/home/jupyter/workspace/rw-bucket")
+
+    @patch("phetk._utils.os.path.ismount", return_value=True)
+    @patch("phetk._utils._gcsfuse_mounts", return_value=[])
+    def test_bucket_root_file_needs_no_mount_check(self, mock_mounts, mock_ismount):
+        """
+        A file directly in /home/jupyter/workspace/ has no bucket segment, so
+        there is nothing to mount-check.
+        """
+        assert _utils._to_gs_uri_if_bucket_mount(
+            "/home/jupyter/workspace/x.tsv"
+        ) is None
+
+    @patch("phetk._utils.os.path.ismount", return_value=True)
+    @patch("phetk._utils._gcsfuse_mounts", return_value=[])
+    def test_aou_workspaces_plural_is_local(self, mock_mounts, mock_ismount):
+        """AoU's /home/jupyter/workspaces/ holds ordinary directories."""
+        assert _utils._to_gs_uri_if_bucket_mount(
+            "/home/jupyter/workspaces/my-ws/data/x.tsv"
+        ) is None
+
+    @patch("phetk._utils._gcsfuse_mounts", return_value=[])
+    def test_ordinary_local_path(self, mock_mounts):
+        assert _utils._to_gs_uri_if_bucket_mount("/tmp/x.tsv") is None
+
+    @patch("phetk._utils._gcsfuse_mounts")
+    def test_spelling_does_not_change_the_answer(self, mock_mounts, tmp_path, monkeypatch):
+        """
+        Bare filename, ../ and absolute form all classify the same when they
+        point at the same place. The bug report was filed against ../ alone.
+        """
+        mount = tmp_path / "mnt"
+        cwd = mount / "notebooks"
+        cwd.mkdir(parents=True)
+        mock_mounts.return_value = [(str(mount), "my-bucket", "")]
+        monkeypatch.chdir(cwd)
+
+        assert (_utils._to_gs_uri_if_bucket_mount("out.tsv")
+                == "gs://my-bucket/notebooks/out.tsv")
+        assert (_utils._to_gs_uri_if_bucket_mount("../data/out.tsv")
+                == "gs://my-bucket/data/out.tsv")
+        assert (_utils._to_gs_uri_if_bucket_mount(str(mount / "data/out.tsv"))
+                == "gs://my-bucket/data/out.tsv")
+
+    @patch("phetk._utils._gcsfuse_mounts")
+    def test_tilde_is_expanded(self, mock_mounts, monkeypatch):
+        """Unexpanded, ~ became a literal path segment in the object key."""
+        monkeypatch.setenv("HOME", "/mnt/b/home")
+        mock_mounts.return_value = [("/mnt/b", "my-bucket", "")]
+        assert (_utils._to_gs_uri_if_bucket_mount("~/out.tsv")
+                == "gs://my-bucket/home/out.tsv")
+
+
 class TestWriteTsvFallback:
-    """Tests for write_tsv() local writes and GCS 3-tier fallback."""
+    """Tests for write_tsv() local writes and GCS fallback tiers."""
 
     def _make_df(self):
         return pl.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
@@ -452,6 +661,95 @@ class TestWriteTsvFallback:
         with patch.object(df, "write_csv", side_effect=side_effect):
             with pytest.raises(RuntimeError, match="gcloud storage cp failed"):
                 _utils.write_tsv(df, "gs://b/k.tsv")
+
+    @patch("phetk._utils._to_gs_uri_if_bucket_mount", return_value="gs://b/k.tsv")
+    @patch("phetk._utils.gcsfs_write", side_effect=Exception("gcsfs fail"))
+    @patch("shutil.which", return_value="/usr/bin/gcloud")
+    @patch("subprocess.run")
+    def test_mount_path_rescued_by_posix_tier(
+        self, mock_run, mock_which, mock_gcsfs_write, mock_mount, tmp_path, capsys
+    ):
+        """
+        The reported failure: all three GCS tiers 403 because the end-user
+        credential cannot write to the bucket, but the mount itself can.
+        """
+        mock_run.return_value = MagicMock(returncode=1, stderr="403 AccessDenied")
+        out = str(tmp_path / "sub" / "out.tsv")
+        df = self._make_df()
+        original_write_csv = df.write_csv
+
+        def side_effect(path, **kwargs):
+            if isinstance(path, str) and path.startswith("gs://"):
+                raise OSError("403 AccessDenied")
+            return original_write_csv(path, **kwargs)
+
+        with patch.object(df, "write_csv", side_effect=side_effect):
+            _utils.write_tsv(df, out)
+
+        result = pl.read_csv(out, separator="\t")
+        assert result.shape == (3, 2)
+        assert result["col1"].to_list() == [1, 2, 3]
+        assert "Saved using direct mount write." in capsys.readouterr().out
+
+    @patch("phetk._utils._to_gs_uri_if_bucket_mount", return_value="gs://b/k.tsv")
+    @patch("phetk._utils._write_local", side_effect=OSError("EIO"))
+    @patch("phetk._utils.gcsfs_write", side_effect=Exception("gcsfs fail"))
+    @patch("shutil.which", return_value="/usr/bin/gcloud")
+    @patch("subprocess.run")
+    def test_mount_path_all_four_tiers_fail(
+        self, mock_run, mock_which, mock_gcsfs_write, mock_write_local, mock_mount,
+        tmp_path
+    ):
+        mock_run.return_value = MagicMock(returncode=1, stderr="upload error")
+        out = str(tmp_path / "out.tsv")
+        df = self._make_df()
+        original_write_csv = df.write_csv
+
+        def side_effect(path, **kwargs):
+            if isinstance(path, str) and path.startswith("gs://"):
+                raise OSError("no object-store backend")
+            return original_write_csv(path, **kwargs)
+
+        with patch.object(df, "write_csv", side_effect=side_effect):
+            with pytest.raises(RuntimeError) as excinfo:
+                _utils.write_tsv(df, out)
+
+        msg = str(excinfo.value)
+        assert msg.count("\n  - ") == 4
+        assert "direct mount write: EIO" in msg
+        # The derived destination is named, so a rewritten path is not a mystery.
+        assert f"Could not write to {out} (resolved to gs://b/k.tsv)" in msg
+
+    @patch("phetk._utils._to_gs_uri_if_bucket_mount", return_value="gs://b/k.tsv")
+    @patch("phetk._utils._write_local")
+    @patch("phetk._utils.gcsfs_write", side_effect=Exception("gcsfs fail"))
+    @patch("shutil.which", return_value="/usr/bin/gcloud")
+    @patch("subprocess.run")
+    def test_explicit_gs_uri_has_no_posix_tier(
+        self, mock_run, mock_which, mock_gcsfs_write, mock_write_local, mock_mount
+    ):
+        """
+        A caller-supplied gs:// URI has no filesystem equivalent, so the fourth
+        tier must not run and must not appear in the summary.
+        """
+        mock_run.return_value = MagicMock(returncode=1, stderr="upload error")
+        df = self._make_df()
+        original_write_csv = df.write_csv
+
+        def side_effect(path, **kwargs):
+            if isinstance(path, str) and path.startswith("gs://"):
+                raise OSError("no object-store backend")
+            return original_write_csv(path, **kwargs)
+
+        with patch.object(df, "write_csv", side_effect=side_effect):
+            with pytest.raises(RuntimeError) as excinfo:
+                _utils.write_tsv(df, "gs://b/k.tsv")
+
+        msg = str(excinfo.value)
+        assert msg.count("\n  - ") == 3
+        assert "direct mount write" not in msg
+        assert "resolved to" not in msg
+        mock_write_local.assert_not_called()
 
 
 # Stand-in for the multi-line, XML-bearing message a cloud storage backend
